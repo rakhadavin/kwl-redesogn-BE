@@ -6,8 +6,8 @@ from kwl import settings
 from django.contrib.auth import get_user_model
 from rest_framework import exceptions
 from django.urls import exceptions as url_exceptions
-from .models import KwlUser, Course, Lecturer, Student
-
+from .models import KwlUser, Lecturer, Student
+from course.serializers import CourseSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -16,10 +16,6 @@ class KwlUserSerializer(serializers.ModelSerializer):
         model = KwlUser
         fields = '__all__'
 
-class CourseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Course
-        fields = '__all__'
 
 # class LecturerSerializer(serializers.ModelSerializer):
 #     user = KwlUserSerializer()
@@ -53,14 +49,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
 class StudentSerializer(serializers.Serializer):
-    # email = serializers.EmailField(required=True)
-    # username = serializers.CharField(
-    #     max_length=30,
-    #     min_length=6,
-    #     required=True
-    # )
-    # nama_lengkap = serializers.CharField(required=True)
-    # password = serializers.CharField(write_only=True, required=True)
     user = KwlUserSerializer(required=True)
     assistant_courses = CourseSerializer(many=True, required=False)
     student_id = serializers.CharField(required=True)

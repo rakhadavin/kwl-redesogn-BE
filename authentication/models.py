@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-
+from course.models import Course
 
 ROLE_CHOICES = [
         ("Admin", "Admin"),
@@ -15,18 +15,6 @@ class KwlUser(AbstractUser):
 
     def __str__(self):
         return self.username
-
-class Course(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.TextField()
-    # Add other fields as needed
-
-    class Meta:
-        ordering = ["title"]
-
-    def __str__(self):
-        return self.title
-
 
 
 class Lecturer(models.Model):
