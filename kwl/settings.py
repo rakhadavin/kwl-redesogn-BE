@@ -35,13 +35,14 @@ ALLOWED_HOSTS = []
 SITE_ID = 1
 
 SIMPLE_JWT = {
-    "TOKEN_OBTAIN_SERIALIZER": "authentication.serializers.MyTokenObtainPairSerializer",
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=3),
-    "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "TOKEN_OBTAIN_SERIALIZER": "my_app.serializers.MyTokenObtainPairSerializer",
+    # "TOKEN_REFRESH_SERIALIZER":"authentication.serializers.MyTokenRefreshSerializer",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=2),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
-    "SIGNING_KEY": "complexsigningkey",  # generate a key and replace me
+    "SIGNING_KEY": 'akusu',  # generate a key and replace me
     "ALGORITHM": "HS512",
 }
 
