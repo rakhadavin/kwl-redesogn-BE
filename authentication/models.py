@@ -1,33 +1,17 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-ROLE_CHOICES = {
-        ("Lecturer", "Lecturer"),
-        ("Student", "Student"),
-        ("Admin", "Admin"),
-        ("Asdos","Asdos")
-    }
+ROLE_CHOICES = (
+    ("lecturer", "Lecturer"),
+    ("student", "Student"),
+    ("admin", "Admin"),
+    ("asdos", "Asdos")
+)
 
-# class Role(models.Model):
-#     LECTURER = 1
-#     STUDENT = 2
-#     ADMIN = 3
-#     ASDOS = 4
-#     ROLE_CHOICES = {
-#         ("lecturer", "Lecturer"),
-#         ("Student", "Student"),
-#         ("Admin", "Admin"),
-#         ("Asdos","Asdos")
-#     }
-
-#     id = models.PositiveIntegerField(choices = ROLE_CHOICES, primary_key = True)
-
-#     def __str__(self):
-#         return self.get_id_display()
 
 class KwlUser(AbstractUser):
     domisili = models.CharField(max_length=100, null=True, blank=True)
-    role = models.CharField(ROLE_CHOICES, max_length=8)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
 
     def __str__(self):
         return self.username

@@ -8,6 +8,7 @@ from rest_framework import status
 from .serializers import CourseSerializer, TopicSerializer
 # Create your views here.
 from rest_framework import generics
+
 class CourseList(APIView):
     # permission_classes = (AllowAny,)
     def get(self, request, format=None):
@@ -26,6 +27,8 @@ class CourseList(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class CourseDetailView(APIView):
     # permission_classes = [IsAuthenticated]

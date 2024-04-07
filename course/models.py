@@ -15,6 +15,7 @@ class Course(models.Model):
     color_theme = models.CharField(max_length=6, choices=COLOR)
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
     assistant_team = models.ManyToManyField(Student, blank=True, related_name='assistants')
+    students = models.ManyToManyField(Student, blank=True, related_name='students')
     created = models.DateTimeField(auto_now_add=True)
     # Add other fields as needed
 
@@ -33,3 +34,5 @@ class Topic(models.Model):
 
     def __str__(self):
         return self.name
+    
+

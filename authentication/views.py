@@ -85,34 +85,39 @@ class RegisterStudentView(APIView):
         #     return Response(serializer.data, status=status.HTTP_200_OK)
         # return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"error"}, status=status.HTTP_400_BAD_REQUEST)
-# class StudentDetailView(APIView):
-#     permission_classes = [IsAuthenticated]
+    
 
-#     def get_object(self, pk):
-#         try:
-#             return Student.objects.get(pk=pk)
-#         except Student.DoesNotExist:
-#             raise Http404
+class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Student.objects.get(pk=pk)
+        except Student.DoesNotExist:
+            raise Http404
         
-#     def get(self, request, pk, format=None):
-#         student = self.get_object(pk)
-#         serializer = StudentSerializer(student)
-#         return Response(serializer.data)
-    
-#     def put(self, request, pk, format=None):
-       
-#         student = self.get_object(pk)
-#         serializer = StudentSerializer(student, data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_200_OK)
-#         return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, format=None):
+        id = request.user.id
+        print("Id "+str(id))
+        # student = self.get_object(id)
+        # serializer = StudentSerializer(student)
+        # return Response(serializer.data)
+        return Response(data={"message": "success"}, status=status.HTTP_200_OK)
+    def put(self, request, format=None):
+        id = request.user.id
+        student = self.get_object(id)
+        serializer = StudentSerializer(student, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
         
     
-#     def delete(self, request, pk, format=None):
-#         student = self.get_object(pk)
-#         student.delete()
-#         return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, pk, format=None):
+        id = request.user.id
+        student = self.get_object(id)
+        student.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
         
 
