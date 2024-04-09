@@ -9,7 +9,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 class KwlUserSerializer(serializers.ModelSerializer):
     nama_lengkap = serializers.CharField(write_only=True)
     nama_lengkap_read = serializers.SerializerMethodField()
-    password = serializers.CharField(write_only=True)  # Add this line
+    username = serializers.CharField(write_only=True, required=False)  # Add this line
+    password = serializers.CharField(write_only=True, required=False)  # Add this line
 
     class Meta:
         model = KwlUser
@@ -18,12 +19,21 @@ class KwlUserSerializer(serializers.ModelSerializer):
     def get_nama_lengkap_read(self, obj):
         return obj.first_name + ' ' + obj.last_name
     
+    
+
 
 class LecturerSerializer(serializers.ModelSerializer):
     user = KwlUserSerializer(required=True)
     class Meta:
         model = Lecturer
         fields = '__all__'
+
+
+    def get_initial(self):
+        initial = super().get_initial()
+        if self.instance is not None:
+            initial['user'] = KwlUserSerializer(self.instance.user).data
+        return initial
 
     def create(self, validated_data):
         """
@@ -62,6 +72,33 @@ class LecturerSerializer(serializers.ModelSerializer):
         lecturer.save()
         
         return lecturer
+    
+    def update(self, instance, validated_data):
+        """
+        Update and return an existing `Student` instance, given the validated data.
+        """
+    
+        instance.department = validated_data.get('department', instance.department)
+
+        user_data = validated_data.pop('user', None)
+        if user_data:
+            user = instance.user
+            user.domisili = user_data.get('domisili', user.domisili)
+            nama_lengkap = user_data.get('nama_lengkap', user.first_name + ' ' + user.last_name)
+            nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]  
+            first_name = nama_lengkap.split()[0]
+            last_name = ' '.join(nama_lengkap.split()[1:]) if len(nama_lengkap.split()) > 1 else ''
+            user.first_name = first_name
+            user.last_name = last_name
+            user.save()
+            instance.user = user
+        else:
+            user = None   
+
+
+        instance.save()
+        return instance
+    
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -82,12 +119,12 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class StudentSerializer(serializers.Serializer):
-    user = KwlUserSerializer(required=True)
+    user = KwlUserSerializer(required=False)
     assistant_courses = CourseSerializer(many=True, required=False)
-    student_id = serializers.CharField(required=True)
-    major = serializers.CharField(required=True)
-    faculty = serializers.CharField(required=True)
-    term = serializers.CharField(required=True)
+    student_id = serializers.CharField(required=False)
+    major = serializers.CharField(required=False)
+    faculty = serializers.CharField(required=False)
+    term = serializers.CharField(required=False)
 
 
     def create(self, validated_data):
@@ -100,7 +137,6 @@ class StudentSerializer(serializers.Serializer):
         assistant_courses_data = validated_data.pop('assistant_courses', [])
 
         # Extract first_name and last_name from nama_lengkap
-        print(user_data)
         if 'nama_lengkap' not in user_data:
             raise serializers.ValidationError("The nama_lengkap field is required.")
         nama_lengkap = user_data['nama_lengkap']
@@ -139,18 +175,25 @@ class StudentSerializer(serializers.Serializer):
         Update and return an existing `Student` instance, given the validated data.
         """
     
-        instance.jurusan = validated_data.get('jurusan', instance.jurusan)
-        instance.fakultas = validated_data.get('fakultas', instance.fakultas)
-        instance.semester = validated_data.get('semester', instance.semester)
+        instance.major = validated_data.get('major', instance.major)
+        instance.faculty = validated_data.get('faculty', instance.faculty)
+        instance.term = validated_data.get('term', instance.term)
 
         user_data = validated_data.pop('user', None)
         if user_data:
-            user = KwlUser.objects.get(username=user_data.username)
-            user.domisili
+            user = instance.user 
+            user.domisili = user_data.get('domisili', user.domisili)
+            nama_lengkap = user_data['nama_lengkap']
+            nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]  
+            first_name = nama_lengkap.split()[0]
+            last_name = ' '.join(nama_lengkap.split()[1:]) if len(nama_lengkap) > 1 else ''
+            user.first_name = first_name
+            user.last_name = last_name
+            user.save()
+            instance.user=user
         else:
             user = None   
-        nama_lengkap = user_data['nama_lengkap']
-        nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]  
+
 
 
         instance.save()

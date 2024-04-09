@@ -94,7 +94,7 @@ class StudentDetailView(APIView):
     def put(self, request, format=None):
         id = request.user.id
         student = self.get_student_by_kwluser_id(id)
-        serializer = StudentSerializer(student, data=request.data, status=status.HTTP_200_OK)
+        serializer = StudentSerializer(student, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
