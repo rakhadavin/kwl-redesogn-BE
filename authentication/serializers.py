@@ -9,9 +9,11 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 class KwlUserSerializer(serializers.ModelSerializer):
     nama_lengkap = serializers.CharField(write_only=True)
     nama_lengkap_read = serializers.SerializerMethodField()
+    password = serializers.CharField(write_only=True)  # Add this line
+
     class Meta:
         model = KwlUser
-        fields = ['username', 'email', 'role', 'nama_lengkap','nama_lengkap_read','domisili', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'date_joined']
+        fields = ['username', 'email', 'password', 'role', 'nama_lengkap','nama_lengkap_read','domisili', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'date_joined']
 
     def get_nama_lengkap_read(self, obj):
         return obj.first_name + ' ' + obj.last_name

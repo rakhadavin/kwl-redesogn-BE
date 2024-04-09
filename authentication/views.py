@@ -5,11 +5,10 @@ from django.contrib.auth import authenticate, logout
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer
-from .models import KwlUser, Student
+from .models import KwlUser, Student, Lecturer
 from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.utils import sso_login, get_tokens_for_user
 from rest_framework.response import Response
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -90,22 +89,47 @@ class StudentDetailView(APIView):
         print(student)
         serializer = StudentSerializer(student)
         print(serializer.data)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, format=None):
         id = request.user.id
         student = self.get_student_by_kwluser_id(id)
-        serializer = StudentSerializer(student, data=request.data)
+        serializer = StudentSerializer(student, data=request.data, status=status.HTTP_200_OK)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class LecturerDetailView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    def get_lecturer_by_kwluser_id(self, kwluser_id):
+        try:
+            lecturer = Lecturer.objects.get(user_id=kwluser_id)
+            return lecturer
+        except Lecturer.DoesNotExist:
+            return None
+        
+    def get(self, request, format=None):
+        id = request.user.id
+        lecturer = self.get_lecturer_by_kwluser_id(id)
+        serializer = LecturerSerializer(lecturer)
+        return Response(serializer.data)
+
+    def put(self, request, format=None):
+        id = request.user.id
+        lecturer = self.get_lecturer_by_kwluser_id(id)
+        serializer = LecturerSerializer(lecturer, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
     
     # def delete(self, request, pk, format=None):
     #     id = request.user.id
-    #     student = self.get_object(id)
-    #     student.delete()
+    #     lecturer = self.get_object(id)
+    #     lecturer.delete()
     #     return Response(status=status.HTTP_204_NO_CONTENT)
 
         
