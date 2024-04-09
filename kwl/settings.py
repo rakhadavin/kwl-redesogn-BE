@@ -52,6 +52,7 @@ AUTH_USER_MODEL = 'authentication.KwlUser'
 INSTALLED_APPS = [
     'authentication',
     'course',
+    'crudkwl'
     # 'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
