@@ -7,17 +7,59 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class KwlUserSerializer(serializers.ModelSerializer):
-    nama_lengkap = serializers.CharField(required=True)
+    nama_lengkap = serializers.CharField(write_only=True)
+    nama_lengkap_read = serializers.SerializerMethodField()
     class Meta:
         model = KwlUser
-        fields = '__all__'
+        fields = ['username', 'email', 'role', 'nama_lengkap','nama_lengkap_read','domisili', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'date_joined']
 
+    def get_nama_lengkap_read(self, obj):
+        return obj.first_name + ' ' + obj.last_name
+    
 
 class LecturerSerializer(serializers.ModelSerializer):
-
+    user = KwlUserSerializer(required=True)
     class Meta:
         model = Lecturer
         fields = '__all__'
+
+    def create(self, validated_data):
+        """
+        Create and return a new `Snippet` instance, given the validated data.
+        """
+
+        # Extract user data and assistant courses data
+        user_data = validated_data.pop('user', None)
+        courses_taught = validated_data.pop('courses_taught', [])
+
+        # Extract first_name and last_name from nama_lengkap
+        nama_lengkap = user_data['nama_lengkap']
+        nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]   
+        first_name = nama_lengkap.split()[0]
+        last_name = ' '.join(nama_lengkap.split()[1:]) if len(nama_lengkap) > 1 else ''
+
+        # Modify user_data
+        user_data["first_name"]=first_name
+        user_data["last_name"]=last_name
+        user_data.pop('nama_lengkap', None)
+
+        if user_data:
+            user = KwlUser.objects.create_user(**user_data)
+        else:
+            user = None    
+        # Create the Student instance
+        lecturer = Lecturer.objects.create(user=user, **validated_data)
+        
+        user.role = 'lecturer'
+        user.save()
+        # Add assistant courses if provided
+        for course_data in courses_taught:
+            courses_taught, _ = Course.objects.get_or_create(**course_data)
+            lecturer.courses_taught.add(courses_taught)
+        
+        lecturer.save()
+        
+        return lecturer
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -46,20 +88,26 @@ class StudentSerializer(serializers.Serializer):
     term = serializers.CharField(required=True)
 
 
-
     def create(self, validated_data):
         """
         Create and return a new `Snippet` instance, given the validated data.
         """
+
+        # Extract user data and assistant courses data
         user_data = validated_data.pop('user', None)
         assistant_courses_data = validated_data.pop('assistant_courses', [])
 
+        # Extract first_name and last_name from nama_lengkap
+        print(user_data)
+        if 'nama_lengkap' not in user_data:
+            raise serializers.ValidationError("The nama_lengkap field is required.")
         nama_lengkap = user_data['nama_lengkap']
-        nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]
+        nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]   
                     
         first_name = nama_lengkap.split()[0]
-
         last_name = ' '.join(nama_lengkap.split()[1:]) if len(nama_lengkap) > 1 else ''
+
+        # Modify user_data
         user_data["first_name"]=first_name
         user_data["last_name"]=last_name
         user_data.pop('nama_lengkap', None)
@@ -71,6 +119,8 @@ class StudentSerializer(serializers.Serializer):
         # Create the Student instance
         student = Student.objects.create(user=user, **validated_data)
         
+        user.role = 'student'
+        user.save()
         # Add assistant courses if provided
         for course_data in assistant_courses_data:
             assistant_course, _ = Course.objects.get_or_create(**course_data)
@@ -104,6 +154,3 @@ class StudentSerializer(serializers.Serializer):
         instance.save()
         return instance
     
-    
-# class DosenRegisterSerializer(RegisterSerializer):
-#     lecturerId = serializers.CharField()

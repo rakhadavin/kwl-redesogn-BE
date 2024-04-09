@@ -1,16 +1,15 @@
-from django.db import DatabaseError
-from django.http import Http404
+
 from rest_framework import status
 
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, logout
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from .serializers import LoginSerializer, StudentSerializer
+from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer
 from .models import KwlUser, Student
-
+from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.utils import sso_login, get_tokens_for_user
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -58,9 +57,6 @@ class LoginView(APIView):
 
 class RegisterStudentView(APIView):
     permission_classes = (AllowAny,)
-
-    # Register Student
-    @csrf_exempt
     def post(self, request):  
         try:
             serializer = StudentSerializer(data=request.data)
@@ -76,58 +72,50 @@ class RegisterStudentView(APIView):
 
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-    def put(self, request, format=None):
-        print(request.user.id)
-        # student = self.get_object(pk)
-        # serializer = StudentSerializer(student, data=request.data)
-        # if serializer.is_valid():
-        #     serializer.save()
-        #     return Response(serializer.data, status=status.HTTP_200_OK)
-        # return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"error"}, status=status.HTTP_400_BAD_REQUEST)
     
 
-class UserDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+class StudentDetailView(APIView):
+    permission_classes = [IsAuthenticated,]
 
-    def get_object(self, pk):
+    def get_student_by_kwluser_id(self, kwluser_id):
         try:
-            return Student.objects.get(pk=pk)
+            student = Student.objects.get(user_id=kwluser_id)
+            return student
         except Student.DoesNotExist:
-            raise Http404
+            return None
         
     def get(self, request, format=None):
         id = request.user.id
-        print("Id "+str(id))
-        # student = self.get_object(id)
-        # serializer = StudentSerializer(student)
-        # return Response(serializer.data)
-        return Response(data={"message": "success"}, status=status.HTTP_200_OK)
+        student = self.get_student_by_kwluser_id(id)
+        print(student)
+        serializer = StudentSerializer(student)
+        print(serializer.data)
+        return Response(serializer.data)
+
     def put(self, request, format=None):
         id = request.user.id
-        student = self.get_object(id)
+        student = self.get_student_by_kwluser_id(id)
         serializer = StudentSerializer(student, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
-        
+
     
-    def delete(self, request, pk, format=None):
-        id = request.user.id
-        student = self.get_object(id)
-        student.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    # def delete(self, request, pk, format=None):
+    #     id = request.user.id
+    #     student = self.get_object(id)
+    #     student.delete()
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
 
         
 
 class RegisterTeacherView(APIView):
     permission_classes = (AllowAny,)
-    @csrf_exempt
     def post(self, request):
         try:
             print(request.data)
-            serializer = StudentSerializer(data=request.data)
+            serializer = LecturerSerializer(data=request.data)
             if serializer.is_valid():
                     serializer.save()
         
@@ -139,3 +127,15 @@ class RegisterTeacherView(APIView):
         except Exception as e:
 
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class LogoutView(APIView):
+    permission_classes = (IsAuthenticated,)
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh_token"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response(data=str(e),status=status.HTTP_400_BAD_REQUEST)

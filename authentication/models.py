@@ -4,7 +4,6 @@ from django.contrib.auth.models import AbstractUser
 ROLE_CHOICES = (
     ("lecturer", "Lecturer"),
     ("student", "Student"),
-    ("admin", "Admin"),
     ("asdos", "Asdos")
 )
 
@@ -12,7 +11,7 @@ ROLE_CHOICES = (
 class KwlUser(AbstractUser):
     domisili = models.CharField(max_length=100, null=True, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
-
+    
     def __str__(self):
         return self.username
 
@@ -20,7 +19,7 @@ class KwlUser(AbstractUser):
 class Lecturer(models.Model):
     user = models.OneToOneField(KwlUser, on_delete=models.CASCADE, related_name='lecturer_profile', null=True)
     department = models.CharField(max_length=100)
-    courses_taught = models.ManyToManyField('course.Course')
+    courses_taught = models.ManyToManyField('course.Course',blank=True,related_name='courses_taughts')
 
     def __str__(self):
         return self.user.username
