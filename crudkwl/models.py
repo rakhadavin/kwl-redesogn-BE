@@ -6,7 +6,7 @@ from django.contrib.postgres.fields import ArrayField
 class Know(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    topic = models.ForeignKey('Topic', on_delete=models.CASCADE, blank=True, null=True)
+    topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
     total_score = models.IntegerField(default=0)
     def __str__(self):
         return self.topic
@@ -14,7 +14,7 @@ class Know(models.Model):
 class WantToKnow(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    topic = models.ForeignKey('Topic', on_delete=models.CASCADE, blank=True, null=True)
+    topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
     total_score = models.IntegerField(default=0)
     def __str__(self):
         return self.topic
@@ -22,7 +22,7 @@ class WantToKnow(models.Model):
 class Learned(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    topic = models.ForeignKey('Topic', on_delete=models.CASCADE, blank=True, null=True)
+    topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
     total_score = models.IntegerField(default=0)
     def __str__(self):
         return self.topic
