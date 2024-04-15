@@ -1,0 +1,67 @@
+from django.db import models
+from django.contrib.postgres.fields import ArrayField
+
+# Create your models here.
+
+    
+## Know
+CHOICES = (("reflection", "Reflection"), ("quiz", "Quiz"))
+class Know(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
+    type = models.CharField(max_length=255, choices=CHOICES, default='reflection')
+    def __str__(self):
+        return self.type
+
+    
+class KnowQuizQuestion(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    question = models.CharField(max_length=255)
+    know = models.ForeignKey('Know', on_delete=models.CASCADE, blank=True, null=True)
+    score = models.IntegerField(default=0)
+    image = models.ImageField(upload_to='know_images/', blank=True, null=True)
+    def __str__(self):
+        return self.question
+    
+    def get_answers(self):
+        return KnowQuizOption.objects.filter(know_quiz_id=self.id)
+    
+class KnowQuizOption(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    know_quiz_id = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
+    option_answer = models.CharField(max_length=255)
+    isCorrect = models.BooleanField(default=False)
+    def __str__(self):
+        return self.option_answer
+    
+class KnowQuizStudentAnswer(models.Model):
+    know_quiz_question_id = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
+    student_id = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
+    answer = models.CharField(max_length=255)
+    score = models.IntegerField(default=0)
+    def __str__(self):
+        return self.answer
+    
+class KnowReflection(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    question = models.CharField(max_length=255)
+    know_id = models.ForeignKey('Know', on_delete=models.CASCADE, blank=True, null=True)
+    score = models.IntegerField(default=0)
+    def __str__(self):
+        return self.question
+ 
+
+class KnowReflectionStudentAnswer(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    know_ref_id = models.ForeignKey('KnowReflection', on_delete=models.CASCADE, blank=True, null=True)
+    student_id = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
+    reflection = models.TextField(max_length=255)
+    score = models.IntegerField(default=0)
+    def __str__(self):
+        return self.reflection
+    

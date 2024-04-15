@@ -1,3 +1,4 @@
+from authentication import views
 from django.urls import path
 
 from course import views
@@ -8,3 +9,4 @@ urlpatterns = [
     path('topic/', views.TopicList.as_view()),
     path('topic/<int:pk>', views.TopicDetail.as_view()),
 ]
+
