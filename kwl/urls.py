@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/course/', include('course.urls')),
     path('admin/', admin.site.urls),
     path('api/know/', include('know.urls')),
+    path('api/wtk/', include('wtk.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

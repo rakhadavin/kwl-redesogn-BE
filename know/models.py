@@ -5,6 +5,7 @@ from django.contrib.postgres.fields import ArrayField
 
     
 ## Know
+alias_choices = (("Opsi A", "Opsi A"), ("Opsi B", "Opsi B"), ("Opsi C", "Opsi C"), ("Opsi D", "Opsi D"))
 CHOICES = (("reflection", "Reflection"), ("quiz", "Quiz"))
 class Know(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -34,6 +35,7 @@ class KnowQuizOption(models.Model):
     know_quiz_id = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
     option_answer = models.CharField(max_length=255)
     isCorrect = models.BooleanField(default=False)
+    alias = models.CharField(choices=alias_choices, max_length=255, blank=True, null=True)
     def __str__(self):
         return self.option_answer
     
