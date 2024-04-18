@@ -11,20 +11,27 @@ from .models import Know, KnowQuizQuestion, KnowReflection
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 
-def get_know_quiz_question_or_404(question_id):
+
+def get_know_quiz_question_or_404_by_quiz_id(question_id):
         try:
             return KnowQuizQuestion.objects.get(id=question_id)
         except KnowQuizQuestion.DoesNotExist:
             raise Http404
         
-def get_know_essay_or_404(know_ref_id):
+def get_know_essay_or_404_by_ref_id(know_ref_id):
         try:
             return KnowReflection.objects.get(id=know_ref_id)
         except KnowReflection.DoesNotExist:
             raise Http404
+        
+def get_know_essay_or_404_by_know_id(know_id):
+        try:
+            return KnowReflection.objects.get(know__id=know_id)
+        except KnowReflection.DoesNotExist:
+            raise Http404
+        
 @api_view(['GET'])
 def get_know_by_topic_id(request, topic_id):
     know = Know.objects.filter(topic_id=topic_id).first()
@@ -44,9 +51,9 @@ class KnowQuizView():
              return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
     @api_view(['PUT'])
-    def edit_know_quiz(request, pk):
+    def edit_know_quiz(request, quiz_id):
         try:
-            quiz = get_know_quiz_question_or_404(pk)
+            quiz = get_know_quiz_question_or_404_by_quiz_id(quiz_id)
             serializer = EditKnowQuizQuestionSerializer(quiz, data=request.data)
             if serializer.is_valid():
                 serializer.save()
@@ -56,9 +63,9 @@ class KnowQuizView():
             return Response({"error": "Quiz question not found"}, status=status.HTTP_404_NOT_FOUND)
    
     @api_view(['GET'])
-    def get_question_by_quiz_id(request, pk):
+    def get_question_by_quiz_id(request, quiz_id):
         try:
-            know_quiz = get_know_quiz_question_or_404(pk)
+            know_quiz = get_know_quiz_question_or_404_by_quiz_id(quiz_id)
         
             question_serializer = KnowQuizQuestionSerializer(know_quiz)
             options = know_quiz.get_answers()
@@ -69,8 +76,8 @@ class KnowQuizView():
             return Response({"error": "Quiz question not found"}, status=status.HTTP_404_NOT_FOUND)
         
     @api_view(['GET'])
-    def get_all_questions_by_know_id(request, pk):
-        questions = KnowQuizQuestion.objects.filter(know_id=pk)
+    def get_all_questions_by_know_id(request, know_id):
+        questions = KnowQuizQuestion.objects.filter(know_id=know_id)
         questions_data = []
         for question in questions:
             question_data = {
@@ -116,7 +123,7 @@ class KnowQuizView():
             user_id = request.user
             student = Student.objects.get(user_id=user_id)
             answer = request.data['answer']
-            know_quiz = get_know_quiz_question_or_404(know_quiz_id)
+            know_quiz = get_know_quiz_question_or_404_by_quiz_id(know_quiz_id)
             correct_option = know_quiz.get_answers().get(isCorrect=True)
 
             history, created = KnowQuizStudentAnswer.objects.get_or_create(know_quiz_question_id=know_quiz, student_id=student)
@@ -150,20 +157,25 @@ class KnowEssayView():
    
     @api_view(['GET'])
     def get_know_essay_by_know_id(request, know_id ):
-        know_ref = KnowReflection.objects.get(know_id=know_id)
-        serializer = KnowReflectionSerializer(know_ref)
-        return Response({"data": serializer.data}, status=status.HTTP_200_OK)
-    
-
+        try:
+            essay = get_know_essay_or_404_by_know_id(know_id)
+            serializer = KnowReflectionSerializer(essay)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Http404:
+            return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
     
     @api_view(['PUT'])
-    def edit_know_essay(request, pk):
-        know_ref = get_know_essay_or_404(pk)
-        serializer = EditKnowEssaySerializer(know_ref, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Reflection question updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    def edit_know_essay_by_ref_id(request, ref_id):
+        try:
+            know_ref = get_know_essay_or_404_by_ref_id(ref_id)
+            serializer = EditKnowEssaySerializer(know_ref, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Reflection question updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Http404:
+            return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
+
 
             
     @api_view(['POST'])
@@ -174,7 +186,7 @@ class KnowEssayView():
 
             reflection = request.data['reflection']
 
-            know_essay = get_know_essay_or_404(know_ref_id)
+            know_essay = get_know_essay_or_404_by_ref_id(know_ref_id)
             student = Student.objects.get(user_id=user.id)
             history, created = KnowReflectionStudentAnswer.objects.get_or_create(student_id=student, know_ref_id=know_essay)
             history.score = know_essay.score

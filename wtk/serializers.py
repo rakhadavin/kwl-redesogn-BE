@@ -23,7 +23,7 @@ class AddPollingQuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WtkPollQuestion
-        fields = ['score','question','want_to_know', 'option_1', 'option_2', 'option_3', 'option_4', 'option_5', 'option_6', 'option_7', 'option_8', 'option_9', 'option_10', 'type', 'topic_id']
+        fields = ['id','score','question','want_to_know', 'option_1', 'option_2', 'option_3', 'option_4', 'option_5', 'option_6', 'option_7', 'option_8', 'option_9', 'option_10', 'type', 'topic_id']
 
     def create(self, validated_data):
         options_array = ['option_1', 'option_2', 'option_3', 'option_4', 'option_5', 'option_6', 'option_7', 'option_8', 'option_9', 'option_10']
@@ -49,7 +49,7 @@ class EditPollingQuestionSerializer(serializers.Serializer):
     option_8 = serializers.CharField(max_length=255, required=False, write_only=True)
     option_9 = serializers.CharField(max_length=255, required=False, write_only=True)
     option_10 = serializers.CharField(max_length=255, required=False, write_only=True)
-    topic_id = serializers.IntegerField(required=True, write_only=True)
+    topic_id = serializers.IntegerField(required=False, write_only=True)
     id = serializers.IntegerField(required=True, write_only=True)
 
     def update(self, instance, validated_data):
@@ -60,12 +60,10 @@ class EditPollingQuestionSerializer(serializers.Serializer):
         existed_choices = WtkChoices.objects.filter(wtk_poll_question_id=instance)
         options_array = ['option_1', 'option_2', 'option_3', 'option_4', 'option_5', 'option_6', 'option_7', 'option_8', 'option_9', 'option_10']
         for i in options_array:
-            if i in validated_data and validated_data[i]:
-                if existed_choices.exists() and i == existed_choices[i].alias:
-                    existed_choices[i].option_answer = validated_data[i]
-                    existed_choices[i].save()
-                else:
-                    WtkChoices.objects.create(wtk_poll_question_id=instance, option_answer=validated_data[i])
+            if i in validated_data:
+                option = existed_choices.get(alias=i)
+                option.option_answer = validated_data[i]
+                option.save()
         instance.save()
         return instance
 
@@ -79,7 +77,7 @@ class WtkPollingQuestionSerializer(serializers.ModelSerializer):
 class WtkPollingAnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = WtkChoices
-        fields = ['option_answer', 'wtk_poll_question_id']
+        fields = ['option_answer', 'id']
 
 class AddWtkEssaySerializer(serializers.Serializer):
     question = serializers.CharField(max_length=255, required=True)

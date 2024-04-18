@@ -30,19 +30,6 @@ class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
     topic = serializers.PrimaryKeyRelatedField(queryset=Topic.objects.all(), write_only=True)
     type = serializers.ChoiceField(choices=know_choices, required=True, write_only=True)
 
-    # option_a = serializers.CharField(max_length=255, required=True, write_only=True)
-    # option_b = serializers.CharField(max_length=255, required=True, write_only=True)
-    # option_c = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_d = serializers.CharField(max_length=255, required=False, write_only=True)
-    # question = serializers.CharField(max_length=255, required=True)
-    # type = serializers.ChoiceField(choices=know_choices, required=True, write_only=True)
-    # image = serializers.ImageField(required=False)
-    # correct_option = serializers.ChoiceField(choices=option_choices, required=True, write_only=True)
-    # score = serializers.IntegerField(required=True)
-    # topic = serializers.PrimaryKeyRelatedField(queryset=Topic.objects.all())
-    # options = serializers.SerializerMethodField(read_only=True)
-
-
     class Meta:
         model = KnowQuizQuestion
         fields = ['option_a', 'option_b', 'option_c', 'option_d', 'question', 'type', 'image', 'correct_option', 'score', 'topic', 'know']
@@ -62,8 +49,6 @@ class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
     
         validated_data.pop('correct_option')   
         
-    
-       
         know, created = Know.objects.get_or_create(topic=topic, type=validated_data['type'])
         if not created:
             raise serializers.ValidationError("Know already exists")
@@ -75,24 +60,6 @@ class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
         KnowQuizOption.objects.bulk_create(options)
         return know_quiz
      
-    
-
-     
-        # topic = Topic.objects.get(pk=validated_data['topic_id'])
-        # know, created = Know.objects.get_or_create(topic=self.topic)
-        # know_quiz = KnowQuizQuestion.objects.create(know=know, question=validated_data['question'], score=validated_data['score'], image=validated_data['image_url'])
-        # know_quiz_opt_a = KnowQuizOption.objects.create(know_quiz_id=know_quiz, option_answer=validated_data['option_a'], isCorrect=validated_data['correct_option'] == 'Opsi A')
-        # know_quiz_opt_b = KnowQuizOption.objects.create(know_quiz_id=know_quiz, option_answer=validated_data['option_b'], isCorrect=validated_data['correct_option'] == 'Opsi B')
-        # if validated_data['option_c']:
-        #     know_quiz_opt_c = KnowQuizOption.objects.create(know_quiz_id=know_quiz, option_answer=validated_data['option_c'], isCorrect=validated_data['correct_option'] == 'Opsi C')
-        # if validated_data['option_d']:
-        #     know_quiz_opt_d = KnowQuizOption.objects.create(know_quiz_id=know_quiz, option_answer=validated_data['option_d'], isCorrect=validated_data['correct_option'] == 'Opsi D')
-        # return know_quiz
-    
-    # def get_options(self, obj):
-    #     options = KnowQuizOption.objects.filter(know_quiz_id=obj.id)
-    #     return KnowQuizOptionsSerializer(options, many=True).data
-    
     
 class EditKnowQuizQuestionSerializer(serializers.Serializer):
     option_a = serializers.CharField(max_length=255, required=False, write_only=True)
@@ -117,14 +84,15 @@ class EditKnowQuizQuestionSerializer(serializers.Serializer):
             instance.image = validated_data['image']
         instance.save()
    
-
-        for i in ['option_a', 'option_b', 'option_c', 'option_d']:
-            if i in validated_data:
-                option = instance.get_answers().get(alias=i)
-                option.option_answer = validated_data[i]
+        options = instance.get_answers()
+        options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
+        for option in options_tuple:
+            if option[0] in validated_data:
+                answer = options.get(alias=option[1])
+                answer.option_answer = validated_data[option[0]]
                 if 'correct_option' in validated_data:
-                    option.isCorrect = validated_data['correct_option'] == i
-                option.save()
+                    answer.isCorrect = validated_data['correct_option'] == option[1]
+                answer.save()
 
         return instance
 class AddKnowEssaySerializer(serializers.Serializer):

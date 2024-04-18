@@ -38,6 +38,7 @@ class KnowQuizOption(models.Model):
     alias = models.CharField(choices=alias_choices, max_length=255, blank=True, null=True)
     def __str__(self):
         return self.option_answer
+
     
 class KnowQuizStudentAnswer(models.Model):
     know_quiz_question_id = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)

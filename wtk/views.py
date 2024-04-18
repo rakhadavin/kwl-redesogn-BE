@@ -6,7 +6,7 @@ from authentication.models import Student
 from .models import Prereading, WtkPollQuestion, WantToKnow, WtkStudentAnswer, WtkChoices, WtkReflection, WtkReflectionStudentAnswer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer
+from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer, EditPollingQuestionSerializer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -58,14 +58,25 @@ class PollingView():
             return Response({"message": "Polling question added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
         else:
             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        
+    
+    @api_view(['PUT'])
+    def edit_polling_question(request):
+        try:
+            question = get_wtk_question_or_404(request.data['id'])
+            serializer = EditPollingQuestionSerializer(question, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Polling question updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Http404:
+            return Response({"error": "Polling question not found"}, status=status.HTTP_404_NOT_FOUND)
 
     @api_view(['GET'])
     def get_polling_question(request, question_id):
         try:
             question = get_wtk_question_or_404(question_id)
             question_serializer = WtkPollingQuestionSerializer(question)
-            answer_serializer = WtkPollingAnswerSerializer(WtkChoices.objects.filter(wtk_poll_question_id=pk), many=True)
+            answer_serializer = WtkPollingAnswerSerializer(WtkChoices.objects.filter(wtk_poll_question_id=question_id), many=True)
             poll = {"question": question_serializer.data, "answers": answer_serializer.data}
             return Response(poll, status=status.HTTP_200_OK)
         except Http404:
@@ -118,7 +129,7 @@ class PollingView():
 
 
 ## TEST WORD_CLOUD
-def get_wtk_essay_or_404(self, know_ref_id):
+def get_wtk_essay_or_404(know_ref_id):
     try:
         return WtkReflection.objects.get(id=know_ref_id)
     except WtkReflection.DoesNotExist:
@@ -135,19 +146,25 @@ class WtkEssayView():
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     @api_view(['PUT'])
-    def edit_know_essay(request, pk):
-        know_ref = get_wtk_essay_or_404(pk)
-        serializer = EditWtkEssaySerializer(know_ref, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Reflection question updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    def edit_wtk_essay(request, ref_id):
+        try:
+            essay = get_wtk_essay_or_404(ref_id)
+            serializer = EditWtkEssaySerializer(essay, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Reflection question updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Http404:
+            return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
    
     @api_view(['GET'])
     def get_wtk_essay(request, know_id ):
-        
-        serializer = WtkReflectionSerializer(WtkReflection.objects.filter(know_id=know_id), many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            essay = get_wtk_essay_or_404(know_id)
+            serializer = WtkReflectionSerializer(essay)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Http404:
+            return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
             
     @api_view(['POST'])
     @permission_classes([IsAuthenticated]) 
