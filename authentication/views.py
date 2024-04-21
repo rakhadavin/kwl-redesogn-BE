@@ -1,16 +1,24 @@
 
+from django.http import Http404
 from rest_framework import status
 
 from django.contrib.auth import authenticate, logout
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
+
+from kwl import settings
 from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer
 from .models import KwlUser, Student, Lecturer
 from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.utils import sso_login, get_tokens_for_user
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
-
+from rest_framework.decorators import api_view
+from course.models import Course
+from django.core.mail import send_mail
+import os
+import random
+import string
 
 class LoginView(APIView):
     permission_classes = (AllowAny,)
@@ -125,12 +133,6 @@ class LecturerDetailView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # def delete(self, request, pk, format=None):
-    #     id = request.user.id
-    #     lecturer = self.get_object(id)
-    #     lecturer.delete()
-    #     return Response(status=status.HTTP_204_NO_CONTENT)
 
         
 
@@ -163,3 +165,47 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response(data=str(e),status=status.HTTP_400_BAD_REQUEST)
+        
+class RequestPasswordResetEmailView(APIView):
+    permission_classes = (AllowAny,)
+    def post(self, request):
+        try:
+            email = request.data["email"]
+            user = KwlUser.objects.get(email=email)
+            token = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=20))
+            user.reset_password_token = token
+            user.save()
+            try:
+                send_mail(
+                    subject = 'Reset Password',
+                    message = 'Click the link below to reset your password\n\nhttp://localhost:8000/reset-password?token=' + token,
+                    from_email="kowl.apps@gmail.com",
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                    auth_password=settings.EMAIL_HOST_PASSWORD,
+                    auth_user=settings.EMAIL_HOST_USER
+                )
+            except SMTPException as e:
+                return Response({"message": f"Email could not be sent. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            return Response({"message": "Reset password email sent successfully"}, status=status.HTTP_200_OK)
+        except KwlUser.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+from smtplib import SMTPException     
+
+class ResetPasswordConfirmByTokenView(APIView):
+    permission_classes = (AllowAny,)
+    def post(self, request, token):
+        try:
+            user = KwlUser.objects.get(reset_password_token=token)
+            user.set_password(request.data["new_password"])
+            user.reset_password_token = None
+            user.save()
+            return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)
+        except KwlUser.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

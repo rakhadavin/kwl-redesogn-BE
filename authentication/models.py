@@ -11,7 +11,7 @@ ROLE_CHOICES = (
 class KwlUser(AbstractUser):
     domisili = models.CharField(max_length=100, null=True, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
-    
+    reset_password_token = models.CharField(max_length=100, null=True, blank=True)
     def __str__(self):
         return self.username
 
