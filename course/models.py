@@ -1,23 +1,23 @@
 from django.db import models
 from authentication.models import Lecturer, Student
 COLOR = [
-    ('blue', 'blue'),
-    ('tosca', 'tosca'),
-    ('orange', 'orange'),
-    ('pink', 'pink'),
-    ('yellow', 'yellow')
+    ('dark-accent', 'dark-accent'),
+    ('kiki-blue', 'kiki-blue'),
+    ('kowl-orange', 'kowl-orange'),
+    ('wawa-pink', 'wawa-pink'),
+    ('lulu-yellow', 'lulu-yellow')
 ]
 
 # Create your models here.
 class Course(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
+    short_name = models.CharField(max_length=15)
+    full_name = models.CharField(max_length=100)
     color_theme = models.CharField(max_length=6, choices=COLOR)
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
     assistant_team = models.ManyToManyField(Student, blank=True, related_name='assistants')
     students = models.ManyToManyField(Student, blank=True, related_name='students')
     created = models.DateTimeField(auto_now_add=True)
-    # Add other fields as needed
+  
 
     class Meta:
         ordering = ["name"]

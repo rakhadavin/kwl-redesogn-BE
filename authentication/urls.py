@@ -5,7 +5,7 @@ from rest_framework_simplejwt.views import (
 )
 
 
-from .views import LoginView, RegisterStudentView, StudentDetailView, LogoutView, RegisterTeacherView, LecturerDetailView
+from .views import LoginView, RegisterStudentView, StudentDetailView, LogoutView, RegisterTeacherView, LecturerDetailView, ResetPasswordConfirmByTokenView, RequestPasswordResetEmailView
 
 urlpatterns = [
     path("register/student/", RegisterStudentView.as_view(), name="rest_student_register"),
@@ -14,5 +14,7 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("student/", StudentDetailView.as_view(), name="student_detail"),
     path("logout/", LogoutView.as_view(), name="rest_logout"),
-    path("lecturer/", LecturerDetailView.as_view(), name="lecturer_detail")
+    path("lecturer/", LecturerDetailView.as_view(), name="lecturer_detail"),
+    path('reset-password/<str:token>/', ResetPasswordConfirmByTokenView.as_view(), name='reset_password_confirm'),
+    path('forget-password/', RequestPasswordResetEmailView.as_view(), name='forget_password'),
 ]
