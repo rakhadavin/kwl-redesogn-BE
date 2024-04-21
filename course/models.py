@@ -12,23 +12,19 @@ COLOR = [
 class Course(models.Model):
     short_name = models.CharField(max_length=15)
     full_name = models.CharField(max_length=100)
-    color_theme = models.CharField(max_length=6, choices=COLOR)
+    color_theme = models.CharField(max_length=11, choices=COLOR)
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
     assistant_team = models.ManyToManyField(Student, blank=True, related_name='assistants')
     students = models.ManyToManyField(Student, blank=True, related_name='students')
     created = models.DateTimeField(auto_now_add=True)
   
-
-    class Meta:
-        ordering = ["name"]
-
     def __str__(self):
-        return self.name
+        return self.short_name
 
 class Topic(models.Model):
     name = models.CharField(max_length=100)
-    goals = models.CharField(max_length=250)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE,   blank=True,
+    description = models.CharField(max_length=250)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True,
     null=True)
     created = models.DateTimeField(auto_now_add=True)
 
