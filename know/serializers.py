@@ -37,7 +37,6 @@ class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         topic = validated_data.pop('topic', None)
 
-        
         options_data = [
         {'option_answer': validated_data.pop('option_a'), 'isCorrect': validated_data['correct_option'] == 'Opsi A', 'alias': 'option_a'},
         {'option_answer': validated_data.pop('option_b'), 'isCorrect': validated_data['correct_option'] == 'Opsi B', 'alias': 'option_b'},
@@ -67,7 +66,6 @@ class EditKnowQuizQuestionSerializer(serializers.Serializer):
     option_c = serializers.CharField(max_length=255, required=False, write_only=True)
     option_d = serializers.CharField(max_length=255, required=False, write_only=True)
     question = serializers.CharField(max_length=255, required=False)
-
     image = serializers.ImageField(required=False)
     correct_option = serializers.ChoiceField(choices=option_choices, required=False, write_only=True)
     score = serializers.IntegerField(required=False)
@@ -82,6 +80,8 @@ class EditKnowQuizQuestionSerializer(serializers.Serializer):
         if 'image' in validated_data:
             instance.image.delete(save=False)
             instance.image = validated_data['image']
+
+  
         instance.save()
    
         options = instance.get_answers()

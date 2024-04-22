@@ -16,6 +16,7 @@ class WtkPollQuestion(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     question = models.CharField(max_length=255)
     want_to_know = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
+    choices = models.ManyToManyField('WtkChoices', blank=True, related_name='poll_choices')
     score = models.IntegerField(default=0)
     def __str__(self):
         return self.question
@@ -24,9 +25,7 @@ class WtkPollQuestion(models.Model):
 class WtkChoices(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    wtk_poll_question_id = models.ForeignKey('WtkPollQuestion', on_delete=models.CASCADE, blank=True, null=True)
     option_answer = models.CharField(max_length=255)
-    alias = models.CharField(max_length=255, blank=True, null=True)
     
     def __str__(self):
         return self.option_answer

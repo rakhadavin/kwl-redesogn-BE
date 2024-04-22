@@ -39,7 +39,13 @@ def get_learned_by_topic_id(request, topic_id):
             return Learned.objects.get(topic=topic_id)
         except Learned.DoesNotExist:
             raise Http404
-#views to create, edit, and get reflection/essay 
+        
+@api_view(['GET'])
+def is_learned_exist_by_topic_id(request, topic_id):
+    learned = Learned.objects.filter(topic_id=topic_id).first()
+    if learned:
+        return Response({"data": True}, status=status.HTTP_200_OK)
+    return Response({"data": False}, status=status.HTTP_200_OK)
 
 class LearnedQuizView():
     

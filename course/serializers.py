@@ -30,4 +30,4 @@ class TopicSerializer(serializers.ModelSerializer):
     course_data = CourseSerializer(read_only=True, source='course')
     class Meta:
         model = Topic
-        fields = ['name','goals','id','course','course_data']
+        fields = ['name','description','id','course','course_data']

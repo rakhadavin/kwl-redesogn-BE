@@ -11,24 +11,40 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.http import Http404
-# Create your views here.
+from know.models import KnowReflection
+from learned.models import LearnedReflection
+from wtk.models import WtkReflection# Create your views here.
 # Create your views here.
 
 class WordCloudAPIView(APIView):
     def get(self, request):
+        type = request.data['type'] #tipe dari reflection, apakah learned wtk atau know
+        topic_id = request.data['topic_id'] #id dari topic yang ingin diambil reflectionnya
+        reflections = []
+
+        if type == 'learned':
+            reflections = LearnedReflection.objects.filter(learned__topic_id=topic_id).values_list('reflection', flat=True)
+        elif type == 'wtk':
+            reflections = WtkReflection.objects.filter(wtk__topic_id=topic_id).values_list('reflection', flat=True)
+        elif type == 'know':
+            reflections = KnowReflection.objects.filter(know__topic_id=topic_id).values_list('reflection', flat=True)
+
+        
         # Get data from request (e.g., reflections)
-        reflections = [
-        "Today I learned about Django and how to build web applications using Python. It's fascinating!",
-        "Reflecting on my coding journey, I realize the importance of practice and perseverance.",
-        "The concept of machine learning is intriguing, and I'm excited to dive deeper into this field.",
-        "Exploring new technologies is both challenging and rewarding.",
-        "Reflecting on my past projects, I see how much I've grown as a developer.",
-        "I enjoy solving complex problems and finding innovative solutions.",
-        "Learning new programming languages opens up new opportunities for me.",
-        "Reflecting on my career goals, I'm motivated to continue learning and improving my skills.",
-        "The support of the developer community has been invaluable in my learning journey.",
-        "Building user-friendly interfaces is a key aspect of software development."
-    ]
+    #     reflections = [
+    #     "Today I learned about Django and how to build web applications using Python. It's fascinating!",
+    #     "Reflecting on my coding journey, I realize the importance of practice and perseverance.",
+    #     "The concept of machine learning is intriguing, and I'm excited to dive deeper into this field.",
+    #     "Exploring new technologies is both challenging and rewarding.",
+    #     "Reflecting on my past projects, I see how much I've grown as a developer.",
+    #     "I enjoy solving complex problems and finding innovative solutions.",
+    #     "Learning new programming languages opens up new opportunities for me.",
+    #     "Reflecting on my career goals, I'm motivated to continue learning and improving my skills.",
+    #     "The support of the developer community has been invaluable in my learning journey.",
+    #     "Building user-friendly interfaces is a key aspect of software development."
+    # ]
+
+    
 
         # Join all reflections into a single string
         all_reflections = ' '.join(reflections)

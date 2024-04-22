@@ -39,6 +39,20 @@ def get_know_by_topic_id(request, topic_id):
     return Response({"data": serializer.data}, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+def is_know_exist_by_topic_id(request, topic_id):
+    know = Know.objects.filter(topic_id=topic_id).first()
+    if know:
+        return Response({"data": True}, status=status.HTTP_200_OK)
+    return Response({"data": False}, status=status.HTTP_200_OK)
+
+@api_view(['DELETE'])
+def delete_know_by_topic_id(request, topic_id):
+    know = Know.objects.filter(topic_id=topic_id).first()
+    know.delete()
+    return Response({"message": "Know deleted successfully"}, status=status.HTTP_200_OK)
+
+
 class KnowQuizView():
         
     @api_view(['POST'])
@@ -75,6 +89,15 @@ class KnowQuizView():
         except Http404:
             return Response({"error": "Quiz question not found"}, status=status.HTTP_404_NOT_FOUND)
         
+    @api_view(['DELETE'])
+    def delete_know_quiz(request, quiz_id):
+        try:
+            quiz = get_know_quiz_question_or_404_by_quiz_id(quiz_id)
+            quiz.delete()
+            return Response({"message": "Quiz deleted successfully"}, status=status.HTTP_200_OK)
+        except Http404:
+            return Response({"error": "Quiz question not found"}, status=status.HTTP_404_NOT_FOUND)
+    
     @api_view(['GET'])
     def get_all_questions_by_know_id(request, know_id):
         questions = KnowQuizQuestion.objects.filter(know_id=know_id)
@@ -175,6 +198,16 @@ class KnowEssayView():
             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Http404:
             return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    @api_view(['DELETE'])
+    def delete_know_essay_by_ref_id(request, ref_id):
+        try:
+            know_ref = get_know_essay_or_404_by_ref_id(ref_id)
+            know_ref.delete()
+            return Response({"message": "Reflection question deleted successfully"}, status=status.HTTP_200_OK)
+        except Http404:
+            return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)        
+
 
 
             

@@ -1,4 +1,4 @@
-from .views import PollingView, add_prereading, edit_prereading, get_prereading_by_wtk_id, WtkEssayView
+from .views import PollingView, add_prereading, edit_prereading, get_prereading_by_wtk_id, WtkEssayView, is_wtk_exist_by_topic_id
 from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings
@@ -16,7 +16,8 @@ urlpatterns = [
     path('essay/add', WtkEssayView.add_wtk_essay),
     path('essay/edit/<int:ref_id>', WtkEssayView.edit_wtk_essay),
     path('essay/<int:essay_id>', WtkEssayView.get_wtk_essay),
-    # path('word-cloud/', WordCloudAPIView.as_view(), name='word_cloud_api'),
+    path('is_exist/<int:topic_id>', is_wtk_exist_by_topic_id),
+
 
 
 

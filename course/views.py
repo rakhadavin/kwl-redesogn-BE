@@ -77,9 +77,18 @@ class CourseStudentView():
         lecturer = Student.objects.get(pk=lecturer_id)
         course.lecturer_team.remove(lecturer)
         return course.lecturer_team.all()
+
+
+class CourseTopicView(APIView):
+    def get(self, request, course_id, format=None):
+        course = Course.objects.get(pk=course_id)
+        topics = course.topics.all()
+        serializer = TopicSerializer(topics, many=True)
+        return Response(serializer.data)
     
+
+
 class CourseList(APIView):
-    # permission_classes = (AllowAny,)
     def get(self, request, format=None):
         try:
             courses = Course.objects.all()
@@ -100,8 +109,6 @@ class CourseList(APIView):
 
 
 class CourseDetailView(APIView):
-    # permission_classes = [IsAuthenticated]
-
     def get_object(self, pk):
         try:
             return Course.objects.get(pk=pk)

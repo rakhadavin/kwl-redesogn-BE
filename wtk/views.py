@@ -35,11 +35,21 @@ def edit_prereading(request):
 
 @api_view(['GET'])
 def get_prereading_by_wtk_id(request):
-    wtk_id = request.data['wtk_id']
-    prereading = Prereading.objects.get(wtk_id=wtk_id)
-    serializer = PrereadingSerializer(prereading)
+    try:
+        wtk_id = request.data['wtk_id']
+        prereading = Prereading.objects.get(wtk_id=wtk_id)
+        serializer = PrereadingSerializer(prereading)
+    except Prereading.DoesNotExist:
+        return Response({"error": "Prereading not found"}, status=status.HTTP_404_NOT_FOUND)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+@api_view(['GET'])
+def is_wtk_exist_by_topic_id(request, topic_id):
+    wtk = WantToKnow.objects.filter(topic_id=topic_id).first()
+    if wtk:
+        return Response({"data": True}, status=status.HTTP_200_OK)
+    return Response({"data": False}, status=status.HTTP_200_OK)
 
 def get_wtk_question_or_404(question_id):
     try:
@@ -76,8 +86,8 @@ class PollingView():
         try:
             question = get_wtk_question_or_404(question_id)
             question_serializer = WtkPollingQuestionSerializer(question)
-            answer_serializer = WtkPollingAnswerSerializer(WtkChoices.objects.filter(wtk_poll_question_id=question_id), many=True)
-            poll = {"question": question_serializer.data, "answers": answer_serializer.data}
+            answer_serializer = WtkPollingAnswerSerializer( question.choices.all(), many=True)
+            poll = {"question": question_serializer.data, "options": answer_serializer.data}
             return Response(poll, status=status.HTTP_200_OK)
         except Http404:
             return Response({"error": "Polling question not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -110,7 +120,7 @@ class PollingView():
     def count_votes(request, question_id):
         try:
             question = get_wtk_question_or_404(question_id)
-            choices = WtkChoices.objects.filter(wtk_poll_question_id=question)
+            choices = question.choices.all()
             student_answers = WtkStudentAnswer.objects.filter(wtk_poll_question_id=question)
             votes = {}
             for student_answer in student_answers:

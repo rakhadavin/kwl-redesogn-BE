@@ -9,46 +9,55 @@ class AddPollingQuestionSerializer(serializers.ModelSerializer):
     question = serializers.CharField(max_length=255, required=True)
     type = serializers.ChoiceField(choices=wtk_choices, required=True, write_only=True)
     score = serializers.IntegerField(required=True)
-    option_1 = serializers.CharField(max_length=255, required=True, write_only=True)
-    option_2 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_3 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_4 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_5 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_6 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_7 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_8 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_9 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_10 = serializers.CharField(max_length=255, required=False, write_only=True)
+    options = serializers.ListField(
+    child=serializers.CharField(max_length=255, required=True),
+    required=False,
+    write_only=True
+    )
+
     topic_id = serializers.IntegerField(required=True, write_only=True)
 
     class Meta:
         model = WtkPollQuestion
-        fields = ['id','score','question','want_to_know', 'option_1', 'option_2', 'option_3', 'option_4', 'option_5', 'option_6', 'option_7', 'option_8', 'option_9', 'option_10', 'type', 'topic_id']
+        fields = ['id','score','question','want_to_know','options', 'type', 'topic_id']
 
     def create(self, validated_data):
-        options_array = ['option_1', 'option_2', 'option_3', 'option_4', 'option_5', 'option_6', 'option_7', 'option_8', 'option_9', 'option_10']
-        wtk = WantToKnow.objects.create(type=validated_data['type'], topic_id=validated_data['topic_id'])
-        poll_questions = WtkPollQuestion.objects.create(question=validated_data['question'], score=validated_data['score'], want_to_know=wtk)
 
-        for i in options_array:
-            if i in validated_data and validated_data[i]:
-                WtkChoices.objects.create(wtk_poll_question_id=poll_questions, option_answer=validated_data[i], alias=i)
+        wtk, created = WantToKnow.objects.get_or_create(topic_id=validated_data['topic_id'], type=validated_data['type'])
+        if not created:
+            raise serializers.ValidationError("Want to know already exists")    
+        
+        poll_questions = WtkPollQuestion.objects.create(question=validated_data['question'], score=validated_data['score'], want_to_know=wtk)
+        for i in range(len(validated_data['options'])):
+            if validated_data['options'][i]:
+                choice = WtkChoices.objects.create(option_answer=validated_data['options'][i])
+                poll_questions.choices.add(choice)
 
         return poll_questions
     
 class EditPollingQuestionSerializer(serializers.Serializer):
     question = serializers.CharField(max_length=255, required=False)
     score = serializers.IntegerField(required=False)
-    option_1 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_2 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_3 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_4 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_5 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_6 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_7 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_8 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_9 = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_10 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_1 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_2 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_3 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_4 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_5 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_6 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_7 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_8 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_9 = serializers.CharField(max_length=255, required=False, write_only=True)
+    # option_10 = serializers.CharField(max_length=255, required=False, write_only=True)
+    options = serializers.ListField(
+    child=serializers.CharField(max_length=255, required=False),
+    required=False,
+    write_only=True
+    )
+    options_ids = serializers.ListField(
+    child=serializers.IntegerField(required=False),
+    required=False,
+    write_only=True
+    )
     topic_id = serializers.IntegerField(required=False, write_only=True)
     id = serializers.IntegerField(required=True, write_only=True)
 
@@ -57,14 +66,13 @@ class EditPollingQuestionSerializer(serializers.Serializer):
             instance.question = validated_data['question']
         if 'score' in validated_data:
             instance.score = validated_data['score']
-        existed_choices = WtkChoices.objects.filter(wtk_poll_question_id=instance)
-        options_array = ['option_1', 'option_2', 'option_3', 'option_4', 'option_5', 'option_6', 'option_7', 'option_8', 'option_9', 'option_10']
-        for i in options_array:
-            if i in validated_data:
-                option = existed_choices.get(alias=i)
-                option.option_answer = validated_data[i]
-                option.save()
-        instance.save()
+        if len(validated_data['options']) != len(validated_data['options_ids']):
+            raise serializers.ValidationError("Length of options and options ids must be equal")
+        for i in range(len(validated_data['options'])):
+            if validated_data['options'][i]:
+                choice = WtkChoices.objects.get(id=validated_data['options_ids'][i])
+                choice.option_answer = validated_data['options'][i]
+                choice.save()
         return instance
 
 

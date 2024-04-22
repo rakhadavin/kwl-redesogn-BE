@@ -1,4 +1,4 @@
-from .views import KnowQuizView, KnowEssayView, get_know_by_topic_id
+from .views import KnowQuizView, KnowEssayView, get_know_by_topic_id, is_know_exist_by_topic_id
 from django.urls import path
 
 
@@ -14,6 +14,8 @@ urlpatterns = [
     path('answer/quiz/<int:know_quiz_id>', KnowQuizView.save_student_answer),
     path('answer/quiz/all/<int:know_id>', KnowQuizView.save_student_all_answers_by_know_id),
     path('answer/essay/<int:ref_id>', KnowEssayView.save_essay_answer),
+    path('is_exist/<int:topic_id>', is_know_exist_by_topic_id),
+
    
 
 ] 
