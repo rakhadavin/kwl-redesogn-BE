@@ -63,3 +63,10 @@ class WordCloudAPIView(APIView):
 
         # Return response with image URL
         return Response({'image_url': image_url})
+    
+class KnowParticipant(APIView):
+    def get(self, request):
+        know_id = request.data['know_id']
+        
+        participants = KnowReflection.objects.filter(know_id=know_id).values_list('student_id', flat=True)
+        return Response({'participants': participants})

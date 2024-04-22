@@ -13,7 +13,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 
-
 def get_know_quiz_question_or_404_by_quiz_id(question_id):
         try:
             return KnowQuizQuestion.objects.get(id=question_id)
@@ -168,8 +167,6 @@ class KnowQuizView():
         return Response({"data": student_answers}, status=status.HTTP_200_OK)
     
 class KnowEssayView():
-
-
     @api_view(['POST'])
     def add_know_essay(request):
         serializer = AddKnowEssaySerializer(data=request.data)
@@ -207,8 +204,6 @@ class KnowEssayView():
             return Response({"message": "Reflection question deleted successfully"}, status=status.HTTP_200_OK)
         except Http404:
             return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)        
-
-
 
             
     @api_view(['POST'])

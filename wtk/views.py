@@ -58,8 +58,7 @@ def get_wtk_question_or_404(question_id):
         raise Http404
 
 class PollingView():
-        
-
+    
     @api_view(['POST'])
     def add_polling_question(request):
         serializer = AddPollingQuestionSerializer(data=request.data)
@@ -138,7 +137,6 @@ class PollingView():
             return Response({"error": "Polling question not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
-## TEST WORD_CLOUD
 def get_wtk_essay_or_404(know_ref_id):
     try:
         return WtkReflection.objects.get(id=know_ref_id)

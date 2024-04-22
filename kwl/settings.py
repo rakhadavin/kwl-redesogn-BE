@@ -16,9 +16,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
+
+
 load_dotenv()
-
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -44,6 +44,8 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 SITE_ID = 1
 
+
+SIGNING_KEY = os.getenv('SIGNING_KEY')
 SIMPLE_JWT = {
     "TOKEN_OBTAIN_SERIALIZER": "my_app.serializers.MyTokenObtainPairSerializer",
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
@@ -51,10 +53,12 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
-    "SIGNING_KEY": os.getenv('SIGNING_KEY'),  # generate a key and replace me
+    "SIGNING_KEY": SIGNING_KEY,  # generate a key and replace me
     "ALGORITHM": "HS512",
 }
 
+
+print(os.getenv('SIGNING_KEY'))
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
