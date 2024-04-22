@@ -82,7 +82,7 @@ class CourseStudentView():
 class CourseTopicView(APIView):
     def get(self, request, course_id, format=None):
         course = Course.objects.get(pk=course_id)
-        topics = course.topics.all()
+        topics = Topic.objects.filter(course=course)
         serializer = TopicSerializer(topics, many=True)
         return Response(serializer.data)
     
