@@ -6,6 +6,11 @@ option_choices = (("Opsi A", "Opsi A"), ("Opsi B", "Opsi B"), ("Opsi C", "Opsi C
 learned_choices = (("reflection", "Reflection"), ("quiz", "Quiz"))
 
 
+class LearnedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Learned
+        fields = ('id', 'topic', 'type' )
+        
 class LearnedQuizOptionsSerializer(serializers.ModelSerializer):
     class Meta:
         model = LearnedQuizOption

@@ -1,7 +1,13 @@
 import datetime
 from rest_framework import serializers
-from .models import Course, Topic
 
+from know.serializers import KnowSerializer
+from .models import Course, Topic
+from know.models import Know
+from learned.models import Learned
+from wtk.models import WantToKnow
+from wtk.serializers import WtkSerializer
+from learned.serializers import LearnedSerializer
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
@@ -28,6 +34,19 @@ class TopicSerializer(serializers.ModelSerializer):
             'required': 'The course field is required.', 'does_not_exist': 'Course does not exist.' 
         }, write_only=True)
     course_data = CourseSerializer(read_only=True, source='course')
+    know = serializers.SerializerMethodField(read_only=True)
+    learned = serializers.SerializerMethodField(read_only=True )
+    wtk = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Topic
-        fields = ['name','description','id','course','course_data']
+        fields = ['name','description','id','course','course_data','know', 'learned', 'wtk']
+
+    def get_know(self, obj):
+        return KnowSerializer(Know.objects.filter(topic=obj), many=True).data
+    
+    def get_learned(self, obj):
+        return LearnedSerializer(Learned.objects.filter(topic=obj), many=True).data
+    
+    def get_wtk(self, obj):
+        return WtkSerializer(WantToKnow.objects.filter(topic=obj), many=True).data

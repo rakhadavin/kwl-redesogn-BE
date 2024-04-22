@@ -58,7 +58,6 @@ SIMPLE_JWT = {
 }
 
 
-print(os.getenv('SIGNING_KEY'))
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -75,6 +74,8 @@ INSTALLED_APPS = [
     'course',
     'know',
     'wtk',
+    'learned',
+    'analysis',
     'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',

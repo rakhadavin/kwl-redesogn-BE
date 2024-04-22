@@ -5,6 +5,11 @@ from course.models import Topic
 from wtk.models import Prereading, WtkPollQuestion, WantToKnow, WtkChoices, WtkReflection
 
 wtk_choices = (("checkbox", "Checkbox"), ("reflection", "Reflection"))
+
+class WtkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WantToKnow
+        fields = ['id', 'topic', 'type']
 class AddPollingQuestionSerializer(serializers.ModelSerializer):
     question = serializers.CharField(max_length=255, required=True)
     type = serializers.ChoiceField(choices=wtk_choices, required=True, write_only=True)
@@ -38,16 +43,6 @@ class AddPollingQuestionSerializer(serializers.ModelSerializer):
 class EditPollingQuestionSerializer(serializers.Serializer):
     question = serializers.CharField(max_length=255, required=False)
     score = serializers.IntegerField(required=False)
-    # option_1 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_2 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_3 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_4 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_5 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_6 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_7 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_8 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_9 = serializers.CharField(max_length=255, required=False, write_only=True)
-    # option_10 = serializers.CharField(max_length=255, required=False, write_only=True)
     options = serializers.ListField(
     child=serializers.CharField(max_length=255, required=False),
     required=False,
