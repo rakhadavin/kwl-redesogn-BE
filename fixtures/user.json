@@ -1,0 +1,128 @@
+[
+    {
+        "model": "authentication.kwluser",
+        "pk": 1,
+        "fields": {
+            "username": "john_doe",
+            "email": "john.doe@example.com",
+            "domisili": "Jakarta",
+            "role": "lecturer",
+            "password": "pbkdf2_sha256$720000$C1iNM9oOJS2BEuo3K4Dp7N$Vaq8QpQxG8SBa4DeJ3x2/eJ3KFJYIJym5ooj+KQpMwA="
+        }
+    },
+    {
+        "model": "authentication.lecturer",
+        "pk": 1,
+        "fields": {
+            "user": 1,
+            "department": "Computer Science"
+        }
+    },
+    {
+        "model": "authentication.kwluser",
+        "pk": 2,
+        "fields": {
+            "username": "jane_smith",
+            "email": "jane.smith@example.com",
+            "domisili": "Bandung",
+            "role": "lecturer",
+            "password": "pbkdf2_sha256$720000$APRLpXF8Fhg4wJmk08bFCP$7EBFoo8Jw02Iql/8VNxmpIyl6R3V4syZXZEKaTohHZc="
+        }
+    },
+    {
+        "model": "authentication.lecturer",
+        "pk": 2,
+        "fields": {
+            "user": 2,
+            "department": "Literature"
+        }
+    },
+    {
+        "model": "authentication.kwluser",
+        "pk": 3,
+        "fields": {
+            "username": "emma_jones",
+            "email": "emma.jones@example.com",
+            "domisili": "Surabaya",
+            "role": "student",
+            "password": "pbkdf2_sha256$720000$1kv5mV1Dha2SK4mXWVkkPL$7ypa16LdM9LGWCXaVK+DqN9UO8QgTU52fE7r8IDj5X0="
+        }
+    },
+    {
+        "model": "authentication.student",
+        "pk": 1,
+        "fields": {
+            "user": 3,
+            "student_id": "123456",
+            "major": "Engineering",
+            "term": "Spring 2024",
+            "faculty": "Engineering Faculty"
+        }
+    },
+    {
+        "model": "authentication.kwluser",
+        "pk": 4,
+        "fields": {
+            "username": "chris_wong",
+            "email": "chris.wong@example.com",
+            "domisili": "Jakarta",
+            "role": "student",
+            "password": "pbkdf2_sha256$720000$POPV3wtxMFYitp41XN0OW8$fmzGu44c+65DORJMYcIq/wYqVs8C19KBjy1ZrrZHLWM="
+        }
+    },
+    {
+        "model": "authentication.student",
+        "pk": 2,
+        "fields": {
+            "user": 4,
+            "student_id": "789012",
+            "major": "Literature",
+            "term": "Spring 2024",
+            "faculty": "Arts Faculty"
+        }
+    },
+    {
+        "model": "authentication.kwluser",
+        "pk": 5,
+        "fields": {
+            "username": "lisa_smith",
+            "email": "lisa.smith@example.com",
+            "domisili": "Bandung",
+            "role": "student",
+            "password": "pbkdf2_sha256$720000$cgJGjRod43v2Ob3SSoL0lz$Ph7k2AYfDuiv5BpodcT3nPS3CN45BUaw4ZpygVzIrzY="
+        }
+    },
+    {
+        "model": "authentication.student",
+        "pk": 3,
+        "fields": {
+            "user": 5,
+            "student_id": "345678",
+            "major": "Computer Science",
+            "term": "Spring 2024",
+            "faculty": "Engineering Faculty"
+        }
+    },
+    {
+        "model": "authentication.kwluser",
+        "pk": 6,
+        "fields": {
+            "username": "alex_wong",
+            "email": "alex.wong@example.com",
+            "domisili": "Surabaya",
+            "role": "student",
+            "password": "pbkdf2_sha256$720000$fmf8YPG1x6801noNJB8xhD$mcPeFt0m/UNVaGtu15bFk+w5EjANLwd4Tl69IiBkHHU="
+        }
+    },
+    {
+        "model": "authentication.student",
+        "pk": 4,
+        "fields": {
+            "user": 6,
+            "student_id": "567890",
+            "major": "History",
+            "term": "Spring 2024",
+            "faculty": "Arts Faculty"
+        }
+    }
+]

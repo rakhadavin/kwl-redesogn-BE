@@ -31,25 +31,27 @@ def get_know_essay_or_404_by_know_id(know_id):
         except KnowReflection.DoesNotExist:
             raise Http404
         
-@api_view(['GET'])
-def get_know_by_topic_id(request, topic_id):
-    know = Know.objects.filter(topic_id=topic_id).first()
-    serializer = KnowSerializer(know)
-    return Response({"data": serializer.data}, status=status.HTTP_200_OK)
+class KnowTopicView():
+         
+    @api_view(['GET'])
+    def get_know_by_topic_id(request, topic_id):
+        know = Know.objects.filter(topic_id=topic_id).first()
+        serializer = KnowSerializer(know)
+        return Response({"data": serializer.data}, status=status.HTTP_200_OK)
 
 
-@api_view(['GET'])
-def is_know_exist_by_topic_id(request, topic_id):
-    know = Know.objects.filter(topic_id=topic_id).first()
-    if know:
-        return Response({"data": True}, status=status.HTTP_200_OK)
-    return Response({"data": False}, status=status.HTTP_200_OK)
+    @api_view(['GET'])
+    def is_know_exist_by_topic_id(request, topic_id):
+        know = Know.objects.filter(topic_id=topic_id).first()
+        if know:
+            return Response({"data": True}, status=status.HTTP_200_OK)
+        return Response({"data": False}, status=status.HTTP_200_OK)
 
-@api_view(['DELETE'])
-def delete_know_by_topic_id(request, topic_id):
-    know = Know.objects.filter(topic_id=topic_id).first()
-    know.delete()
-    return Response({"message": "Know deleted successfully"}, status=status.HTTP_200_OK)
+    @api_view(['DELETE'])
+    def delete_know_by_topic_id(request, topic_id):
+        know = Know.objects.filter(topic_id=topic_id).first()
+        know.delete()
+        return Response({"message": "Know deleted successfully"}, status=status.HTTP_200_OK)
 
 
 class KnowQuizView():

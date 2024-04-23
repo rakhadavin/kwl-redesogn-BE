@@ -35,6 +35,7 @@ class Topic(models.Model):
 class RewardPoint(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     point = models.IntegerField()
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

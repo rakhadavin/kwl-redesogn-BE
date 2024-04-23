@@ -1,0 +1,53 @@
+[
+    {
+      "model": "course.course",
+      "pk": 1,
+      "fields": {
+        "short_name": "CS101",
+        "full_name": "Introduction to Computer Science",
+        "color_theme": "dark-accent",
+        "created": "2024-04-23T00:00:00Z"
+      }
+    },
+    {
+      "model": "course.course",
+      "pk": 2,
+      "fields": {
+        "short_name": "MATH202",
+        "full_name": "Advanced Calculus",
+        "color_theme": "kiki-blue",
+        "created": "2024-04-23T00:00:00Z"
+      }
+    },
+    {
+      "model": "course.course",
+      "pk": 3,
+      "fields": {
+        "short_name": "ENG301",
+        "full_name": "Literary Analysis",
+        "color_theme": "wawa-pink",
+        "created": "2024-04-23T00:00:00Z"
+      }
+    },
+    {
+      "model": "course.course",
+      "pk": 4,
+      "fields": {
+        "short_name": "HIST101",
+        "full_name": "World History",
+        "color_theme": "lulu-yellow",
+        "created": "2024-04-23T00:00:00Z"
+      }
+    },
+    {
+      "model": "course.course",
+      "pk": 5,
+      "fields": {
+        "short_name": "CHEM201",
+        "full_name": "Organic Chemistry",
+        "color_theme": "kowl-orange",
+        "created": "2024-04-23T00:00:00Z"
+      }
+    }
+  ]
+  

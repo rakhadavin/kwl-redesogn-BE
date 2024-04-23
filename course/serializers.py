@@ -55,13 +55,14 @@ class RewardPointSerializer(serializers.ModelSerializer):
    
     class Meta:
         model = RewardPoint
-        fields = ['student','point','id']
+        fields = ['student','point','id','course']
 
 class RewardItemSerializer(serializers.ModelSerializer):
     course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(),
                                                   error_messages={
             'required': 'The course field is required.', 'does_not_exist': 'Course does not exist.' 
         }, write_only=True)
+    
     class Meta:
         model = RewardItem
         fields = ['name','point','id','course']
