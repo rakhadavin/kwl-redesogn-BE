@@ -6,9 +6,9 @@ from rest_framework.views import APIView
 
 from authentication.models import Student
 from authentication.serializers import StudentSerializer
-from .models import Course, Topic
+from .models import Course, RewardItem, Topic
 from rest_framework import status
-from .serializers import CourseSerializer, TopicSerializer
+from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer
 # Create your views here.
 from rest_framework import generics
 from rest_framework.decorators import api_view
@@ -84,6 +84,7 @@ class CourseTopicView(APIView):
         course = Course.objects.get(pk=course_id)
         topics = Topic.objects.filter(course=course)
         serializer = TopicSerializer(topics, many=True)
+        
         return Response(serializer.data)
     
 
@@ -134,6 +135,21 @@ class CourseDetailView(APIView):
         course = self.get_object(pk)
         course.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class RewardList(APIView):
+    def get(self, request, course_id, format=None):
+        try:
+            course = Course.objects.get(pk=course_id)
+            rewards = RewardItem.objects.filter(course=course)
+            serializer = RewardItemSerializer(rewards, many=True)
+            return Response(serializer.data)
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+      
+    
+class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = RewardItem.objects.all()
+    serializer_class = RewardItemSerializer
 
 
 class TopicList(generics.ListCreateAPIView):

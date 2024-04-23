@@ -64,9 +64,51 @@ class WordCloudAPIView(APIView):
         # Return response with image URL
         return Response({'image_url': image_url})
     
-class KnowParticipant(APIView):
-    def get(self, request):
+class KnowParticipant():
+    @api_view(['GET'])
+    def get_all_participants(self, request):
         know_id = request.data['know_id']
         
         participants = KnowReflection.objects.filter(know_id=know_id).values_list('student_id', flat=True)
         return Response({'participants': participants})
+    
+    @api_view(['GET'])
+    def count_all_participants(self, request):
+        know_id = request.data['know_id']
+        
+        participants = KnowReflection.objects.filter(know_id=know_id).values_list('student_id', flat=True)
+        count = len(participants)
+        return Response({'count': count})
+    
+
+class LearnedParticipant():
+    @api_view(['GET'])
+    def get_all_participants(self, request):
+        learned_id = request.data['learned_id']
+        
+        participants = LearnedReflection.objects.filter(learned_id=learned_id).values_list('student_id', flat=True)
+        return Response({'participants': participants})
+    
+    @api_view(['GET'])
+    def count_all_participants(self, request):
+        learned_id = request.data['learned_id']
+        
+        participants = LearnedReflection.objects.filter(learned_id=learned_id).values_list('student_id', flat=True)
+        count = len(participants)
+        return Response({'count': count})
+    
+class WtkParticipant():
+    @api_view(['GET'])
+    def get_all_participants(self, request):
+        wtk_id = request.data['wtk_id']
+        
+        participants = WtkReflection.objects.filter(wtk_id=wtk_id).values_list('student_id', flat=True)
+        return Response({'participants': participants})
+    
+    @api_view(['GET'])
+    def count_all_participants(self, request):
+        wtk_id = request.data['wtk_id']
+        
+        participants = WtkReflection.objects.filter(wtk_id=wtk_id).values_list('student_id', flat=True)
+        count = len(participants)
+        return Response({'count': count})

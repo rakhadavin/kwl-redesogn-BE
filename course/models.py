@@ -32,3 +32,20 @@ class Topic(models.Model):
         return self.name
     
 
+class RewardPoint(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    point = models.IntegerField()
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.student.user.username
+    
+
+class RewardItem(models.Model):
+    name = models.CharField(max_length=100)
+    point = models.IntegerField()
+    created = models.DateTimeField(auto_now_add=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
+    
+    def __str__(self):
+        return self.name

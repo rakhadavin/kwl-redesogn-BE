@@ -2,7 +2,7 @@ import datetime
 from rest_framework import serializers
 
 from know.serializers import KnowSerializer
-from .models import Course, Topic
+from .models import Course, RewardItem, RewardPoint, Topic
 from know.models import Know
 from learned.models import Learned
 from wtk.models import WantToKnow
@@ -50,3 +50,18 @@ class TopicSerializer(serializers.ModelSerializer):
     
     def get_wtk(self, obj):
         return WtkSerializer(WantToKnow.objects.filter(topic=obj), many=True).data
+    
+class RewardPointSerializer(serializers.ModelSerializer):
+   
+    class Meta:
+        model = RewardPoint
+        fields = ['student','point','id']
+
+class RewardItemSerializer(serializers.ModelSerializer):
+    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(),
+                                                  error_messages={
+            'required': 'The course field is required.', 'does_not_exist': 'Course does not exist.' 
+        }, write_only=True)
+    class Meta:
+        model = RewardItem
+        fields = ['name','point','id','course']
