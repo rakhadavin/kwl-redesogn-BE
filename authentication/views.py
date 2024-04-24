@@ -5,7 +5,7 @@ from rest_framework import status
 from django.contrib.auth import authenticate, logout
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-
+from smtplib import SMTPException     
 from kwl import settings
 from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer
 from .models import KwlUser, Student, Lecturer
@@ -13,10 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.utils import sso_login, get_tokens_for_user
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view
-from course.models import Course
 from django.core.mail import send_mail
-import os
 import random
 import string
 
@@ -145,7 +142,7 @@ class RegisterTeacherView(APIView):
             if serializer.is_valid():
                     serializer.save()
         
-                    return Response({"message": "Student registered successfully"}, status=status.HTTP_201_CREATED)
+                    return Response({"message": "Lecturer registered successfully"}, status=status.HTTP_201_CREATED)
 
             else:
                 return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -161,6 +158,7 @@ class LogoutView(APIView):
             refresh_token = request.data["refresh_token"]
             token = RefreshToken(refresh_token)
             token.blacklist()
+            logout(request)
 
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
@@ -194,7 +192,6 @@ class RequestPasswordResetEmailView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-from smtplib import SMTPException     
 
 class ResetPasswordConfirmByTokenView(APIView):
     permission_classes = (AllowAny,)

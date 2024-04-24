@@ -20,6 +20,7 @@ class Lecturer(models.Model):
     user = models.OneToOneField(KwlUser, on_delete=models.CASCADE, related_name='lecturer_profile', null=True)
     department = models.CharField(max_length=100)
     courses_taught = models.ManyToManyField('course.Course',blank=True,related_name='courses_taughts')
+    lecturer_id =  models.CharField(max_length=10)
 
     def __str__(self):
         return self.user.username

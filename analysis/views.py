@@ -64,7 +64,7 @@ class WordCloudAPIView(APIView):
         # Return response with image URL
         return Response({'image_url': image_url})
     
-class KnowParticipant():
+class KnowParticipantView():
     @api_view(['GET'])
     def get_all_participants(self, request):
         know_id = request.data['know_id']
@@ -81,7 +81,7 @@ class KnowParticipant():
         return Response({'count': count})
     
 
-class LearnedParticipant():
+class LearnedParticipantView():
     @api_view(['GET'])
     def get_all_participants(self, request):
         learned_id = request.data['learned_id']
@@ -97,7 +97,7 @@ class LearnedParticipant():
         count = len(participants)
         return Response({'count': count})
     
-class WtkParticipant():
+class WtkParticipantView():
     @api_view(['GET'])
     def get_all_participants(self, request):
         wtk_id = request.data['wtk_id']

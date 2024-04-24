@@ -1,4 +1,4 @@
-from .views import get_learned_by_topic_id, LearnedQuizView, LearnedEssayView, is_learned_exist_by_topic_id
+from .views import get_learned_by_topic_id, LearnedQuizView, LearnedEssayView, is_learned_exist_by_topic_id, delete_learned_by_topic_id
 from django.urls import path
 
 
@@ -15,6 +15,7 @@ urlpatterns = [
     path('answer/quiz/all/<int:know_id>', LearnedQuizView.save_all_answers_by_know_id),
     path('answer/essay/<int:ref_id>', LearnedEssayView.save_essay_answer),
     path('is_exist/<int:topic_id>', is_learned_exist_by_topic_id),
+    path('delete/<int:topic_id>', delete_learned_by_topic_id),
    
 
 ] 

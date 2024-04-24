@@ -47,6 +47,15 @@ def is_learned_exist_by_topic_id(request, topic_id):
         return Response({"data": True}, status=status.HTTP_200_OK)
     return Response({"data": False}, status=status.HTTP_200_OK)
 
+@api_view(['DELETE'])
+def delete_learned_by_topic_id(request, topic_id):
+    try:
+        learned = Learned.objects.get(topic_id=topic_id)
+        learned.delete()
+        return Response({"message": "Learned deleted successfully"}, status=status.HTTP_200_OK)
+    except Learned.DoesNotExist:
+        return Response({"error": "Learned not found"}, status=status.HTTP_404_NOT_FOUND)
+
 class LearnedQuizView():
     
         @api_view(['POST'])

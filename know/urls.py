@@ -15,6 +15,7 @@ urlpatterns = [
     path('answer/quiz/all/<int:know_id>', KnowQuizView.save_student_all_answers_by_know_id),
     path('answer/essay/<int:ref_id>', KnowEssayView.save_essay_answer),
     path('is_exist/<int:topic_id>', KnowTopicView.is_know_exist_by_topic_id),
+    path('delete/<int:topic_id>', KnowTopicView.delete_know_by_topic_id),
 
    
 
