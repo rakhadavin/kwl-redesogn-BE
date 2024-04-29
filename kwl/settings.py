@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'learned',
     'analysis',
     'corsheaders',
+    'drf_yasg',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
@@ -108,6 +109,15 @@ REST_FRAMEWORK = {
     ]
 }
 
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer':{
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
+}
 
 ROOT_URLCONF = 'kwl.urls'
 

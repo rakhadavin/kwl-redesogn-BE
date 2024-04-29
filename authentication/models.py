@@ -4,14 +4,15 @@ from django.contrib.auth.models import AbstractUser
 ROLE_CHOICES = (
     ("lecturer", "Lecturer"),
     ("student", "Student"),
-    ("asdos", "Asdos")
+    ("assistant", "Assistant")
 )
 
 
 class KwlUser(AbstractUser):
-    domisili = models.CharField(max_length=100, null=True, blank=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
+    domisili = models.CharField(max_length=100, help_text="User's domicile", null=True, blank=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student', help_text="Token for resetting password")
     reset_password_token = models.CharField(max_length=100, null=True, blank=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
     def __str__(self):
         return self.username
 

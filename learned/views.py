@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from course.models import RewardPoint
 
 #additional functions
 def get_learned_essay_or_404_by_ref_id(learned_ref_id):
@@ -177,10 +178,11 @@ class LearnedEssayView():
         try:
             user = request.user
             reflection = request.data['reflection']
+            course_id = request.data['course_id']
             know_essay = get_learned_essay_or_404_by_ref_id(know_ref_id)
             student = Student.objects.get(user_id=user.id)
             history, created = LearnedReflectionStudentAnswer.objects.get_or_create(student_id=student, know_ref_id=know_essay)
-            history.score = know_essay.score
+            reward_point, created = RewardPoint.objects.get_or_create(student_id=student, course_id=course_id)
             history.reflection = reflection
     
             history.save()

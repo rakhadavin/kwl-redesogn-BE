@@ -3,9 +3,8 @@ from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenRefreshView
 )
-
-
 from .views import LoginView, RegisterStudentView, StudentDetailView, LogoutView, RegisterTeacherView, LecturerDetailView, ResetPasswordConfirmByTokenView, RequestPasswordResetEmailView
+
 
 urlpatterns = [
     path("register/student", RegisterStudentView.as_view(), name="rest_student_register"),

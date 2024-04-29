@@ -15,7 +15,7 @@ class WtkPollQuestion(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     question = models.CharField(max_length=255)
-    want_to_know = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
+    wtk = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
     choices = models.ManyToManyField('WtkChoices', blank=True, related_name='poll_choices')
     score = models.IntegerField(default=0)
     def __str__(self):
@@ -40,7 +40,7 @@ class WtkReflection(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     question = models.CharField(max_length=255)
-    wtk_id = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
+    wtk = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
     score = models.IntegerField(default=0)
     def __str__(self):
         return self.question
@@ -58,7 +58,7 @@ class WtkReflectionStudentAnswer(models.Model):
 class Prereading(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    wtk_id = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
+    wtk = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
     prereading = models.TextField(max_length=255)
     file = models.FileField(upload_to='prereading_files/', blank=True, null=True)   
     def __str__(self):

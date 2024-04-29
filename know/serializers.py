@@ -95,6 +95,7 @@ class EditKnowQuizQuestionSerializer(serializers.Serializer):
                 answer.save()
 
         return instance
+    
 class AddKnowEssaySerializer(serializers.Serializer):
     question = serializers.CharField(max_length=255, required=True)
     type = serializers.ChoiceField(choices=know_choices, required=True, write_only=True)
@@ -124,6 +125,6 @@ class EditKnowEssaySerializer(serializers.Serializer):
 class KnowReflectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = KnowReflection
-        fields = ('id', 'question', 'score', 'know_id' )
+        fields = ('id', 'question', 'score', 'know' )
 
 

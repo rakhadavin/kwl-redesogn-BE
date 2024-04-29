@@ -40,7 +40,6 @@ class LearnedQuizStudentAnswer(models.Model):
     learned_quiz_id = models.ForeignKey('LearnedQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
     student_id = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
     answer = models.CharField(max_length=255)
-    score = models.IntegerField(default=0)
     def __str__(self):
         return self.answer
 
@@ -56,10 +55,9 @@ class LearnedReflection(models.Model):
 class LearnedReflectionStudentAnswer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    wtk_ref_id = models.ForeignKey('LearnedReflection', on_delete=models.CASCADE, blank=True, null=True)
+    learned = models.ForeignKey('LearnedReflection', on_delete=models.CASCADE, blank=True, null=True)
     student_id = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
     reflection = models.TextField(max_length=255)
-    score = models.IntegerField(default=0)
     def __str__(self):
         return self.reflection
     

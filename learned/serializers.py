@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from authentication.models import Student
 from course.models import Topic
 from .models import Learned, LearnedReflection, LearnedQuizOption, LearnedQuizQuestion, LearnedReflectionStudentAnswer
 option_choices = (("Opsi A", "Opsi A"), ("Opsi B", "Opsi B"), ("Opsi C", "Opsi C"), ("Opsi D", "Opsi D"))
@@ -108,13 +109,14 @@ class AddLearnedEssaySerializer(serializers.Serializer):
     type = serializers.ChoiceField(choices=learned_choices, required=True, write_only=True)
     score = serializers.IntegerField(required=True)
     topic_id = serializers.IntegerField(required=True, write_only=True)
+    
 
     def create(self, validated_data):
         topic = Topic.objects.get(pk=validated_data['topic_id'])
-        know, created = Learned.objects.get_or_create(topic=topic)
-        know_essay = LearnedReflection.objects.create(know_id=know, question=validated_data['question'], score=validated_data['score'])
+        learned, created = Learned.objects.get_or_create(topic=topic)
+        learned_essay = LearnedReflection.objects.create(learned=learned, question=validated_data['question'], score=validated_data['score'])
         
-        return know_essay
+        return learned_essay
     
 class EditLearnedEssaySerializer(serializers.Serializer):
     question = serializers.CharField(max_length=255, required=False)
@@ -130,4 +132,15 @@ class EditLearnedEssaySerializer(serializers.Serializer):
 class LearnedReflectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = LearnedReflection
-        fields = ('id', 'question', 'score', 'know' )
+        fields = ('id', 'question', 'score', 'learned' )
+
+class AnswerLearnedReflectionSerializer(serializers.Serializer):
+    reflection = serializers.CharField(max_length=255, required=True)
+    wtk_ref_id = serializers.IntegerField(required=True, write_only=True)
+    student_id = serializers.IntegerField(required=True, write_only=True)
+    
+    def validate(self, attrs):
+        student = Student.objects.filter(pk=attrs['student_id']).first()
+        if not student:
+            raise serializers.ValidationError("Student not found")
+        return attrs

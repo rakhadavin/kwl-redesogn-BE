@@ -24,7 +24,7 @@ class AddPollingQuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WtkPollQuestion
-        fields = ['id','score','question','want_to_know','options', 'type', 'topic_id']
+        fields = ['id','score','question','wtk','options', 'type', 'topic_id']
 
     def create(self, validated_data):
 
@@ -32,7 +32,7 @@ class AddPollingQuestionSerializer(serializers.ModelSerializer):
         if not created:
             raise serializers.ValidationError("Want to know already exists")    
         
-        poll_questions = WtkPollQuestion.objects.create(question=validated_data['question'], score=validated_data['score'], want_to_know=wtk)
+        poll_questions = WtkPollQuestion.objects.create(question=validated_data['question'], score=validated_data['score'], wtk=wtk)
         for i in range(len(validated_data['options'])):
             if validated_data['options'][i]:
                 choice = WtkChoices.objects.create(option_answer=validated_data['options'][i])
@@ -74,7 +74,7 @@ class EditPollingQuestionSerializer(serializers.Serializer):
 class WtkPollingQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = WtkPollQuestion
-        fields = ['score', 'question', 'want_to_know']
+        fields = ['score', 'question', 'wtk', 'id']
 
 
 class WtkPollingAnswerSerializer(serializers.ModelSerializer):
@@ -119,7 +119,7 @@ class AddPrereadingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Prereading
-        fields = ('id', 'prereading', 'wtk_id', 'file')
+        fields = ('id', 'prereading', 'wtk', 'file')
 
 class EditPrereadingSerializer(serializers.Serializer):
     prereading = serializers.CharField(max_length=255, required=False)
@@ -138,5 +138,5 @@ class EditPrereadingSerializer(serializers.Serializer):
 class PrereadingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prereading
-        fields = ('id', 'prereading', 'file', 'wtk_id')
+        fields = ('id', 'prereading', 'file', 'wtk')
 

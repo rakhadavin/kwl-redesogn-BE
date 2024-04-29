@@ -1,0 +1,46 @@
+[
+    {
+        "model": "learned.learnedreflectionstudentanswer",
+        "pk": 1,
+        "fields": {
+            "created_at": "2024-04-23T12:00:00Z",
+            "updated_at": "2024-04-23T12:00:00Z",
+            "learned": 1,
+            "student_id": 1,
+            "reflection": "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+        }
+    },
+    {
+        "model": "learned.learnedreflectionstudentanswer",
+        "pk": 2,
+        "fields": {
+            "created_at": "2024-04-24T12:00:00Z",
+            "updated_at": "2024-04-24T12:00:00Z",
+            "learned": 1,
+            "student_id": 2,
+            "reflection": "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        }
+    },
+    {
+        "model": "learned.learnedreflectionstudentanswer",
+        "pk": 3,
+        "fields": {
+            "created_at": "2024-04-25T12:00:00Z",
+            "updated_at": "2024-04-25T12:00:00Z",
+            "learned": 1,
+            "student_id": 3,
+            "reflection": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+        }
+    },
+    {
+        "model": "learned.learnedreflectionstudentanswer",
+        "pk": 4,
+        "fields": {
+            "created_at": "2024-04-26T12:00:00Z",
+            "updated_at": "2024-04-26T12:00:00Z",
+            "learned": 1,
+            "student_id": 4,
+            "reflection": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+        }
+    }
+]
