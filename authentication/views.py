@@ -19,7 +19,7 @@ from .api_exceptions import ChangePasswordException
 class LoginView(APIView):
     permission_classes = (AllowAny,)
 
-    @swagger_auto_schema(request_body=LoginSerializer)
+    @swagger_auto_schema(request_body=LoginSerializer, responses={200: "Login Success", 401: "Unauthorized"})
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -55,7 +55,7 @@ class LoginView(APIView):
 class RegisterStudentView(APIView):
     permission_classes = (AllowAny,)
 
-    @swagger_auto_schema(request_body=StudentSerializer)
+    @swagger_auto_schema(request_body=StudentSerializer, responses={201: "Student registered successfully"})
     def post(self, request): 
         print(request.data) 
        
@@ -109,7 +109,8 @@ class LecturerDetailView(APIView):
         lecturer = self.get_lecturer_by_kwluser_id(id)
         serializer = LecturerSerializer(lecturer)
         return Response(serializer.data)
-
+    
+    @swagger_auto_schema(request_body=EditLecturerSerializer)
     def put(self, request, format=None):
         id = request.user.id
         lecturer = self.get_lecturer_by_kwluser_id(id)

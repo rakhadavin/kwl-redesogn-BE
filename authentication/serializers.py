@@ -94,6 +94,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token['role'] = user.role
         token['username'] = user.username
+        token['name'] = user.first_name + ' ' + user.last_name
         if user.role == 'lecturer':
             lecturer = Lecturer.objects.get(user=user)
             token['lecturer_pk'] = lecturer.pk

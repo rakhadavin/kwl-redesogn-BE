@@ -11,8 +11,12 @@ class BaseCustomException(APIException):
         self.detail = detail
         self.status_code = code
 
-
-class LecturerNotFoundException(BaseCustomException):
+class CourseNotFoundException(BaseCustomException):
     def __init__(self):
-        detail = 'Lecturer not found'
+        detail = 'Course not found'
+        super().__init__(detail, status.HTTP_404_NOT_FOUND)
+
+class TopicNotFoundException(BaseCustomException):
+    def __init__(self):
+        detail = 'Topic not found'
         super().__init__(detail, status.HTTP_404_NOT_FOUND)

@@ -116,13 +116,15 @@ REST_FRAMEWORK = {
 }
 
 SWAGGER_SETTINGS = {
+    
     'SECURITY_DEFINITIONS': {
         'Bearer':{
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header'
         }
-    }
+    },
+
 }
 
 ROOT_URLCONF = 'kwl.urls'

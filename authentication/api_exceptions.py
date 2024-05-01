@@ -36,3 +36,14 @@ class InvalidTokenException(BaseCustomException):
     def __init__(self):
         detail = 'Invalid Token'
         super().__init__(detail, status.HTTP_400_BAD_REQUEST)
+
+
+class LecturerNotFoundException(BaseCustomException):
+    def __init__(self):
+        detail = 'Lecturer not found'
+        super().__init__(detail, status.HTTP_404_NOT_FOUND)
+
+class StudentNotFoundException(BaseCustomException):
+    def __init__(self):
+        detail = 'Student not found'
+        super().__init__(detail, status.HTTP_404_NOT_FOUND)

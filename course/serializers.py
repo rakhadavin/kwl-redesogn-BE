@@ -3,13 +3,14 @@ from rest_framework import serializers
 
 from authentication.models import Lecturer, Student
 from know.serializers import KnowSerializer
-from .models import Course, RewardItem, RewardPoint, Topic
+from .models import Course, RewardItem, RewardStudentPoint, Topic
 from know.models import Know
 from learned.models import Learned
 from wtk.models import WantToKnow
 from wtk.serializers import WtkSerializer
 from learned.serializers import LearnedSerializer
-from .api_exceptions import LecturerNotFoundException
+from .api_exceptions import CourseNotFoundException, TopicNotFoundException
+from authentication.api_exceptions import LecturerNotFoundException
 class CourseSerializer(serializers.ModelSerializer):
     lecturer = serializers.IntegerField(write_only=True)
     
@@ -41,14 +42,17 @@ class CourseSerializer(serializers.ModelSerializer):
   
 
 class TopicSerializer(serializers.ModelSerializer):
-    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(),
-                                                  error_messages={
-            'required': 'The course field is required.', 'does_not_exist': 'Course does not exist.' 
-        }, write_only=True)
+    course = serializers.IntegerField(write_only=True)
     course_data = CourseSerializer(read_only=True, source='course')
     know = serializers.SerializerMethodField(read_only=True)
     learned = serializers.SerializerMethodField(read_only=True )
     wtk = serializers.SerializerMethodField(read_only=True)
+
+    def validate(self, attrs):
+        if 'course' in attrs:
+            if not Course.objects.filter(pk=attrs['course']).exists():
+                raise CourseNotFoundException()
+        return super().validate(attrs)
 
     class Meta:
         model = Topic
@@ -66,19 +70,15 @@ class TopicSerializer(serializers.ModelSerializer):
 class RewardPointSerializer(serializers.ModelSerializer):
    
     class Meta:
-        model = RewardPoint
+        model = RewardStudentPoint
         fields = ['student','point','id','course']
 
 class RewardItemSerializer(serializers.ModelSerializer):
-    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(),
-                                                  error_messages={
-            'required': 'The course field is required.', 'does_not_exist': 'Course does not exist.' 
-        }, write_only=True)
+    course = serializers.IntegerField(write_only=True)
     
     class Meta:
         model = RewardItem
-        fields = ['name','point','id','course']
-
+        fields = ['name','stock','point','expired_date','detail_instruction','id','course']
 
 
 class AddStudentToCourseSerializer(serializers.Serializer):
