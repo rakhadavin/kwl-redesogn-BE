@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from course.models import Topic
 from .models import Know, KnowQuizQuestion, KnowQuizOption, KnowReflection
+from .api_exceptions import ExistingKnowException
 
 option_choices = (("Opsi A", "Opsi A"), ("Opsi B", "Opsi B"), ("Opsi C", "Opsi C"), ("Opsi D", "Opsi D"))
 know_choices = (("reflection", "Reflection"), ("quiz", "Quiz"))
@@ -50,7 +51,7 @@ class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
         
         know, created = Know.objects.get_or_create(topic=topic, type=validated_data['type'])
         if not created:
-            raise serializers.ValidationError("Know already exists")
+            raise ExistingKnowException("Know already exists")
         validated_data['know'] = know
         validated_data.pop('type')
         
@@ -104,9 +105,11 @@ class AddKnowEssaySerializer(serializers.Serializer):
 
     def create(self, validated_data):
         topic = Topic.objects.get(pk=validated_data['topic_id'])
+        if topic is None:
+            raise ExistingKnowException("Topic does not exist")
         know, created = Know.objects.get_or_create(topic=topic)
         if not created:
-            raise serializers.ValidationError("Know already exists")
+            raise ExistingKnowException("Know already exists")
         know_essay = KnowReflection.objects.create(know_id=know, question=validated_data['question'], score=validated_data['score'])
         
         return know_essay

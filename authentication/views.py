@@ -14,6 +14,7 @@ from django.core.mail import send_mail
 import random
 import string
 from drf_yasg.utils import swagger_auto_schema
+from .api_exceptions import ChangePasswordException
 
 class LoginView(APIView):
     permission_classes = (AllowAny,)
@@ -55,16 +56,14 @@ class RegisterStudentView(APIView):
     permission_classes = (AllowAny,)
 
     @swagger_auto_schema(request_body=StudentSerializer)
-    def post(self, request):  
-        try:
-            serializer = StudentSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({"message": "Student registered successfully"}, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def post(self, request): 
+        print(request.data) 
+       
+        serializer = StudentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message":"Student registered successfully"}, status=status.HTTP_201_CREATED)
+
         
 
 class StudentDetailView(APIView):
@@ -126,15 +125,12 @@ class RegisterTeacherView(APIView):
 
     @swagger_auto_schema(request_body=LecturerSerializer)
     def post(self, request):
-        try:
-            serializer = LecturerSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({"message": "Lecturer registered successfully"}, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+        serializer = LecturerSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Lecturer registered successfully"}, status=status.HTTP_201_CREATED)
+       
 
 
 class LogoutView(APIView):
@@ -156,32 +152,28 @@ class RequestPasswordResetEmailView(APIView):
    
     @swagger_auto_schema(request_body=ResetPasswordRequestSerializer, responses={200: "Reset password email sent successfully", 404: "User not found", 500: "Email could not be sent"})
     def post(self, request):
+    
+        email_serializer = ResetPasswordRequestSerializer(data=request.data)
+        email_serializer.is_valid(raise_exception=True)
+        email = email_serializer.data["email"] 
+        user = KwlUser.objects.get(email=email)
+        token = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=20))
+        user.reset_password_token = token
+        user.save()
         try:
-            email_serializer = ResetPasswordRequestSerializer(data=request.data)
-            if not email_serializer.is_valid():
-                return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            email = email_serializer.data["email"] 
-            user = KwlUser.objects.get(email=email)
-            token = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=20))
-            user.reset_password_token = token
-            user.save()
-            try:
-                send_mail(
-                    subject='Reset Password',
-                    message='Click the link below to reset your password\n\nhttps://localhost:3000/reset-password?token=' + token,
-                    from_email="kowl.apps@gmail.com",
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                    auth_password=settings.EMAIL_HOST_PASSWORD,
-                    auth_user=settings.EMAIL_HOST_USER
-                )
-            except SMTPException as e:
-                return Response({"message": f"Email could not be sent. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return Response({"message": "Reset password email sent successfully"}, status=status.HTTP_200_OK)
-        except KwlUser.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            send_mail(
+                subject='Reset Password',
+                message='Click the link below to reset your password\n\nhttps://localhost:3000/reset-password?token=' + token,
+                from_email="kowl.apps@gmail.com",
+                recipient_list=[user.email],
+                fail_silently=False,
+                auth_password=settings.EMAIL_HOST_PASSWORD,
+                auth_user=settings.EMAIL_HOST_USER
+            )
+        except SMTPException as e:
+            return Response({"message": f"Email could not be sent. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": "Reset password email sent successfully"}, status=status.HTTP_200_OK)
+
 
 
 class ResetPasswordConfirmByTokenView(APIView):
@@ -190,15 +182,19 @@ class ResetPasswordConfirmByTokenView(APIView):
     def post(self, request, token):
         try:
             new_password_serializer = ChangePasswordSerializer(data=request.data)
-            if not new_password_serializer.is_valid():
-                return Response(new_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            new_password_serializer.is_valid(raise_exception=True)
+              
             user = KwlUser.objects.get(reset_password_token=token)
-            new_password = new_password_serializer.data['password']
+            old_password = new_password_serializer.data['old_password']
+            new_password = new_password_serializer.data['new_password']
+            if user.check_password(old_password) == False:
+                raise ChangePasswordException("Old password is incorrect")
             user.set_password(new_password)
             user.reset_password_token = None
             user.save()
             return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)
         except KwlUser.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

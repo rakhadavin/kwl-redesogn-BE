@@ -33,7 +33,12 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if os.getenv('DEBUG') == 'True':
+    DEBUG = True
+else:
+    DEBUG = False
+
+
 
 # ALLOWED_HOSTS = []
 
@@ -105,8 +110,9 @@ MIDDLEWARE = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ]
+        "rest_framework_simplejwt.authentication.JWTAuthentication"
+    ],
+     'EXCEPTION_HANDLER': 'authentication.utils.custom_exception_handler'
 }
 
 SWAGGER_SETTINGS = {

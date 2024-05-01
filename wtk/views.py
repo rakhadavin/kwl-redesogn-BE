@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer, EditPollingQuestionSerializer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
 from django.http import Http404
 # Create your views here.
 

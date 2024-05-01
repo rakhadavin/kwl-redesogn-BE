@@ -1,5 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from authentication.api_exceptions import ExistingEmailException, ExistingUsernameException, ChangePasswordException
 from course.models import Course
 from .models import KwlUser, Student, Lecturer
 from course.serializers import CourseSerializer
@@ -15,6 +16,13 @@ class KwlUserSerializer(serializers.ModelSerializer):
         model = KwlUser
         fields = ['username', 'email', 'password', 'role', 'nama_lengkap','domisili', 'profile_photo']
 
+    def to_internal_value(self, data):
+        if KwlUser.objects.filter(email=data['email']).exists():
+            raise ExistingEmailException
+        if KwlUser.objects.filter(username=data['username']).exists():
+            raise ExistingUsernameException
+   
+        return super().to_internal_value(data)
     def get_nama_lengkap(self, obj):
         return obj.first_name + ' ' + obj.last_name
 
@@ -109,7 +117,7 @@ class StudentSerializer(serializers.ModelSerializer):
         """
         Create and return a new `Snippet` instance, given the validated data.
         """
-
+        
         # Extract user data and assistant courses data
         user_data = validated_data.pop('user', None)
     
@@ -210,12 +218,19 @@ class EditStudentSerializer(serializers.Serializer):
 class ResetPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
+    def validate(self, data):
+        if not KwlUser.objects.filter(email=data['email']).exists():
+            raise ChangePasswordException(_("Email does not exist"))
+        return data
+
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField()
     new_password = serializers.CharField()
-    confirm_password = serializers.CharField()
-
+  
     def validate(self, data):
-        if data['new_password'] != data['confirm_password']:
-            raise serializers.ValidationError(_("Passwords do not match"))
+        if data['old_password'] == data['new_password']:
+            raise ChangePasswordException(_("New password must be different from old password"))
+        if len(data['new_password']) < 8:
+            raise ChangePasswordException(_("Password must be at least 8 characters long"))
+        
         return data

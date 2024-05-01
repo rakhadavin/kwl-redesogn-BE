@@ -9,9 +9,15 @@ from learned.models import Learned
 from wtk.models import WantToKnow
 from wtk.serializers import WtkSerializer
 from learned.serializers import LearnedSerializer
-
+from .api_exceptions import LecturerNotFoundException
 class CourseSerializer(serializers.ModelSerializer):
-    lecturer = serializers.PrimaryKeyRelatedField(queryset=Lecturer.objects.all(), write_only=True, required=False)
+    lecturer = serializers.IntegerField(write_only=True)
+    
+    def validate(self, attrs):
+        if Lecturer.objects.filter(pk=attrs['lecturer']).exists():
+            return super().validate(attrs)
+        raise LecturerNotFoundException()
+
     class Meta:
         model = Course
         fields = ['short_name','full_name','color_theme','lecturer_team','assistant_team','students','id','lecturer']
@@ -27,9 +33,9 @@ class CourseSerializer(serializers.ModelSerializer):
             term = "Gasal"
         
         validated_data['short_name'] = validated_data['short_name'] + " " + term + " " + str(today_year-1)+"/"+str(today_year)
-
+        lecturer_id = validated_data.pop('lecturer')
         course = Course.objects.create(**validated_data)
-        course.lecturer_team.add(validated_data['lecturer'])
+        course.lecturer_team.add(lecturer_id)
 
         return course
   

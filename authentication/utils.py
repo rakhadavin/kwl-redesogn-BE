@@ -2,7 +2,7 @@ from django.conf import settings
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 import jwt
-
+from rest_framework.views import exception_handler
 from authentication.models import Lecturer, Student
 
 SINGING_KEY = settings.SIGNING_KEY
@@ -33,3 +33,14 @@ def get_tokens_for_user(user):
         'refresh': str(refresh),
         'access': str(refresh.access_token),
     }
+
+
+
+def custom_exception_handler(exc, context):
+    response = exception_handler(exc, context)
+
+    if response is not None:
+        if 'detail' in response.data:
+            response.data['message'] = response.data['detail']
+            del response.data['detail']
+    return response

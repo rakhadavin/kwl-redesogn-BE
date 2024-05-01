@@ -107,21 +107,18 @@ class CourseList(APIView):
             serializer = CourseSerializer(courses, many=True)
             return Response(serializer.data)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(request_body=CourseSerializer)
     def post(self, request,  format=None):
-     
-        serializer = CourseSerializer(data=request.data)
-        if serializer.is_valid():
+            serializer = CourseSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+ 
 
 class CourseDetailView(APIView):
+    permission_classes = [IsAuthenticated,]
     def get_object(self, pk):
         try:
             return Course.objects.get(pk=pk)
@@ -144,13 +141,14 @@ class CourseDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({"error": str(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
         
-    @swagger_auto_schema(operation_description="Retrieve, update or delete a course")
+    @swagger_auto_schema(operation_description="delete a course")
     def delete(self, request, pk, format=None):
         course = self.get_object(pk)
         course.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class RewardList(APIView):
+    permission_classes = [IsAuthenticated,]
     @swagger_auto_schema(operation_description="List all rewards or create a new reward")
     def get(self, request, course_id, format=None):
         try:
@@ -163,6 +161,7 @@ class RewardList(APIView):
       
     
 class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated,]
     queryset = RewardItem.objects.all()
     serializer_class = RewardItemSerializer
 
@@ -180,6 +179,7 @@ class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class TopicList(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated,]
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
 
@@ -193,6 +193,7 @@ class TopicList(generics.ListCreateAPIView):
 
 
 class TopicDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated,]
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
 
