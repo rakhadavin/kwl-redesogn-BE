@@ -5,23 +5,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from authentication.models import Student
-from authentication.serializers import StudentSerializer
+from authentication.serializers import LecturerSerializer, StudentSerializer
 from .models import Course, RewardItem, Topic
 from authentication.models import Lecturer
 from rest_framework import status
 from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer
 # Create your views here.
 from rest_framework import generics
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg.utils import swagger_auto_schema
 from .api_exceptions import CourseNotFoundException
-from authentication.api_exceptions import LecturerNotFoundException
+from authentication.api_exceptions import LecturerNotFoundException, StudentNotFoundException
 
 
 
 
-class CourseEnrollView():
+class CourseEnrolledView():
+
+    @permission_classes([IsAuthenticated,])
     @api_view(['GET'])
     @swagger_auto_schema(operation_summary="Get all students by course id")
     def get_all_student_by_course_id(request, course_id):
@@ -29,85 +31,133 @@ class CourseEnrollView():
             course = Course.objects.get(pk=course_id)
             students = course.students.all()
             students = StudentSerializer(students, many=True)
-            return students.data
+            return Response(students.data, status=status.HTTP_200_OK)
         except Course.DoesNotExist:
             raise CourseNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @permission_classes([IsAuthenticated,])
     @api_view(['GET'])
     @swagger_auto_schema(operation_summary="Get all teachers by course id")
-    def get_all_teachers_by_course_id(request,course_id):
+    def get_all_lecturers_by_course_id(request,course_id):
         try:
             course = Course.objects.get(pk=course_id)
             teachers = course.lecturer_team.all()
-            teachers = StudentSerializer(teachers, many=True)
-            return teachers.data
+            teachers = LecturerSerializer(teachers, many=True)
+            return Response(teachers.data, status=status.HTTP_200_OK)
         except Course.DoesNotExist:
             raise CourseNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    @api_view(['POST'])
+
+class EnrollStudentToCourseView(APIView):
+    permission_classes = [IsAuthenticated,]
+
     @swagger_auto_schema(operation_summary="Enroll student to course", request_body=AddStudentToCourseSerializer)
-    def enroll_student_to_course(self, request):
-        serializer = AddStudentToCourseSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        course = Course.objects.get(pk=serializer.validated_data['course_id'])
-        student = Student.objects.get(pk=serializer.validated_data['student_id'])
-        course.students.add(student)
-        students = StudentSerializer(course.students.all(), many=True)
-        return students.data
-    
+    def post(self, request):
+        try:
+            serializer = AddStudentToCourseSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            course = Course.objects.get(pk=serializer.validated_data['course_id'])
+            student = Student.objects.get(pk=serializer.validated_data['student_id'])
+            course.students.add(student)
 
-    
-    # @api_view(['DELETE'])
-    # def remove_student_from_course(self, course_id, student_id):
-    #     course = Course.objects.get(pk=course_id)
-    #     student = Student.objects.get(pk=student_id)
-    #     course.students.remove(student)
+            students = StudentSerializer(course.students.all(), many=True)
+            return Response(students.data, status=status.HTTP_201_CREATED)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def delete(self, request):
+        try:
+            serializer = RemoveStudentFromCourseSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            course = Course.objects.get(pk=serializer.validated_data['course_id'])
+            student = Student.objects.get(pk=serializer.validated_data['student_id'])
+            course.students.remove(student)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
+        except Exception as e:
+            print(e)
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class EnrollLecturerToCourseView(APIView):
+    permission_classes = [IsAuthenticated,]
 
-    #     return course.students.all()
+    @swagger_auto_schema(operation_summary="Enroll lecturer to course", request_body=AddLecturerToCourseSerializer)
+    def post(self, request):
+        try:
+            serializer = AddLecturerToCourseSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            course = Course.objects.get(pk=serializer.validated_data['course_id'])
+            lecturer = Lecturer.objects.get(pk=serializer.validated_data['lecturer_id'])
+            course.lecturer_team.add(lecturer)
+
+            lecturers = LecturerSerializer(course.lecturer_team.all(), many=True)
+            return Response(lecturers.data, status=status.HTTP_201_CREATED)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Lecturer.DoesNotExist:
+            raise LecturerNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def delete(self, request):
+        try:
+            serializer = RemoveLecturerFromCourseSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            course = Course.objects.get(pk=serializer.validated_data['course_id'])
+            lecturer = Lecturer.objects.get(pk=serializer.validated_data['lecturer_id'])
+            course.lecturer_team.remove(lecturer)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Lecturer.DoesNotExist:
+            raise LecturerNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    # @api_view(['GET'])
-    # def get_lecturer_by_course_id(self, course_id):
-    #     course = Course.objects.get(pk=course_id)
-    #     lecturer = course.lecturer_team.all()
-    #     return lecturer
-    
-    # @api_view(['GET'])
-    # def get_assistant_by_course_id(self, course_id):
-    #     course = Course.objects.get(pk=course_id)
-    #     assistant = course.assistant_team.all()
-    #     return assistant
-    
-    # @api_view(['POST'])
-    # def enroll_assistant_to_course(self, course_id, student_id):
-    #     course = Course.objects.get(pk=course_id)
-    #     student = Student.objects.get(pk=student_id)
-    #     course.assistant_team.add(student)
-    #     return course.assistant_team.all()
-    
-    # @api_view(['DELETE'])
-    # def remove_assistant_from_course(self, course_id, student_id):
-    #     course = Course.objects.get(pk=course_id)
-    #     student = Student.objects.get(pk=student_id)
-    #     course.assistant_team.remove(student)
-    #     return course.assistant_team.all()
-    
-    # @api_view(['POST'])
-    # def enroll_lecturer_to_course(self, course_id, lecturer_id):
-    #     course = Course.objects.get(pk=course_id)
-    #     lecturer = Student.objects.get(pk=lecturer_id)
-    #     course.lecturer_team.add(lecturer)
-    #     return course.lecturer_team.all()
-    
-    # @api_view(['DELETE'])
-    # def remove_lecturer_from_course(self, course_id, lecturer_id):
-    #     course = Course.objects.get(pk=course_id)
-    #     lecturer = Student.objects.get(pk=lecturer_id)
-    #     course.lecturer_team.remove(lecturer)
-    #     return course.lecturer_team.all()
+class EnrollAssistantToCourseView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    def post(self, request):
+        try:
+            serializer = AddAssistantToCourseSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            course = Course.objects.get(pk=serializer.validated_data['course_id'])
+            assistant = Lecturer.objects.get(pk=serializer.validated_data['assistant_id'])
+            course.assistant_team.add(assistant)
+
+            assistants = LecturerSerializer(course.assistant_team.all(), many=True)
+            return Response(assistants.data, status=status.HTTP_201_CREATED)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Lecturer.DoesNotExist:
+            raise LecturerNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def delete(self, request):
+        try:
+            serializer = RemoveAssistantFromCourseSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            course = Course.objects.get(pk=serializer.validated_data['course_id'])
+            assistant = Lecturer.objects.get(pk=serializer.validated_data['assistant_id'])
+            course.assistant_team.remove(assistant)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Lecturer.DoesNotExist:
+            raise LecturerNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CourseLecturerView(APIView):
     permission_classes = [IsAuthenticated,]
@@ -212,7 +262,7 @@ class CourseDetailView(APIView):
     
 class RewardList(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_description="List all rewards or create a new reward")
+    @swagger_auto_schema(operation_description="List all rewards")
     def get(self, request, course_id, format=None):
         try:
             course = Course.objects.get(pk=course_id)
