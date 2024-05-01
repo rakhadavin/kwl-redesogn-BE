@@ -161,7 +161,7 @@ class EnrollAssistantToCourseView(APIView):
 
 class CourseLecturerView(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_description="Get all courses by lecturer id")
+    @swagger_auto_schema(operation_description="Get all courses taught by lecturer id")
     def get(self, request, format=None):
         try:
             user_id = request.user.id
@@ -187,7 +187,21 @@ class CourseTopicView(APIView):
             raise CourseNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        
+class CourseStudentView(APIView):
+    permission_classes = [IsAuthenticated,]
+    @swagger_auto_schema(operation_description="Get all courses enrolled by student id")
+    def get(self, request, format=None):
+        try:
+            user_id = request.user.id
+            student = Student.objects.get(user_id=user_id)
+            courses = student.courses.all()
+            serializer = CourseSerializer(courses, many=True)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 
@@ -270,14 +284,19 @@ class RewardList(APIView):
             serializer = RewardItemSerializer(rewards, many=True)
             return Response(serializer.data)
         except Course.DoesNotExist:
-            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+            raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     @swagger_auto_schema(request_body=RewardItemSerializer, operation_description="create a new reward")
     def post(self, request, format=None):
-        serializer = RewardItemSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            serializer = RewardItemSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
    
     
 class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
