@@ -10,7 +10,6 @@ from .models import Course, RewardItem, Topic
 from authentication.models import Lecturer
 from rest_framework import status
 from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer
-# Create your views here.
 from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from drf_yasg.utils import swagger_auto_schema
@@ -109,6 +108,7 @@ class EnrollLecturerToCourseView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+    @swagger_auto_schema(operation_summary="Remove lecturer from course", request_body=RemoveLecturerFromCourseSerializer)
     def delete(self, request):
         try:
             serializer = RemoveLecturerFromCourseSerializer(data=request.data)

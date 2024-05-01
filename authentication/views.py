@@ -21,8 +21,9 @@ class LoginView(APIView):
 
     @swagger_auto_schema(request_body=LoginSerializer, responses={200: "Login Success", 401: "Unauthorized"})
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        if serializer.is_valid():
+        try:
+            serializer = LoginSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
 
@@ -43,13 +44,15 @@ class LoginView(APIView):
                     return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
             else:
                 user = authenticate(request, username=username, password=password)
-                print(user)
+                print(username)
+                print(password)
                 if user is not None:
                     return Response(data = {"message":'Login Success',"data":get_tokens_for_user(user)}, status=status.HTTP_200_OK)
                 else:
                     return Response(data = {'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-        else:
-            return Response(data = {'message':"Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            print(e)
+            return Response(data = {'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
 class RegisterStudentView(APIView):
@@ -57,12 +60,14 @@ class RegisterStudentView(APIView):
 
     @swagger_auto_schema(request_body=StudentSerializer, responses={201: "Student registered successfully"})
     def post(self, request): 
-        print(request.data) 
-       
-        serializer = StudentSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"message":"Student registered successfully"}, status=status.HTTP_201_CREATED)
+        try:
+            print(request.data)
+            serializer = StudentSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response({"message":"Student registered successfully"}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"message":str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         
 
@@ -126,14 +131,14 @@ class RegisterTeacherView(APIView):
 
     @swagger_auto_schema(request_body=LecturerSerializer)
     def post(self, request):
-    
-        serializer = LecturerSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"message": "Lecturer registered successfully"}, status=status.HTTP_201_CREATED)
-       
-
-
+        try:
+            serializer = LecturerSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response({"message": "Lecturer registered successfully"}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
 class LogoutView(APIView):
     permission_classes = (IsAuthenticated,)
 
