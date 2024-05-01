@@ -51,7 +51,6 @@ class LoginView(APIView):
                 else:
                     return Response(data = {'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            print(e)
             return Response(data = {'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
