@@ -67,18 +67,58 @@ class TopicSerializer(serializers.ModelSerializer):
     def get_wtk(self, obj):
         return WtkSerializer(WantToKnow.objects.filter(topic=obj), many=True).data
     
+    def create(self, validated_data):
+        course_id = validated_data.pop('course')
+        course = Course.objects.get(pk=course_id)
+        topic = Topic.objects.create(course=course, **validated_data)
+        return topic
+    
+    def update(self, instance, validated_data):
+        course_id = validated_data.get('course', instance.course.id)
+        course = Course.objects.get(pk=course_id)
+        instance.course = course
+        instance.name = validated_data.get('name', instance.name)
+        instance.description = validated_data.get('description', instance.description)
+        instance.save()
+        return instance
+    
 class RewardPointSerializer(serializers.ModelSerializer):
-   
     class Meta:
         model = RewardStudentPoint
-        fields = ['student','point','id','course']
+        fields = ['student','total_point','id','course']
+
 
 class RewardItemSerializer(serializers.ModelSerializer):
     course = serializers.IntegerField(write_only=True)
-    
+    course_data = CourseSerializer(read_only=True, source='course')
     class Meta:
         model = RewardItem
-        fields = ['name','stock','point','expired_date','detail_instruction','id','course']
+        fields = ['name','stock','point','expired_date','detail_instruction','id','course','course_data']
+    
+    def validate(self, attrs):
+        if 'course' in attrs:
+            if not Course.objects.filter(pk=attrs['course']).exists():
+                raise CourseNotFoundException()
+        return super().validate(attrs)
+    
+    def create(self, validated_data):
+        course_id = validated_data.pop('course')
+        course = Course.objects.get(pk=course_id)
+        reward = RewardItem.objects.create(course=course, **validated_data)
+        return reward
+    
+    def update(self, instance, validated_data):
+        course_id = validated_data.get('course', instance.course.id)
+        course = Course.objects.get(pk=course_id)
+        instance.course = course
+        instance.name = validated_data.get('name', instance.name)
+        instance.stock = validated_data.get('stock', instance.stock)
+        instance.point = validated_data.get('point', instance.point)
+        instance.expired_date = validated_data.get('expired_date', instance.expired_date)
+        instance.detail_instruction = validated_data.get('detail_instruction', instance.detail_instruction)
+        instance.save()
+        return instance
+    
 
 
 class AddStudentToCourseSerializer(serializers.Serializer):

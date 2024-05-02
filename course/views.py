@@ -71,6 +71,7 @@ class EnrollStudentToCourseView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+    @swagger_auto_schema(operation_summary="Remove student from course", request_body=RemoveStudentFromCourseSerializer)
     def delete(self, request):
         try:
             serializer = RemoveStudentFromCourseSerializer(data=request.data)
@@ -127,6 +128,7 @@ class EnrollLecturerToCourseView(APIView):
 class EnrollAssistantToCourseView(APIView):
     permission_classes = [IsAuthenticated,]
 
+    @swagger_auto_schema(operation_summary="Enroll assistant to course", request_body=AddAssistantToCourseSerializer)
     def post(self, request):
         try:
             serializer = AddAssistantToCourseSerializer(data=request.data)
@@ -143,7 +145,8 @@ class EnrollAssistantToCourseView(APIView):
             raise LecturerNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+    
+    @swagger_auto_schema(operation_summary="Remove assistant from course", request_body=RemoveAssistantFromCourseSerializer)
     def delete(self, request):
         try:
             serializer = RemoveAssistantFromCourseSerializer(data=request.data)
@@ -179,6 +182,7 @@ class CourseTopicView(APIView):
     @swagger_auto_schema(operation_description="Get all topics by course id")
     def get(self, request, course_id, format=None):
         try:
+            print(course_id)
             course = Course.objects.get(pk=course_id)
             topics = Topic.objects.filter(course=course)
             serializer = TopicSerializer(topics, many=True)
@@ -274,9 +278,9 @@ class CourseDetailView(APIView):
         course.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
-class RewardList(APIView):
+class RewardCourseView(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_description="List all rewards")
+    @swagger_auto_schema(operation_description="Get all rewards by course id")
     def get(self, request, course_id, format=None):
         try:
             course = Course.objects.get(pk=course_id)
@@ -285,6 +289,17 @@ class RewardList(APIView):
             return Response(serializer.data)
         except Course.DoesNotExist:
             raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class RewardList(APIView):
+    permission_classes = [IsAuthenticated,]
+    @swagger_auto_schema(operation_description="List all rewards")
+    def get(self, request, format=None):
+        try:
+            rewards = RewardItem.objects.all()
+            serializer = RewardItemSerializer(rewards, many=True)
+            return Response(serializer.data)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         

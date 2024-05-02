@@ -46,7 +46,7 @@ class RewardItem(models.Model):
     name = models.CharField(max_length=100)
     stock = models.IntegerField()
     point = models.IntegerField()
-    expired_date = models.DateTimeField()
+    expired_date = models.CharField(max_length=30)
     detail_instruction = models.CharField(max_length=250)
     created = models.DateTimeField(auto_now_add=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)

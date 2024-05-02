@@ -16,4 +16,6 @@ urlpatterns = [
     path("lecturer", LecturerDetailView.as_view(), name="lecturer_detail"),
     path('reset-password/<str:token>', ResetPasswordConfirmByTokenView.as_view(), name='reset_password_confirm'),
     path('forget', RequestPasswordResetEmailView.as_view(), name='forget_password'),
+    path('student/all', views.StudentListView.as_view(), name='student_list'),
+    path('lecturer/all', views.LecturerListView.as_view(), name='lecturer_list'),
 ]

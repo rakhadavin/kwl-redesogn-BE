@@ -69,7 +69,23 @@ class RegisterStudentView(APIView):
             return Response({"message":str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         
+class StudentListView(APIView):
+    permission_classes = [IsAuthenticated,]
 
+    def get(self, request):
+        students = Student.objects.all()
+        serializer = StudentSerializer(students, many=True)
+        return Response(serializer.data)
+
+class LecturerListView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    def get(self, request):
+        lecturers = Lecturer.objects.all()
+        serializer = LecturerSerializer(lecturers, many=True)
+        return Response(serializer.data)
+    
+    
 class StudentDetailView(APIView):
     permission_classes = [IsAuthenticated,]
 
@@ -202,4 +218,5 @@ class ResetPasswordConfirmByTokenView(APIView):
             return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
