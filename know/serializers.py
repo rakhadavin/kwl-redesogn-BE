@@ -23,10 +23,10 @@ class KnowSerializer(serializers.ModelSerializer):
         fields = ('id', 'topic', 'type' )
 
 class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
-    option_a = serializers.CharField(max_length=255, required=True, write_only=True)
-    option_b = serializers.CharField(max_length=255, required=True, write_only=True)
-    option_c = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_d = serializers.CharField(max_length=255, required=False, write_only=True)
+    option_a = serializers.CharField(max_length=255, write_only=True)
+    option_b = serializers.CharField(max_length=255, write_only=True)
+    option_c = serializers.CharField(max_length=255, write_only=True)
+    option_d = serializers.CharField(max_length=255, write_only=True)
     correct_option = serializers.ChoiceField(choices=option_choices, required=True, write_only=True)
     topic = serializers.PrimaryKeyRelatedField(queryset=Topic.objects.all(), write_only=True)
     type = serializers.ChoiceField(choices=know_choices, required=True, write_only=True)
@@ -59,30 +59,27 @@ class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
         options = [KnowQuizOption(know_quiz_id=know_quiz, **option_data) for option_data in options_data]
         KnowQuizOption.objects.bulk_create(options)
         return know_quiz
-     
     
+
 class EditKnowQuizQuestionSerializer(serializers.Serializer):
-    option_a = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_b = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_c = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_d = serializers.CharField(max_length=255, required=False, write_only=True)
-    question = serializers.CharField(max_length=255, required=False)
+    option_a = serializers.CharField(max_length=255, write_only=True)
+    option_b = serializers.CharField(max_length=255, write_only=True)
+    option_c = serializers.CharField(max_length=255, write_only=True)
+    option_d = serializers.CharField(max_length=255, write_only=True)
+    question = serializers.CharField(max_length=255)
     image = serializers.ImageField(required=False)
-    correct_option = serializers.ChoiceField(choices=option_choices, required=False, write_only=True)
+    correct_option = serializers.ChoiceField(choices=option_choices, required=True, write_only=True)
     score = serializers.IntegerField(required=False)
     topic_id = serializers.IntegerField(required=True, write_only=True)
     id = serializers.IntegerField(required=True, write_only=True)
 
     def update(self, instance, validated_data):
-        if 'question' in validated_data:
-            instance.question = validated_data['question']
-        if 'score' in validated_data:
-            instance.score = validated_data['score']
+        
+        instance.question = validated_data['question']
+        instance.score = validated_data['score']
         if 'image' in validated_data:
             instance.image.delete(save=False)
             instance.image = validated_data['image']
-
-  
         instance.save()
    
         options = instance.get_answers()
@@ -98,13 +95,13 @@ class EditKnowQuizQuestionSerializer(serializers.Serializer):
         return instance
     
 class AddKnowEssaySerializer(serializers.Serializer):
-    question = serializers.CharField(max_length=255, required=True)
-    type = serializers.ChoiceField(choices=know_choices, required=True, write_only=True)
-    score = serializers.IntegerField(required=True)
-    topic_id = serializers.IntegerField(required=True, write_only=True)
+    question = serializers.CharField(max_length=255)
+    type = serializers.ChoiceField(choices=know_choices, write_only=True)
+    score = serializers.IntegerField()
+    topic = serializers.IntegerField(write_only=True)
 
     def create(self, validated_data):
-        topic = Topic.objects.get(pk=validated_data['topic_id'])
+        topic = Topic.objects.get(pk=validated_data['topic'])
         if topic is None:
             raise ExistingKnowException("Topic does not exist")
         know, created = Know.objects.get_or_create(topic=topic)
