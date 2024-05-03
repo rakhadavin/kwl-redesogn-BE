@@ -27,7 +27,7 @@ class LearnedQuizQuestion(models.Model):
 class LearnedQuizOption(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    learned_quiz_id = models.ForeignKey('LearnedQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
+    learned_quiz = models.ForeignKey('LearnedQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
     option_answer = models.CharField(max_length=255)
     isCorrect = models.BooleanField(default=False)
     alias = models.CharField(max_length=255, blank=True, null=True)
@@ -37,8 +37,8 @@ class LearnedQuizOption(models.Model):
 class LearnedQuizStudentAnswer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    learned_quiz_id = models.ForeignKey('LearnedQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
-    student_id = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
+    learned_quiz = models.ForeignKey('LearnedQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
+    student = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
     answer = models.CharField(max_length=255)
     def __str__(self):
         return self.answer
@@ -55,8 +55,8 @@ class LearnedReflection(models.Model):
 class LearnedReflectionStudentAnswer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    learned = models.ForeignKey('LearnedReflection', on_delete=models.CASCADE, blank=True, null=True)
-    student_id = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
+    learned_ref = models.ForeignKey('LearnedReflection', on_delete=models.CASCADE, blank=True, null=True)
+    student = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
     reflection = models.TextField(max_length=255)
     def __str__(self):
         return self.reflection

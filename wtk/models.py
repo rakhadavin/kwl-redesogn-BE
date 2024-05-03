@@ -31,8 +31,8 @@ class WtkChoices(models.Model):
         return self.option_answer
     
 class WtkStudentAnswer(models.Model):
-    wtk_poll_question_id = models.ForeignKey('WtkPollQuestion', on_delete=models.CASCADE, blank=True, null=True)
-    student_id = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
+    wtk_poll = models.ForeignKey('WtkPollQuestion', on_delete=models.CASCADE, blank=True, null=True)
+    student = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
     choices = models.ManyToManyField(WtkChoices, blank=True, related_name='student_choices')
     score = models.IntegerField(default=0)
 
@@ -48,8 +48,8 @@ class WtkReflection(models.Model):
 class WtkReflectionStudentAnswer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    wtk_ref_id = models.ForeignKey('WtkReflection', on_delete=models.CASCADE, blank=True, null=True)
-    student_id = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
+    wtk_ref = models.ForeignKey('WtkReflection', on_delete=models.CASCADE, blank=True, null=True)
+    student = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
     reflection = models.TextField(max_length=255)
     score = models.IntegerField(default=0)
     def __str__(self):

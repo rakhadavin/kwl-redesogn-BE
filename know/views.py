@@ -50,30 +50,7 @@ class KnowQuizzesByTopicView(APIView):
             raise KnowQuizNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        #         questions = KnowQuizQuestion.objects.filter(know_id=know_id)
-#         questions_data = []
-#         for question in questions:
-#             question_data = {
-#                 "question": KnowQuizQuestionSerializer(question).data,
-#                 "options": KnowQuizOptionsSerializer(question.get_answers(), many=True).data,
-#                 "correct_answer": question.get_answers().get(isCorrect=True).option_answer
-#             }
-#             questions_data.append(question_data)
-#         return Response({"questions": questions_data}, status=status.HTTP_200_OK)
-        
-    @swagger_auto_schema(operation_description="Update a quiz question by topic id", request_body=EditKnowQuizQuestionSerializer)
-    def put(self, request, topic_id):
-        try:
-            quiz = KnowQuizQuestion.objects.get(know__topic_id=topic_id)
-            serializer = EditKnowQuizQuestionSerializer(quiz, data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response({"message": "Quiz updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-        except KnowQuizQuestion.DoesNotExist:
-            raise KnowQuizNotFoundException()
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
     @swagger_auto_schema(operation_description="Delete a quiz question by topic id")
     def delete(self, request, topic_id):
         try:
@@ -86,36 +63,32 @@ class KnowQuizzesByTopicView(APIView):
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
         
 
-# class KnowQuizDetailView(APIView):
-#     permission_classes = [IsAuthenticated,]
+class KnowQuizDetailView(APIView):
+    permission_classes = [IsAuthenticated,]
 
-#     @swagger_auto_schema(operation_description="Get all quiz question and options by topic id")
-#     def get(self, request, topic_id):
-#         try:
-#             quiz = KnowQuizQuestion.objects.filter(know__topic_id=topic_id)
-#             serializer = KnowQuizQuestionSerializer(quiz, many=True)
-#             options = quiz.get_answers()
-#             option_serializer = KnowQuizOptionsSerializer(options, many=True)
-#             return Response({"question": serializer.data, "options": option_serializer.data}, status=status.HTTP_200_OK)
-#         except KnowQuizQuestion.DoesNotExist:
-#             raise KnowQuizNotFoundException()
-#         except Exception as e:
-#             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    @swagger_auto_schema(operation_description="Get a quiz question")
+    def get(self, request, quiz_id):
+        try:
+            quiz = KnowQuizQuestion.objects.get(id=quiz_id)
+            serializer = KnowQuizQuestionSerializer(quiz)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except KnowQuizQuestion.DoesNotExist:
+            raise KnowQuizNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        
-#     @swagger_auto_schema(operation_description="Update a quiz question by topic id", request_body=EditKnowQuizQuestionSerializer)
-#     def put(self, request, topic_id):
-#         try:
-#             quiz = KnowQuizQuestion.objects.get(know__topic_id=topic_id)
-#             serializer = EditKnowQuizQuestionSerializer(quiz, data=request.data)
-#             serializer.is_valid(raise_exception=True)
-#             serializer.save()
-#             return Response({"message": "Quiz updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-#         except KnowQuizQuestion.DoesNotExist:
-#             raise KnowQuizNotFoundException()
-#         except Exception as e:
-#             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+    @swagger_auto_schema(operation_description="Update a quiz question", request_body=EditKnowQuizQuestionSerializer)
+    def put(self, request, quiz_id):
+        try:
+            quiz = KnowQuizQuestion.objects.get(id=quiz_id)
+            serializer = EditKnowQuizQuestionSerializer(quiz, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response({"message": "Quiz updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        except KnowQuizQuestion.DoesNotExist:
+            raise KnowQuizNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # class KnowQuizAnswerView(APIView):

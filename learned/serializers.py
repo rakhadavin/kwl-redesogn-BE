@@ -1,8 +1,11 @@
 from rest_framework import serializers
 
 from authentication.models import Student
+from course.api_exceptions import TopicNotFoundException
 from course.models import Topic
 from .models import Learned, LearnedReflection, LearnedQuizOption, LearnedQuizQuestion, LearnedReflectionStudentAnswer
+from django.db import transaction
+from .api_exceptions import ExistingLearnedException, LearnedQuizNotFoundException, LearnedReflectionNotFoundException
 option_choices = (("Opsi A", "Opsi A"), ("Opsi B", "Opsi B"), ("Opsi C", "Opsi C"), ("Opsi D", "Opsi D"))
 learned_choices = (("reflection", "Reflection"), ("quiz", "Quiz"))
 
@@ -18,9 +21,10 @@ class LearnedQuizOptionsSerializer(serializers.ModelSerializer):
         fields = ('id', 'option_answer', 'isCorrect' )
 
 class LearnedQuizQuestionSerializer(serializers.ModelSerializer):
+    options = LearnedQuizOptionsSerializer(source='get_answers', many=True, read_only=True)
     class Meta:
         model = LearnedQuizQuestion
-        fields = ('id', 'question', 'score', 'image', 'know' )
+        fields = ('id', 'question', 'score', 'image', 'learned' )
 
 class LearnedSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,12 +33,12 @@ class LearnedSerializer(serializers.ModelSerializer):
 
 
 class AddLearnedQuizQuestionSerializer(serializers.ModelSerializer):
-    option_a = serializers.CharField(max_length=255, required=True, write_only=True)
-    option_b = serializers.CharField(max_length=255, required=True, write_only=True)
-    option_c = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_d = serializers.CharField(max_length=255, required=False, write_only=True)
+    option_a = serializers.CharField(max_length=255, write_only=True)
+    option_b = serializers.CharField(max_length=255, write_only=True)
+    option_c = serializers.CharField(max_length=255, write_only=True)
+    option_d = serializers.CharField(max_length=255, write_only=True)
     correct_option = serializers.ChoiceField(choices=option_choices, required=True, write_only=True)
-    topic = serializers.PrimaryKeyRelatedField(queryset=Topic.objects.all(), write_only=True)
+    topic = serializers.IntegerField(write_only=True)
     type = serializers.ChoiceField(choices=learned_choices, required=True, write_only=True)
 
     class Meta:
@@ -42,54 +46,52 @@ class AddLearnedQuizQuestionSerializer(serializers.ModelSerializer):
         fields = ['option_a', 'option_b', 'option_c', 'option_d', 'question', 'type', 'image', 'correct_option', 'score', 'topic', 'learned']
     
     def create(self, validated_data):
-        topic = validated_data.pop('topic', None)
+        topic_id = validated_data.pop('topic', None)
 
-        
+        topic = get_topic(topic_id)
+
         options_data = [
         {'option_answer': validated_data.pop('option_a'), 'isCorrect': validated_data['correct_option'] == 'Opsi A', 'alias': 'option_a'},
         {'option_answer': validated_data.pop('option_b'), 'isCorrect': validated_data['correct_option'] == 'Opsi B', 'alias': 'option_b'},
+        {'option_answer': validated_data.pop('option_c'), 'isCorrect': validated_data['correct_option'] == 'Opsi C', 'alias': 'option_c'},
+        {'option_answer': validated_data.pop('option_d'), 'isCorrect': validated_data['correct_option'] == 'Opsi D', 'alias': 'option_d'}
         ]
-        if validated_data['option_c']:
-            options_data.append({'option_answer': validated_data.pop('option_c'), 'alias': 'option_c'})
-        if validated_data['option_d']:
-            options_data.append({'option_answer': validated_data.pop('option_d'),  'alias': 'option_d'})
-    
+
         validated_data.pop('correct_option')   
-        
-        know, created = Learned.objects.get_or_create(topic=topic, type=validated_data['type'])
-        if not created:
-            raise serializers.ValidationError("Know already exists")
-        validated_data['know'] = know
-        validated_data.pop('type')
-        
-        know_quiz = LearnedQuizQuestion.objects.create(**validated_data)
-        options = [LearnedQuizOption(know_quiz_id=know_quiz, **option_data) for option_data in options_data]
-        LearnedQuizOption.objects.bulk_create(options)
-        return know_quiz
+
+        with transaction.atomic():
+            learned, created = Learned.objects.get_or_create(topic=topic, type=validated_data['type'])
+
+            if not created:
+                raise ExistingLearnedException("Learned already exists")
+            
+            validated_data['learned'] = learned 
+            validated_data.pop('type')
+            
+            learned_quiz = LearnedQuizQuestion.objects.create(**validated_data)
+            options = [LearnedQuizOption(learned_quiz=learned_quiz, **option_data) for option_data in options_data]
+            LearnedQuizOption.objects.bulk_create(options)
+        return learned_quiz
 
 
 class EditLearnedQuizQuestionSerializer(serializers.Serializer):
-    option_a = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_b = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_c = serializers.CharField(max_length=255, required=False, write_only=True)
-    option_d = serializers.CharField(max_length=255, required=False, write_only=True)
-    question = serializers.CharField(max_length=255, required=False)
-
+    option_a = serializers.CharField(max_length=255, write_only=True)
+    option_b = serializers.CharField(max_length=255, write_only=True)
+    option_c = serializers.CharField(max_length=255, write_only=True)
+    option_d = serializers.CharField(max_length=255, write_only=True)
+    question = serializers.CharField(max_length=255)
     image = serializers.ImageField(required=False)
     correct_option = serializers.ChoiceField(choices=option_choices, required=False, write_only=True)
     score = serializers.IntegerField(required=False)
-    topic_id = serializers.IntegerField(required=True, write_only=True)
-    id = serializers.IntegerField(required=True, write_only=True)
 
     def update(self, instance, validated_data):
-        if 'question' in validated_data:
-            instance.question = validated_data['question']
-        if 'score' in validated_data:
-            instance.score = validated_data['score']
+        instance.question = validated_data['question']
+        instance.score = validated_data['score']
+
         if 'image' in validated_data:
             instance.image.delete(save=False)
             instance.image = validated_data['image']
-    
+
         instance.save()
    
         options = instance.get_answers()
@@ -104,23 +106,32 @@ class EditLearnedQuizQuestionSerializer(serializers.Serializer):
 
         return instance
 
-class AddLearnedEssaySerializer(serializers.Serializer):
-    question = serializers.CharField(max_length=255, required=True)
-    type = serializers.ChoiceField(choices=learned_choices, required=True, write_only=True)
-    score = serializers.IntegerField(required=True)
-    topic_id = serializers.IntegerField(required=True, write_only=True)
-    
+class AddLearnedEssaySerializer(serializers.ModelSerializer):
+    question = serializers.CharField(max_length=255)
+    type = serializers.ChoiceField(choices=learned_choices, write_only=True)
+    score = serializers.IntegerField()
+    topic = serializers.IntegerField(write_only=True)
 
+    class Meta:
+        model = LearnedReflection
+        fields = ['question', 'type', 'score', 'topic', 'id']
+    
     def create(self, validated_data):
-        topic = Topic.objects.get(pk=validated_data['topic_id'])
-        learned, created = Learned.objects.get_or_create(topic=topic)
-        learned_essay = LearnedReflection.objects.create(learned=learned, question=validated_data['question'], score=validated_data['score'])
-        
+        with transaction.atomic():
+            topic = get_topic(validated_data['topic'])
+
+            learned, created = Learned.objects.get_or_create(topic=topic)
+            if not created:
+                raise ExistingLearnedException("Learned already exists")
+            
+            learned_essay = LearnedReflection.objects.create(learned=learned, question=validated_data['question'], score=validated_data['score'])
+            
         return learned_essay
     
 class EditLearnedEssaySerializer(serializers.Serializer):
-    question = serializers.CharField(max_length=255, required=False)
-    score = serializers.IntegerField(required=False)
+    question = serializers.CharField(max_length=255)
+    score = serializers.IntegerField()
+    
     def update(self, instance, validated_data):
         if 'question' in validated_data:
             instance.question = validated_data['question']
@@ -134,13 +145,19 @@ class LearnedReflectionSerializer(serializers.ModelSerializer):
         model = LearnedReflection
         fields = ('id', 'question', 'score', 'learned' )
 
-class AnswerLearnedReflectionSerializer(serializers.Serializer):
-    reflection = serializers.CharField(max_length=255, required=True)
-    wtk_ref_id = serializers.IntegerField(required=True, write_only=True)
-    student_id = serializers.IntegerField(required=True, write_only=True)
+class LearnedReflectionAnswerSerializer(serializers.Serializer):
+    answer = serializers.CharField(max_length=255)
+    id = serializers.IntegerField(write_only=True)
+
     
     def validate(self, attrs):
         student = Student.objects.filter(pk=attrs['student_id']).first()
         if not student:
             raise serializers.ValidationError("Student not found")
         return attrs
+    
+def get_topic(topic_id):
+    try:
+        return Topic.objects.get(pk=topic_id)
+    except Topic.DoesNotExist:
+        raise TopicNotFoundException()

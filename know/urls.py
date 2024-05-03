@@ -1,4 +1,4 @@
-from .views import KnowEssayListView, KnowEssayDetailView, KnowEssayAnswerView, KnowQuizListView, KnowQuizzesByTopicView
+from .views import KnowEssayListView, KnowEssayDetailView, KnowEssayAnswerView, KnowQuizListView, KnowQuizzesByTopicView, KnowQuizDetailView
 from django.urls import path
 
 
@@ -22,7 +22,8 @@ urlpatterns = [
     path('essay/answer', KnowEssayAnswerView.as_view()),
 
     path('quiz', KnowQuizListView.as_view()),
-    path('quiz/<int:topic_id>', KnowQuizzesByTopicView.as_view())
+    path('quiz/<int:topic_id>', KnowQuizzesByTopicView.as_view()),
+    path('quiz/detail/<int:quiz_id>', KnowQuizDetailView.as_view())
 
 
     

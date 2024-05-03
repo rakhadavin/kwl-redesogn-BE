@@ -38,10 +38,11 @@ class KnowQuizOption(models.Model):
 
     
 class KnowQuizStudentAnswer(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     know_quiz = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
     student = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
     answer = models.CharField(max_length=255)
-    score = models.IntegerField(default=0)
     def __str__(self):
         return self.answer
     
