@@ -172,6 +172,30 @@ class PollingDetailView(APIView):
             raise WtkDoesNotExistException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @swagger_auto_schema(operation_summary="Edit Polling question", request_body=EditPollingQuestionSerializer)
+    def put(self, request, topic_id):
+        try:
+            question = WtkPollQuestion.objects.get(wtk__topic_id=topic_id)
+            serializer = EditPollingQuestionSerializer(question, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response({"message": "Polling question updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        except WtkPollQuestion.DoesNotExist:
+            raise WtkDoesNotExistException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @swagger_auto_schema(operation_summary="Delete Polling question")
+    def delete(self, request, topic_id):
+        try:
+            wtk = WantToKnow.objects.get(topic_id=topic_id)
+            wtk.delete()
+            return Response({"message": "Polling question deleted successfully"}, status=status.HTTP_200_OK)
+        except WantToKnow.DoesNotExist:
+            raise WtkDoesNotExistException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
