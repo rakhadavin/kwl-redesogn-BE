@@ -45,6 +45,7 @@ class KnowQuizzesByTopicView(APIView):
         try:
             quiz = KnowQuizQuestion.objects.filter(know__topic_id=topic_id)
             serializer = KnowQuizQuestionSerializer(quiz, many=True)
+            print(serializer.data)
             return Response({"questions": serializer.data}, status=status.HTTP_200_OK)
         except KnowQuizQuestion.DoesNotExist:
             raise KnowQuizNotFoundException()

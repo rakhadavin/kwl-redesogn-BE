@@ -217,6 +217,7 @@ class CourseList(APIView):
             serializer = CourseSerializer(courses, many=True)
             return Response(serializer.data)
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     @swagger_auto_schema(operation_summary="Create a course",request_body=CourseSerializer, responses={201: 'Created'})
@@ -234,6 +235,7 @@ class CourseList(APIView):
         except Lecturer.DoesNotExist:
             raise LecturerNotFoundException()
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -273,6 +275,7 @@ class CourseDetailView(APIView):
         
     @swagger_auto_schema(operation_summary="delete a course")
     def delete(self, request, pk, format=None):
+
         course = self.get_object(pk)
         course.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -320,15 +323,24 @@ class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(operation_summary="Retrieve a reward item")
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
+        try:
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
     @swagger_auto_schema(operation_summary="Update a reward item")
     def put(self, request, *args, **kwargs):
-        return super().put(request, *args, **kwargs)
+        try:
+            return super().put(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(operation_summary="Delete a reward item")
     def delete(self, request, *args, **kwargs):
-        return super().delete(request, *args, **kwargs)
+        try:
+            return super().delete(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class TopicList(generics.ListCreateAPIView):
@@ -338,11 +350,17 @@ class TopicList(generics.ListCreateAPIView):
 
     @swagger_auto_schema(operation_summary="List all topics")
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        try:
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(operation_summary="Create a new topic")
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class TopicDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -352,12 +370,21 @@ class TopicDetail(generics.RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(operation_summary="Retrieve a topic")
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        try:
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(operation_summary="Update a topic")
     def put(self, request, *args, **kwargs):
-        return super().put(request, *args, **kwargs)
+        try:
+            return super().put(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(operation_summary="Delete a topic")
     def delete(self, request, *args, **kwargs):
-        return super().delete(request, *args, **kwargs)
+        try:
+            return super().delete(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

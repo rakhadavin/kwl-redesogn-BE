@@ -17,12 +17,12 @@ urlpatterns = [
     # path('is_exist/<int:topic_id>', is_learned_exist_by_topic_id),
     # path('delete/<int:topic_id>', delete_learned_by_topic_id),
 
-   path('essay', LearnedEssayListView.as_view()),
-   path('essay/<int:topic_id>', LearnedEssayDetailView.as_view()),
+   path('essay', LearnedEssayListView.as_view()), #get all & create
+   path('essay/<int:topic_id>', LearnedEssayDetailView.as_view()), #get 1, update, delete
 
-    path('quiz', LearnedQuizListView.as_view()),
-    path('quiz/<int:topic_id>', LearnedQuizzesByTopicView.as_view()),
-    path('quiz/detail/<int:quiz_id>', LearnedQuizDetailView.as_view())
+    path('quiz', LearnedQuizListView.as_view()), #get all & create
+    path('quiz/<int:topic_id>', LearnedQuizzesByTopicView.as_view()), #get all quiz by topic id, delete
+    path('quiz/detail/<int:quiz_id>', LearnedQuizDetailView.as_view()) #get 1, edit
 
    
 

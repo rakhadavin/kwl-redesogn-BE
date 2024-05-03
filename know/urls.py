@@ -22,8 +22,8 @@ urlpatterns = [
     path('essay/answer', KnowEssayAnswerView.as_view()),
 
     path('quiz', KnowQuizListView.as_view()),
-    path('quiz/<int:topic_id>', KnowQuizzesByTopicView.as_view()),
-    path('quiz/detail/<int:quiz_id>', KnowQuizDetailView.as_view())
+    path('quiz/<int:topic_id>', KnowQuizzesByTopicView.as_view()), #get all & create
+    path('quiz/detail/<int:quiz_id>', KnowQuizDetailView.as_view()) #get 1, update, delete
 
 
     
