@@ -2,7 +2,7 @@ from django.http import Http404
 from django.shortcuts import render
 
 from authentication.models import Student
-from learned.api_exceptions import LearnedReflectionNotFoundException
+from learned.api_exceptions import LearnedDoesNotExistException, LearnedReflectionNotFoundException
 from .serializers import AddLearnedEssaySerializer, EditLearnedEssaySerializer, LearnedReflectionSerializer, AddLearnedQuizQuestionSerializer, EditLearnedQuizQuestionSerializer, LearnedQuizQuestionSerializer 
 from .models import Learned, LearnedReflection, LearnedReflectionStudentAnswer, LearnedQuizQuestion, LearnedQuizStudentAnswer
 from rest_framework.decorators import api_view, permission_classes
@@ -24,7 +24,7 @@ class LearnedQuizListView(APIView):
             serializer.save()
             return Response({"message": "Quiz added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     @swagger_auto_schema(operation_description="Get all learned quiz")
     def get(self, request):
@@ -33,7 +33,7 @@ class LearnedQuizListView(APIView):
             serializer = LearnedQuizQuestionSerializer(learned_quiz, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 class LearnedQuizzesByTopicView(APIView):   
     permission_classes = [IsAuthenticated,]
@@ -47,18 +47,18 @@ class LearnedQuizzesByTopicView(APIView):
         except LearnedQuizQuestion.DoesNotExist:
             raise LearnedReflectionNotFoundException()
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     @swagger_auto_schema(operation_description="Delete a learned quiz by topic id")
     def delete(self, request, topic_id):
         try:
-            quiz = LearnedQuizQuestion.objects.get(learned__topic_id=topic_id)
-            quiz.delete()
+            learned = Learned.objects.get(topic_id=topic_id)
+            learned.delete()
             return Response({"message": "Quiz deleted successfully"}, status=status.HTTP_200_OK)
-        except LearnedQuizQuestion.DoesNotExist:
-            raise LearnedReflectionNotFoundException()
+        except Learned.DoesNotExist:
+            raise LearnedDoesNotExistException()
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
 class LearnedQuizDetailView(APIView):
@@ -70,10 +70,10 @@ class LearnedQuizDetailView(APIView):
             quiz = LearnedQuizQuestion.objects.get(id=quiz_id)
             serializer = LearnedQuizQuestionSerializer(quiz)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except LearnedQuizQuestion.DoesNotExist:
-            raise LearnedReflectionNotFoundException()
+        except Learned.DoesNotExist:
+            raise LearnedDoesNotExistException()
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     @swagger_auto_schema(operation_description="Edit a learned quiz", request_body=EditLearnedQuizQuestionSerializer)
     def put(self, request, quiz_id):
@@ -86,7 +86,7 @@ class LearnedQuizDetailView(APIView):
         except LearnedQuizQuestion.DoesNotExist:
             raise LearnedReflectionNotFoundException()
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
 #additional functions
@@ -134,7 +134,7 @@ class LearnedQuizDetailView(APIView):
 #         learned.delete()
 #         return Response({"message": "Learned deleted successfully"}, status=status.HTTP_200_OK)
 #     except Learned.DoesNotExist:
-#         return Response({"error": "Learned not found"}, status=status.HTTP_404_NOT_FOUND)
+#         return Response({"message": "Learned not found"}, status=status.HTTP_404_NOT_FOUND)
 
 # class LearnedQuizView():
     
@@ -144,7 +144,7 @@ class LearnedQuizDetailView(APIView):
 #             if serializer.is_valid():
 #                 serializer.save()
 #                 return Response({"message": "Quiz added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
-#             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+#             return Response({"message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
 #         @api_view(['GET'])
 #         def get_learned_quiz(request, learned_id):
@@ -153,7 +153,7 @@ class LearnedQuizDetailView(APIView):
 #                 serializer = LearnedQuizQuestionSerializer(quiz)
 #                 return Response(serializer.data, status=status.HTTP_200_OK)
 #             except Http404:
-#                 return Response({"error": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
+#                 return Response({"message": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
             
 #         def get_all_learned_quiz(request, know_id):
 #             try:
@@ -161,7 +161,7 @@ class LearnedQuizDetailView(APIView):
 #                 serializer = LearnedQuizQuestionSerializer(quiz)
 #                 return Response(serializer.data, status=status.HTTP_200_OK)
 #             except Http404:
-#                 return Response({"error": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
+#                 return Response({"message": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
         
 #         @api_view(['PUT'])
 #         def edit_learned_quiz(request, learned_id):
@@ -171,9 +171,9 @@ class LearnedQuizDetailView(APIView):
 #                 if serializer.is_valid():
 #                     serializer.save()
 #                     return Response({"message": "Quiz updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-#                 return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+#                 return Response({"message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 #             except Http404:
-#                 return Response({"error": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
+#                 return Response({"message": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
                 
 #         @api_view(['POST'])
 #         @permission_classes([IsAuthenticated]) 
@@ -197,7 +197,7 @@ class LearnedQuizDetailView(APIView):
     
 #                 return Response({"message": "Quiz answer saved successfully"}, status=status.HTTP_201_CREATED)
 #             except Http404:
-#                 return Response({"error": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
+#                 return Response({"message": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
 
 #         def save_all_answers_by_know_id(request, know_id):
 #             try:
@@ -217,7 +217,7 @@ class LearnedQuizDetailView(APIView):
 #                     history.save()
 #                 return Response({"message": "Quiz answers saved successfully"}, status=status.HTTP_201_CREATED)
 #             except Http404:
-#                 return Response({"error": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
+#                 return Response({"message": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 # class LearnedEssayView():
@@ -228,7 +228,7 @@ class LearnedQuizDetailView(APIView):
 #         if serializer.is_valid():
 #             serializer.save()
 #             return Response({"message": "Reflection question added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
-#         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+#         return Response({"message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
    
 #     @api_view(['GET'])
 #     def get_learned_essay(request, learned_id):
@@ -237,7 +237,7 @@ class LearnedQuizDetailView(APIView):
 #             serializer = LearnedReflectionSerializer(essay)
 #             return Response(serializer.data, status=status.HTTP_200_OK)
 #         except Http404:
-#             return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
+#             return Response({"message": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
     
 #     @api_view(['PUT'])
 #     def edit_learned_essay(request, learned_id):
@@ -247,9 +247,9 @@ class LearnedQuizDetailView(APIView):
 #             if serializer.is_valid():
 #                 serializer.save()
 #                 return Response({"message": "Reflection question updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-#             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+#             return Response({"message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 #         except Http404:
-#             return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
+#             return Response({"message": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
             
 #     @api_view(['POST'])
 #     @permission_classes([IsAuthenticated]) 
@@ -268,7 +268,7 @@ class LearnedQuizDetailView(APIView):
 
 #             return Response({"message": "Reflection answer saved successfully"}, status=status.HTTP_201_CREATED)
 #         except Http404:
-#             return Response({"error": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
+#             return Response({"message": "Reflection question not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class LearnedEssayListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -281,7 +281,7 @@ class LearnedEssayListView(APIView):
             serializer.save()
             return Response({"message": "Reflection question added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(operation_description="Get all learned essay")
     def get(self, request):
@@ -290,7 +290,7 @@ class LearnedEssayListView(APIView):
             serializer = LearnedReflectionSerializer(learned_essay, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 class LearnedEssayDetailView(APIView):
     permission_classes = [IsAuthenticated]
@@ -304,7 +304,7 @@ class LearnedEssayDetailView(APIView):
         except LearnedReflection.DoesNotExist:
             raise LearnedReflectionNotFoundException()
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(operation_description="Edit learned essay", request_body=EditLearnedEssaySerializer)
     def put(self, request, topic_id):
@@ -317,15 +317,15 @@ class LearnedEssayDetailView(APIView):
         except LearnedReflection.DoesNotExist:
             raise LearnedReflectionNotFoundException()
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     @swagger_auto_schema(operation_description="Delete learned essay")
     def delete(self, request, topic_id):
         try:
-            essay = LearnedReflection.objects.get(learned__topic_id=topic_id)
-            essay.delete()
-            return Response({"message": "Reflection question deleted successfully"}, status=status.HTTP_200_OK)
-        except LearnedReflection.DoesNotExist:
-            raise LearnedReflectionNotFoundException()
+            learned = Learned.objects.get(topic_id=topic_id)
+            learned.delete()
+            return Response({"message": "Reflection deleted successfully"}, status=status.HTTP_200_OK)
+        except Learned.DoesNotExist:
+            raise LearnedDoesNotExistException()
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)

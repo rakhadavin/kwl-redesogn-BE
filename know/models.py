@@ -24,7 +24,7 @@ class KnowQuizQuestion(models.Model):
         return self.question
     
     def get_answers(self):
-        return KnowQuizOption.objects.filter(know_quiz_id=self.id)
+        return KnowQuizOption.objects.filter(know_quiz=self.id)
     
 class KnowQuizOption(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)

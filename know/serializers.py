@@ -14,7 +14,7 @@ know_choices = (("reflection", "Reflection"), ("quiz", "Quiz"))
 class KnowQuizOptionsSerializer(serializers.ModelSerializer):
     class Meta:
         model = KnowQuizOption
-        fields = ('id', 'option_answer', 'isCorrect' ) 
+        fields = ('id', 'option_answer', 'isCorrect') 
         
 class KnowQuizQuestionSerializer(serializers.ModelSerializer):
     options = KnowQuizOptionsSerializer(source='get_answers', many=True, read_only=True)
@@ -90,16 +90,16 @@ class EditKnowQuizQuestionSerializer(serializers.Serializer):
             instance.image = validated_data['image']
 
         instance.save()
-   
+        print(validated_data)
         options = instance.get_answers()
+  
         options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
 
         for option in options_tuple:
             if option[0] in validated_data:
-                answer = options.get(alias=option[1])
+                answer = options.get(alias=option[0])
                 answer.option_answer = validated_data[option[0]]
-                if 'correct_option' in validated_data:
-                    answer.isCorrect = validated_data['correct_option'] == option[1]
+                answer.isCorrect = validated_data['correct_option'] == option[1]
                 answer.save()
 
         return instance

@@ -98,7 +98,7 @@ class EditLearnedQuizQuestionSerializer(serializers.Serializer):
         options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
         for option in options_tuple:
             if option[0] in validated_data:
-                answer = options.get(alias=option[1])
+                answer = options.get(alias=option[0])
                 answer.option_answer = validated_data[option[0]]
                 if 'correct_option' in validated_data:
                     answer.isCorrect = validated_data['correct_option'] == option[1]
