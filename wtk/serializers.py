@@ -1,8 +1,11 @@
 
 from rest_framework import serializers
 
+from course.api_exceptions import TopicNotFoundException
 from course.models import Topic
-from wtk.models import Prereading, WtkPollQuestion, WantToKnow, WtkChoices, WtkReflection
+from wtk.api_exceptions import ExistingWtkException
+from wtk.models import Prereading, WantToKnow, WtkPollQuestion, WtkChoices, WtkReflection
+from django.db import transaction
 
 wtk_choices = (("checkbox", "Checkbox"), ("reflection", "Reflection"))
 
@@ -10,35 +13,36 @@ class WtkSerializer(serializers.ModelSerializer):
     class Meta:
         model = WantToKnow
         fields = ['id', 'topic', 'type']
+
 class AddPollingQuestionSerializer(serializers.ModelSerializer):
-    question = serializers.CharField(max_length=255, required=True)
-    type = serializers.ChoiceField(choices=wtk_choices, required=True, write_only=True)
-    score = serializers.IntegerField(required=True)
+    question = serializers.CharField(max_length=255)
+    type = serializers.ChoiceField(choices=wtk_choices,write_only=True)
+    score = serializers.IntegerField()
     options = serializers.ListField(
+
     child=serializers.CharField(max_length=255, required=True),
-    required=False,
     write_only=True
     )
 
-    topic_id = serializers.IntegerField(required=True, write_only=True)
+    topic = serializers.IntegerField(required=True, write_only=True)
 
     class Meta:
         model = WtkPollQuestion
-        fields = ['id','score','question','wtk','options', 'type', 'topic_id']
+        fields = ['id','score','question','wtk','options', 'type', 'topic']
 
     def create(self, validated_data):
+        with transaction.atomic():
+            wtk, created = WantToKnow.objects.get_or_create(topic_id=validated_data['topic'], type=validated_data['type'])
+            if not created:
+                raise ExistingWtkException("Want to know already exists")
+            
+            poll_question = WtkPollQuestion.objects.create(question=validated_data['question'], score=validated_data['score'], wtk=wtk)
+            for i in range(len(validated_data['options'])):
+                if validated_data['options'][i]:
+                    choice = WtkChoices.objects.create(option_answer=validated_data['options'][i])
+                    poll_question.choices.add(choice)
 
-        wtk, created = WantToKnow.objects.get_or_create(topic_id=validated_data['topic_id'], type=validated_data['type'])
-        if not created:
-            raise serializers.ValidationError("Want to know already exists")    
-        
-        poll_questions = WtkPollQuestion.objects.create(question=validated_data['question'], score=validated_data['score'], wtk=wtk)
-        for i in range(len(validated_data['options'])):
-            if validated_data['options'][i]:
-                choice = WtkChoices.objects.create(option_answer=validated_data['options'][i])
-                poll_questions.choices.add(choice)
-
-        return poll_questions
+        return poll_question
     
 class EditPollingQuestionSerializer(serializers.Serializer):
     question = serializers.CharField(max_length=255, required=False)
@@ -70,41 +74,50 @@ class EditPollingQuestionSerializer(serializers.Serializer):
                 choice.save()
         return instance
 
-
-class WtkPollingQuestionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WtkPollQuestion
-        fields = ['score', 'question', 'wtk', 'id']
-
-
 class WtkPollingAnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = WtkChoices
         fields = ['option_answer', 'id']
 
-class AddWtkEssaySerializer(serializers.Serializer):
+class WtkPollingQuestionSerializer(serializers.ModelSerializer):
+    choices = WtkPollingAnswerSerializer(many=True, read_only=True, source='wtkchoices_set')
+    class Meta:
+        model = WtkPollQuestion
+        fields = ['score', 'question', 'wtk', 'id', 'choices']
+
+
+
+
+class AddWtkEssaySerializer(serializers.ModelSerializer):
     question = serializers.CharField(max_length=255, required=True)
-    type = serializers.ChoiceField(choices=wtk_choices, required=True, write_only=True)
+    type = serializers.ChoiceField(choices=wtk_choices, write_only=True)
     score = serializers.IntegerField(required=True)
-    topic_id = serializers.IntegerField(required=True, write_only=True)
+    topic = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = WtkReflection
+        fields = ['question', 'type', 'score', 'topic', 'id']
 
     def create(self, validated_data):
-        topic = Topic.objects.get(pk=validated_data['topic_id'])
-        know, created = WantToKnow.objects.get_or_create(topic=topic)
-        know_essay = WtkReflection.objects.create(know_id=know, question=validated_data['question'], score=validated_data['score'])
+        with transaction.atomic():
+            topic = get_topic(validated_data['topic'])
+
+            wtk, created = WantToKnow.objects.get_or_create(topic=topic, type=validated_data['type'])
+            if not created:
+                raise ExistingWtkException("Want to know already exists")
+            
+            wtk_essay = WtkReflection.objects.create(wtk=wtk, question=validated_data['question'], score=validated_data['score'])
         
-        return know_essay
+        return wtk_essay
     
 class WtkReflectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = WtkReflection
-        fields = ('id', 'question', 'score', 'know' )
+        fields = ('id', 'question', 'score', 'wtk' )
 
 class EditWtkEssaySerializer(serializers.Serializer):
     question = serializers.CharField(max_length=255, required=False)
     score = serializers.IntegerField(required=False)
-    topic_id = serializers.IntegerField(required=True, write_only=True)
-    id = serializers.IntegerField(required=True, write_only=True)
 
     def update(self, instance, validated_data):
         if 'question' in validated_data:
@@ -116,19 +129,30 @@ class EditWtkEssaySerializer(serializers.Serializer):
     
 class AddPrereadingSerializer(serializers.ModelSerializer):
     file = serializers.FileField(max_length=None, use_url=True, required=False)
+    topic = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Prereading
         fields = ('id', 'prereading', 'wtk', 'file')
 
+    def create(self, validated_data):
+        with transaction.atomic():
+            topic = get_topic(validated_data['topic'])
+            try:
+                wtk = WantToKnow.objects.get(topic=topic)
+            except WantToKnow.DoesNotExist:
+                raise WantToKnow.DoesNotExist("Want to know does not exist")
+            prereading = Prereading.objects.create(prereading=validated_data['prereading'], wtk=wtk, file=validated_data['file'])
+        
+        return prereading
+
 class EditPrereadingSerializer(serializers.Serializer):
-    prereading = serializers.CharField(max_length=255, required=False)
+    prereading = serializers.CharField(max_length=255)
     file = serializers.FileField(max_length=None, use_url=True, required=False)
-    id = serializers.IntegerField(required=True, write_only=True)
 
     def update(self, instance, validated_data):
-        if 'prereading' in validated_data:
-            instance.prereading = validated_data['prereading']
+      
+        instance.prereading = validated_data['prereading']
         if 'file' in validated_data:
             instance.file.delete()
             instance.file = validated_data['file']
@@ -140,3 +164,8 @@ class PrereadingSerializer(serializers.ModelSerializer):
         model = Prereading
         fields = ('id', 'prereading', 'file', 'wtk')
 
+def get_topic(topic_id):
+    try:
+        return Topic.objects.get(pk=topic_id)
+    except Topic.DoesNotExist:
+        raise TopicNotFoundException()

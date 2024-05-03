@@ -118,7 +118,7 @@ class AddKnowEssaySerializer(serializers.ModelSerializer):
         with transaction.atomic():
             topic = get_topic(validated_data['topic'])
 
-            know, created = Know.objects.get_or_create(topic=topic)
+            know, created = Know.objects.get_or_create(topic=topic, type=validated_data['type'])
             if not created:
                 raise ExistingKnowException("Know already exists")
 
