@@ -34,7 +34,7 @@ class Topic(models.Model):
 
 class RewardStudentPoint(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    total_point = models.IntegerField()
+    total_point = models.IntegerField(default=0)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     
@@ -44,8 +44,8 @@ class RewardStudentPoint(models.Model):
 
 class RewardItem(models.Model):
     name = models.CharField(max_length=100)
-    stock = models.IntegerField()
-    point = models.IntegerField()
+    stock = models.IntegerField(default=0)
+    point = models.IntegerField(default=0)
     expired_date = models.CharField(max_length=30)
     detail_instruction = models.CharField(max_length=250)
     created = models.DateTimeField(auto_now_add=True)

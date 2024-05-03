@@ -164,7 +164,7 @@ class EnrollAssistantToCourseView(APIView):
 
 class CourseLecturerView(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_description="Get all courses taught by lecturer id")
+    @swagger_auto_schema(operation_summary="Get all courses taught by lecturer id")
     def get(self, request, format=None):
         try:
             user_id = request.user.id
@@ -179,10 +179,9 @@ class CourseLecturerView(APIView):
 
 class CourseTopicView(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_description="Get all topics by course id")
+    @swagger_auto_schema(operation_summary="Get all topics by course id and also give its K-W-L data")
     def get(self, request, course_id, format=None):
         try:
-            print(course_id)
             course = Course.objects.get(pk=course_id)
             topics = Topic.objects.filter(course=course)
             serializer = TopicSerializer(topics, many=True)
@@ -194,7 +193,7 @@ class CourseTopicView(APIView):
         
 class CourseStudentView(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_description="Get all courses enrolled by student id")
+    @swagger_auto_schema(operation_summary="Get all courses enrolled by student id")
     def get(self, request, format=None):
         try:
             user_id = request.user.id
@@ -280,7 +279,7 @@ class CourseDetailView(APIView):
     
 class RewardCourseView(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_description="Get all rewards by course id")
+    @swagger_auto_schema(operation_summary="Get all rewards by course id")
     def get(self, request, course_id, format=None):
         try:
             course = Course.objects.get(pk=course_id)
@@ -294,7 +293,7 @@ class RewardCourseView(APIView):
         
 class RewardList(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_description="List all rewards")
+    @swagger_auto_schema(operation_summary="List all rewards")
     def get(self, request, format=None):
         try:
             rewards = RewardItem.objects.all()
@@ -303,7 +302,7 @@ class RewardList(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-    @swagger_auto_schema(request_body=RewardItemSerializer, operation_description="create a new reward")
+    @swagger_auto_schema(request_body=RewardItemSerializer, operation_summary="create a new reward")
     def post(self, request, format=None):
         try:
             serializer = RewardItemSerializer(data=request.data)
@@ -319,15 +318,15 @@ class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = RewardItem.objects.all()
     serializer_class = RewardItemSerializer
 
-    @swagger_auto_schema(operation_description="Retrieve, update or delete a reward item")
+    @swagger_auto_schema(operation_summary="Retrieve a reward item")
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    @swagger_auto_schema(operation_description="Retrieve, update or delete a reward item")
+    @swagger_auto_schema(operation_summary="Update a reward item")
     def put(self, request, *args, **kwargs):
         return super().put(request, *args, **kwargs)
 
-    @swagger_auto_schema(operation_description="Retrieve, update or delete a reward item")
+    @swagger_auto_schema(operation_summary="Delete a reward item")
     def delete(self, request, *args, **kwargs):
         return super().delete(request, *args, **kwargs)
 
@@ -337,11 +336,11 @@ class TopicList(generics.ListCreateAPIView):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
 
-    @swagger_auto_schema(operation_description="List all topics or create a new topic")
+    @swagger_auto_schema(operation_summary="List all topics")
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    @swagger_auto_schema(operation_description="List all topics or create a new topic")
+    @swagger_auto_schema(operation_summary="Create a new topic")
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -351,14 +350,14 @@ class TopicDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
 
-    @swagger_auto_schema(operation_description="Retrieve, update or delete a topic")
+    @swagger_auto_schema(operation_summary="Retrieve a topic")
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    @swagger_auto_schema(operation_description="Retrieve, update or delete a topic")
+    @swagger_auto_schema(operation_summary="Update a topic")
     def put(self, request, *args, **kwargs):
         return super().put(request, *args, **kwargs)
 
-    @swagger_auto_schema(operation_description="Retrieve, update or delete a topic")
+    @swagger_auto_schema(operation_summary="Delete a topic")
     def delete(self, request, *args, **kwargs):
         return super().delete(request, *args, **kwargs)

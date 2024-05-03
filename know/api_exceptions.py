@@ -16,3 +16,16 @@ class ExistingKnowException(BaseCustomException):
     def __init__(self, detail):
         super().__init__(detail, status.HTTP_409_CONFLICT)
 
+
+class KnowQuizNotFoundException(BaseCustomException):
+    def __init__(self):
+        super().__init__("Know quiz not found", status.HTTP_404_NOT_FOUND)
+
+class KnowReflectionNotFoundException(BaseCustomException):
+    def __init__(self):
+        super().__init__("Know reflection not found", status.HTTP_404_NOT_FOUND)
+
+
+class KnowDoesNotExistException(BaseCustomException):
+    def __init__(self):
+        super().__init__("Know does not exist", status.HTTP_404_NOT_FOUND)

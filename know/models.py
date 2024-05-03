@@ -1,10 +1,7 @@
 from django.db import models
-from django.contrib.postgres.fields import ArrayField
 
 # Create your models here.
 
-    
-## Know
 alias_choices = (("Opsi A", "Opsi A"), ("Opsi B", "Opsi B"), ("Opsi C", "Opsi C"), ("Opsi D", "Opsi D"))
 CHOICES = (("reflection", "Reflection"), ("quiz", "Quiz"))
 class Know(models.Model):
@@ -32,7 +29,7 @@ class KnowQuizQuestion(models.Model):
 class KnowQuizOption(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    know_quiz_id = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
+    know_quiz = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
     option_answer = models.CharField(max_length=255)
     isCorrect = models.BooleanField(default=False)
     alias = models.CharField(choices=alias_choices, max_length=255, blank=True, null=True)
@@ -41,8 +38,8 @@ class KnowQuizOption(models.Model):
 
     
 class KnowQuizStudentAnswer(models.Model):
-    know_quiz_question_id = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
-    student_id = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
+    know_quiz = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
+    student = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
     answer = models.CharField(max_length=255)
     score = models.IntegerField(default=0)
     def __str__(self):
@@ -61,10 +58,9 @@ class KnowReflection(models.Model):
 class KnowReflectionStudentAnswer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    know_ref_id = models.ForeignKey('KnowReflection', on_delete=models.CASCADE, blank=True, null=True)
-    student_id = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
+    know_ref = models.ForeignKey('KnowReflection', on_delete=models.CASCADE, blank=True, null=True)
+    student = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
     reflection = models.TextField(max_length=255)
-    score = models.IntegerField(default=0)
     def __str__(self):
         return self.reflection
     

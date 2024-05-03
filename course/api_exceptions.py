@@ -20,3 +20,8 @@ class TopicNotFoundException(BaseCustomException):
     def __init__(self):
         detail = 'Topic not found'
         super().__init__(detail, status.HTTP_404_NOT_FOUND)
+
+class RewardNotFoundException(BaseCustomException):
+    def __init__(self):
+        detail = 'Reward not found'
+        super().__init__(detail, status.HTTP_404_NOT_FOUND)
