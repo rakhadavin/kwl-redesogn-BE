@@ -42,12 +42,17 @@ else:
 
 # ALLOWED_HOSTS = []
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://localhost:8000',
-    'https://be-kowl.cs.ui.ac.id',
-    'https://kowl.cs.ui.ac.id'
-]
+
+
+ALLOWED_HOSTS=['*']
+
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:3000',
+#     'http://localhost:8000',
+#     'https://be-kowl.cs.ui.ac.id',
+#     'https://kowl.cs.ui.ac.id'
+# ]
 
 CSRF_TRUSTED_ORIGINS = ['https://be-kowl.cs.ui.ac.id','http://localhost:3000','http://localhost:8000','https://kowl.cs.ui.ac.id']
 
