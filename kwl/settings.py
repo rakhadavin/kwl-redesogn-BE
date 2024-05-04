@@ -43,6 +43,7 @@ else:
 # ALLOWED_HOSTS = []
 
 ALLOWED_HOSTS=['*']
+CSRF_TRUSTED_ORIGINS = ['https://be-kowl.cs.ui.ac.id']
 
 CORS_ORIGIN_ALLOW_ALL = True
 # Application definition
