@@ -58,7 +58,7 @@ class WtkReflectionStudentAnswer(models.Model):
 class Prereading(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    wtk = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
+    topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
     prereading = models.TextField(max_length=255)
     file = models.FileField(upload_to='prereading_files/', blank=True, null=True)   
     def __str__(self):

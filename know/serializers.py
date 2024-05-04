@@ -90,7 +90,6 @@ class EditKnowQuizQuestionSerializer(serializers.Serializer):
             instance.image = validated_data['image']
 
         instance.save()
-        print(validated_data)
         options = instance.get_answers()
   
         options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]

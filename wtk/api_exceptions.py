@@ -27,3 +27,11 @@ class WtkReflectionNotFoundException(BaseCustomException):
 class WtkDoesNotExistException(BaseCustomException):
     def __init__(self):
         super().__init__("Wtk does not exist", status.HTTP_404_NOT_FOUND)
+
+class PrereadingDoesNotExistException(BaseCustomException):
+    def __init__(self):
+        super().__init__("Prereading not found", status.HTTP_404_NOT_FOUND)
+
+class PrereadingAlreadyExistsException(BaseCustomException):
+    def __init__(self):
+        super().__init__("Prereading already exists", status.HTTP_409_CONFLICT)

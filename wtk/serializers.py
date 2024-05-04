@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from course.api_exceptions import TopicNotFoundException
 from course.models import Topic
-from wtk.api_exceptions import ExistingWtkException
+from wtk.api_exceptions import ExistingWtkException, PrereadingAlreadyExistsException
 from wtk.models import Prereading, WantToKnow, WtkPollQuestion, WtkChoices, WtkReflection
 from django.db import transaction
 
@@ -130,16 +130,14 @@ class AddPrereadingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Prereading
-        fields = ('id', 'prereading', 'wtk', 'file', 'topic')
+        fields = ('id', 'prereading','file', 'topic')
 
     def create(self, validated_data):
         with transaction.atomic():
             topic = get_topic(validated_data['topic'])
-            try:
-                wtk = WantToKnow.objects.get(topic=topic)
-            except WantToKnow.DoesNotExist:
-                raise WantToKnow.DoesNotExist("Want to know does not exist")
-            prereading = Prereading.objects.create(prereading=validated_data['prereading'], wtk=wtk)
+            prereading, created = Prereading.objects.get_or_create(prereading=validated_data['prereading'], topic=topic)
+            if not created:
+                raise PrereadingAlreadyExistsException()
             if 'file' in validated_data:
                 prereading.file = validated_data['file']
             prereading.save()
@@ -162,7 +160,7 @@ class EditPrereadingSerializer(serializers.Serializer):
 class PrereadingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prereading
-        fields = ('id', 'prereading', 'file', 'wtk')
+        fields = ('id', 'prereading', 'file', 'topic')
 
 def get_topic(topic_id):
     try:
