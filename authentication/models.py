@@ -6,6 +6,11 @@ ROLE_CHOICES = (
     ("student", "Student"),
 )
 
+class Role(models.Model):
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
+    def __str__(self):
+        return self.role
+
 class KwlUser(AbstractUser):
     domisili = models.CharField(max_length=100, help_text="User's domicile", null=True, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
