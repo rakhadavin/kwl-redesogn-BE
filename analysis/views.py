@@ -18,17 +18,16 @@ from wtk.models import WtkReflectionStudentAnswer, WtkReflection
 # Create your views here.
 
 class WordCloudAPIView(APIView):
-    def get(self, request):
-        type = request.data['type'] #tipe dari reflection, apakah learned wtk atau know
-        kwl_id = request.data['kwl_id'] #id learned/wtk/know
+    def get(self, request, type, topic):
+
         reflections = []
 
         if type == 'learned':
-            reflections = LearnedReflectionStudentAnswer.objects.filter(learned=kwl_id).values_list('reflection', flat=True)
+            reflections = LearnedReflectionStudentAnswer.objects.filter(learned=topic).values_list('reflection', flat=True)
         elif type == 'wtk':
-            reflections = WtkReflectionStudentAnswer.objects.filter(wtk=kwl_id).values_list('reflection', flat=True)
+            reflections = WtkReflectionStudentAnswer.objects.filter(wtk=topic).values_list('reflection', flat=True)
         elif type == 'know':
-            reflections = KnowReflectionStudentAnswer.objects.filter(know=kwl_id).values_list('reflection', flat=True)
+            reflections = KnowReflectionStudentAnswer.objects.filter(know=topic).values_list('reflection', flat=True)
 
         all_reflections = ' '.join(reflections)
 
@@ -45,7 +44,7 @@ class WordCloudAPIView(APIView):
 class KnowParticipantView():
     @api_view(['GET'])
     def get_all_participants(request):
-        know_id = request.data['know_id']
+        know_id = request.data['topic_id']
         
         participants = KnowReflectionStudentAnswer.objects.filter(know=know_id).values_list('student_id', flat=True)
         count = len(participants)

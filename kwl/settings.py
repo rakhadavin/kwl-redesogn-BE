@@ -42,9 +42,21 @@ else:
 
 # ALLOWED_HOSTS = []
 
+
+
 ALLOWED_HOSTS=['*']
 
 CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:3000',
+#     'http://localhost:8000',
+#     'https://be-kowl.cs.ui.ac.id',
+#     'https://kowl.cs.ui.ac.id'
+# ]
+
+CSRF_TRUSTED_ORIGINS = ['https://be-kowl.cs.ui.ac.id','http://localhost:3000','http://localhost:8000','https://kowl.cs.ui.ac.id','http://192.168.106.100:8000', 'http://10.119.106.223:8000']
+
+
 # Application definition
 
 SITE_ID = 1
@@ -147,11 +159,7 @@ TEMPLATES = [
     },
 ]
 
-CORS_ORIGIN_WHITELIST = [
-    'http://localhost:3000',
-    'http://localhost:8000',
-    'https://kowl-app.com'
-]
+
 
 WSGI_APPLICATION = 'kwl.wsgi.application'
 
