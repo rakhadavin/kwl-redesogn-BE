@@ -28,7 +28,6 @@ class LoginView(APIView):
             password = serializer.validated_data['password']
 
             user = KwlUser.objects.filter(username=username).first()
-            print(user)
             if user is None:
                 sso_response = sso_login(username, password)
                 if sso_response.status_code == 200 and sso_response.json()['state'] != 0:

@@ -20,28 +20,28 @@ class isLecturer(BasePermission):
         return bool(request.user and request.user.role == "lecturer")
 
 
-class isLecturerInCourse(BasePermission):
-    """
-    Allows access only to authenticated users.
-    """
+# class isLecturerInCourse(BasePermission):
+#     """
+#     Allows access only to authenticated users.
+#     """
 
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.role == "lecturer")
+#     def has_permission(self, request, view):
+#         return bool(request.user and request.user.role == "lecturer")
     
-    def has_object_permission(self, request, view, obj):
-        lecturer = Lecturer.objects.get(user_id=request.user.id)
-        if lecturer in obj.lecturer_team.all():
-            return True
-        else:
-            return False
+#     def has_object_permission(self, request, view, obj):
+#         lecturer = Lecturer.objects.get(user_id=request.user.id)
+#         if lecturer in obj.lecturer_team.all():
+#             return True
+#         else:
+#             return False
         
-class isLecturerInTopic(BasePermission):
-    """
-    Allows access only to authenticated users.
-    """
+# class isLecturerInTopic(BasePermission):
+#     """
+#     Allows access only to authenticated users.
+#     """
 
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.role == "lecturer")
+#     def has_permission(self, request, view):
+#         return bool(request.user and request.user.role == "lecturer")
     
     def has_object_permission(self, request, view, obj):
         lecturer = Lecturer.objects.get(user_id=request.user.id)
