@@ -19,6 +19,8 @@ class Command(BaseCommand):
         "username": "john_doe",
         "email": "john.doe@example.com",
         "domisili": "Jakarta",
+        "first_name": "John",
+        "last_name": "Doe",
         "role": "lecturer",
         "password": make_password("password123")
           }
@@ -38,6 +40,8 @@ class Command(BaseCommand):
         "username": "jane_smith",
         "email": "jane.smith@example.com",
         "domisili": "Bandung",
+        "first_name": "Jane",
+        "last_name": "Smith",
         "role": "lecturer",
         "password": make_password("testpass456")
           }
@@ -77,6 +81,8 @@ class Command(BaseCommand):
           "pk": 4,
           "fields": {
         "username": "chris_wong",
+        "first_name":"Chris",
+        "last_name":"Wong",
         "email": "chris.wong@example.com",
         "domisili": "Jakarta",
         "role": "student",

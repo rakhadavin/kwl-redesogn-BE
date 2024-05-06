@@ -14,7 +14,6 @@ class Course(models.Model):
     full_name = models.CharField(max_length=100)
     color_theme = models.CharField(max_length=11, choices=COLOR)
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
-    assistant_team = models.ManyToManyField(Student, blank=True, related_name='assistants')
     students = models.ManyToManyField(Student, blank=True, related_name='students')
     created = models.DateTimeField(auto_now_add=True)
   
@@ -50,6 +49,8 @@ class RewardItem(models.Model):
     detail_instruction = models.CharField(max_length=250)
     created = models.DateTimeField(auto_now_add=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
+
+
     
     def __str__(self):
         return self.name
