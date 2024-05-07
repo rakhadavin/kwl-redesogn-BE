@@ -16,7 +16,9 @@ urlpatterns = [
 
     path('enroll-student', views.EnrollStudentToCourseView.as_view()),
     path('enroll-lecturer', views.EnrollLecturerToCourseView.as_view()),
+    
     path('lecturer', views.CourseLecturerView.as_view()),
+    path('student', views.CourseStudentView.as_view()),
 
     path('reward/', views.RewardList.as_view()),
     path('reward/<int:pk>', views.RewardDetail.as_view()),

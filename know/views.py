@@ -6,7 +6,7 @@ from authentication.models import Student
 from know.models import KnowQuizQuestion, KnowQuizStudentAnswer, KnowReflectionStudentAnswer
 from .serializers import AddKnowQuizQuestionSerializer, KnowQuizOptionsSerializer, KnowQuizQuestionSerializer, AddKnowEssaySerializer, KnowReflectionSerializer, EditKnowQuizQuestionSerializer, EditKnowEssaySerializer, KnowSerializer, KnowReflectionAnswerSerializer, KnowQuizAnswerSerializer, KnowQuizAnswersSerializer
 from rest_framework import status
-from course.models import RewardStudentPoint
+from course.models import RewardStudentPoint, KwlPoint
 from .models import Know, KnowQuizQuestion, KnowReflection
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -165,12 +165,18 @@ class KnowEssayAnswerView(APIView):
             student = Student.objects.get(user_id=userid)
          
             know_reflection = KnowReflection.objects.get(know__topic_id=topic)
-            answer = KnowReflectionStudentAnswer.objects.create(know_ref=know_reflection, reflection=reflection, student=student)
-            student_point, created = RewardStudentPoint.objects.get_or_create(student=student, course=know_reflection.know.topic.course)
-            total_score = know_reflection.score + student_point.total_point
-            print(know_reflection.score)
-            student_point.total_point = total_score
-            student_point.save()
+            answer, answer_created = KnowReflectionStudentAnswer.objects.get_or_create(know_ref=know_reflection, student=student)
+            answer.reflection = reflection
+            answer.save()
+            student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=know_reflection.know.topic.course)
+            kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=know_reflection.know.topic)
+            if kwl_created:
+                kwl_point.know_score = know_reflection.score
+                kwl_point.save()
+            if reward_created:
+                total_score = know_reflection.score + student_point.total_point
+                student_point.total_point = total_score
+                student_point.save()
             return Response({"message": "Reflection answer saved successfully"}, status=status.HTTP_201_CREATED)
         except KnowReflection.DoesNotExist:
             raise KnowReflectionNotFoundException()

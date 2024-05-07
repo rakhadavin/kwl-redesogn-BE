@@ -1,6 +1,8 @@
 from rest_framework.permissions import BasePermission
 
 from authentication.models import Lecturer
+
+from authentication.models import Lecturer
 class IsStudent(BasePermission):
     """
     Allows access only to authenticated users.

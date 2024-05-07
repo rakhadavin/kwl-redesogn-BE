@@ -162,6 +162,11 @@ class PrereadingSerializer(serializers.ModelSerializer):
         model = Prereading
         fields = ('id', 'prereading', 'file', 'topic')
 
+class WtkReflectionAnswerSerializer(serializers.Serializer):
+    reflection = serializers.CharField(max_length=255)
+    topic = serializers.IntegerField(write_only=True)
+
+
 def get_topic(topic_id):
     try:
         return Topic.objects.get(pk=topic_id)
