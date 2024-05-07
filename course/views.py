@@ -124,43 +124,6 @@ class EnrollLecturerToCourseView(APIView):
             raise LecturerNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-class EnrollAssistantToCourseView(APIView):
-    permission_classes = [IsAuthenticated,]
-
-    @swagger_auto_schema(operation_summary="Enroll assistant to course", request_body=AddAssistantToCourseSerializer)
-    def post(self, request):
-        try:
-            serializer = AddAssistantToCourseSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            course = Course.objects.get(pk=serializer.validated_data['course_id'])
-            assistant = Lecturer.objects.get(pk=serializer.validated_data['assistant_id'])
-            course.assistant_team.add(assistant)
-
-            assistants = LecturerSerializer(course.assistant_team.all(), many=True)
-            return Response(assistants.data, status=status.HTTP_201_CREATED)
-        except Course.DoesNotExist:
-            raise CourseNotFoundException()
-        except Lecturer.DoesNotExist:
-            raise LecturerNotFoundException()
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    @swagger_auto_schema(operation_summary="Remove assistant from course", request_body=RemoveAssistantFromCourseSerializer)
-    def delete(self, request):
-        try:
-            serializer = RemoveAssistantFromCourseSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            course = Course.objects.get(pk=serializer.validated_data['course_id'])
-            assistant = Lecturer.objects.get(pk=serializer.validated_data['assistant_id'])
-            course.assistant_team.remove(assistant)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Course.DoesNotExist:
-            raise CourseNotFoundException()
-        except Lecturer.DoesNotExist:
-            raise LecturerNotFoundException()
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CourseLecturerView(APIView):
     permission_classes = [IsAuthenticated,]

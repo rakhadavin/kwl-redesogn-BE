@@ -7,7 +7,7 @@
             "email": "john.doe@example.com",
             "domisili": "Jakarta",
             "role": "lecturer",
-            "password": "pbkdf2_sha256$720000$C1iNM9oOJS2BEuo3K4Dp7N$Vaq8QpQxG8SBa4DeJ3x2/eJ3KFJYIJym5ooj+KQpMwA="
+            "password": "pbkdf2_sha256$720000$FJj2L7PQBImNwhEaouH6AN$W7kiS/SNZMiIfS2FBW7Qzn+HpfxbZaZ/bAfX+t/yMKM="
         }
     },
     {
@@ -26,7 +26,7 @@
             "email": "jane.smith@example.com",
             "domisili": "Bandung",
             "role": "lecturer",
-            "password": "pbkdf2_sha256$720000$APRLpXF8Fhg4wJmk08bFCP$7EBFoo8Jw02Iql/8VNxmpIyl6R3V4syZXZEKaTohHZc="
+            "password": "pbkdf2_sha256$720000$XCmESgMMTVZTOa51H2Fuye$SOChjrHostMEbo64UTc72g3ChlIkBvA75qXGFB56C3s="
         }
     },
     {
@@ -45,7 +45,7 @@
             "email": "emma.jones@example.com",
             "domisili": "Surabaya",
             "role": "student",
-            "password": "pbkdf2_sha256$720000$1kv5mV1Dha2SK4mXWVkkPL$7ypa16LdM9LGWCXaVK+DqN9UO8QgTU52fE7r8IDj5X0="
+            "password": "pbkdf2_sha256$720000$oQp2RZ1cmZVP7YVjDqRNOx$jzP3gzxd3vi2yTjQ2c3hBPJWNpF42Wd/0/AUQOKQrmE="
         }
     },
     {
@@ -67,7 +67,7 @@
             "email": "chris.wong@example.com",
             "domisili": "Jakarta",
             "role": "student",
-            "password": "pbkdf2_sha256$720000$POPV3wtxMFYitp41XN0OW8$fmzGu44c+65DORJMYcIq/wYqVs8C19KBjy1ZrrZHLWM="
+            "password": "pbkdf2_sha256$720000$red6B0OKI7PGqWwvYXymCV$+ByxlqLXbKAN1Vd9xn7b3aFbHTN9fheCLyQK/vm8cC8="
         }
     },
     {
@@ -89,7 +89,7 @@
             "email": "lisa.smith@example.com",
             "domisili": "Bandung",
             "role": "student",
-            "password": "pbkdf2_sha256$720000$cgJGjRod43v2Ob3SSoL0lz$Ph7k2AYfDuiv5BpodcT3nPS3CN45BUaw4ZpygVzIrzY="
+            "password": "pbkdf2_sha256$720000$GG6BX43a0cU8idvYKxSOEs$g6rN8Is6+sj+qPxRRMIJFOXSRy/Y2T9JjnvgM7YAmMc="
         }
     },
     {
@@ -111,7 +111,7 @@
             "email": "alex.wong@example.com",
             "domisili": "Surabaya",
             "role": "student",
-            "password": "pbkdf2_sha256$720000$fmf8YPG1x6801noNJB8xhD$mcPeFt0m/UNVaGtu15bFk+w5EjANLwd4Tl69IiBkHHU="
+            "password": "pbkdf2_sha256$720000$OTWULEJ3DXCQmJFR86PV1T$IHr81+SMe4v62J7N0Xof0VKicmYpdlvK2ySBSJuhPrA="
         }
     },
     {

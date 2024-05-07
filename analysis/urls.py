@@ -4,7 +4,7 @@ from .views import WordCloudAPIView, LearnedParticipantView, KnowParticipantView
 
 
 urlpatterns = [
-    path('wordcloud/', WordCloudAPIView.as_view(), name="wordcloud"),
+    path('wordcloud/<str:type>/<int:topic>', WordCloudAPIView.as_view(), name="wordcloud"),
     path('learned/participants/count', LearnedParticipantView.count_all_participants, name="learned_participant"),
     path('learned/participants', LearnedParticipantView.get_all_participants, name="learned_participant"),
     path('know/participants/count', KnowParticipantView.count_all_participants, name="know_participant"),

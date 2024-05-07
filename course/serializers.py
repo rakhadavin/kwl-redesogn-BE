@@ -21,7 +21,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = ['short_name','full_name','color_theme','lecturer_team','assistant_team','students','id','lecturer']
+        fields = ['short_name','full_name','color_theme','lecturer_team','students','id','lecturer']
 
     def create(self, validated_data):
         today_year = datetime.datetime.now().year
@@ -32,11 +32,12 @@ class CourseSerializer(serializers.ModelSerializer):
             term = "Genap" 
         else:
             term = "Gasal"
-        
         validated_data['short_name'] = validated_data['short_name'] + " " + term + " " + str(today_year-1)+"/"+str(today_year)
         lecturer_id = validated_data.pop('lecturer')
+        lecturer_team_ids = validated_data.pop('lecturer_team', [])
         course = Course.objects.create(**validated_data)
-        course.lecturer_team.add(lecturer_id)
+        course.lecturer_team.add(lecturer_id, *lecturer_team_ids)
+        
 
         return course
   

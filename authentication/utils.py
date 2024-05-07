@@ -18,6 +18,7 @@ def get_tokens_for_user(user):
     refresh['username'] = user.username
     refresh['role'] = user.role
     refresh['name'] = user.first_name + ' ' + user.last_name
+   
     if user.role == 'lecturer':
         lecturer = Lecturer.objects.get(user=user)
         refresh['lecturer_pk'] = lecturer.pk
