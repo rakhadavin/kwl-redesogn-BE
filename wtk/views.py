@@ -3,11 +3,12 @@ import os
 from django.conf import settings
 
 from authentication.models import Student
+from course.models import KwlPoint, RewardStudentPoint
 from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, PrereadingDoesNotExistException
 from .models import Prereading, WtkPollQuestion, WantToKnow, WtkPollStudentAnswer, WtkChoices, WtkReflection, WtkReflectionStudentAnswer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer, EditPollingQuestionSerializer
+from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionAnswerSerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer, EditPollingQuestionSerializer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
@@ -198,3 +199,38 @@ class PollingDetailView(APIView):
             raise WtkDoesNotExistException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class WtkEssayAnswerView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    @swagger_auto_schema(operation_description="Save a reflection answer")
+    def post(self, request):
+        try:
+            userid = request.user
+            serializer = WtkReflectionAnswerSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            topic = serializer.validated_data['topic']
+            reflection = serializer.validated_data['reflection']
+            student = Student.objects.get(user_id=userid)
+         
+            wtk_reflection = WtkReflection.objects.get(wtk__topic_id=topic)
+            answer, answer_created = WtkReflectionStudentAnswer.objects.get_or_create(wtk_ref=wtk_reflection, student=student)
+            answer.reflection = reflection
+            answer.save()
+            student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_reflection.wtk.topic.course)
+            kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_reflection.wtk.topic)
+            if kwl_created:
+                kwl_point.wtk_score = wtk_reflection.score
+                kwl_point.save()
+            if reward_created:
+                total_score = wtk_reflection.score + student_point.total_point
+                student_point.total_point = total_score
+                student_point.save()
+            return Response({"message": "Reflection answer saved successfully"}, status=status.HTTP_201_CREATED)
+        except WtkReflection.DoesNotExist:
+            raise WtkReflectionNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

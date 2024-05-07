@@ -146,16 +146,9 @@ class LearnedReflectionSerializer(serializers.ModelSerializer):
         fields = ('id', 'question', 'score', 'learned' )
 
 class LearnedReflectionAnswerSerializer(serializers.Serializer):
-    answer = serializers.CharField(max_length=255)
-    id = serializers.IntegerField(write_only=True)
+    reflection = serializers.CharField(max_length=255)
+    topic = serializers.IntegerField(write_only=True)
 
-    
-    def validate(self, attrs):
-        student = Student.objects.filter(pk=attrs['student_id']).first()
-        if not student:
-            raise serializers.ValidationError("Student not found")
-        return attrs
-    
 def get_topic(topic_id):
     try:
         return Topic.objects.get(pk=topic_id)
