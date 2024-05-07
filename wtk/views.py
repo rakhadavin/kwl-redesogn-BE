@@ -4,7 +4,7 @@ from django.conf import settings
 
 from authentication.models import Student
 from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, PrereadingDoesNotExistException
-from .models import Prereading, WtkPollQuestion, WantToKnow, WtkStudentAnswer, WtkChoices, WtkReflection, WtkReflectionStudentAnswer
+from .models import Prereading, WtkPollQuestion, WantToKnow, WtkPollStudentAnswer, WtkChoices, WtkReflection, WtkReflectionStudentAnswer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer, EditPollingQuestionSerializer

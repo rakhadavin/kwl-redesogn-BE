@@ -32,6 +32,9 @@ class Student(models.Model):
     faculty = models.CharField(max_length=100)
     def __str__(self):
         return self.user.username
+    
+    def get_full_name(self):
+        return self.user.first_name + " " + self.user.last_name
 
 
 

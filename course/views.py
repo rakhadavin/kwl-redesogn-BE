@@ -161,7 +161,7 @@ class CourseStudentView(APIView):
         try:
             user_id = request.user.id
             student = Student.objects.get(user_id=user_id)
-            courses = student.courses.all()
+            courses = Course.objects.filter(students__id=student.pk)
             serializer = CourseSerializer(courses, many=True)
             return Response(serializer.data)
         except Student.DoesNotExist:

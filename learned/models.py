@@ -24,6 +24,7 @@ class LearnedQuizQuestion(models.Model):
     def get_answers(self):
         return LearnedQuizOption.objects.filter(learned_quiz_id=self.id)
     
+    
 class LearnedQuizOption(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
