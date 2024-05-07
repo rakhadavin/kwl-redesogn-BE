@@ -29,7 +29,18 @@ class Topic(models.Model):
 
     def __str__(self):
         return self.name
+
+class KwlPoint(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    know_score = models.IntegerField(default=0)
+    wtk_score = models.IntegerField(default=0)
+    learned_score = models.IntegerField(default=0)
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
     
+    def __str__(self):
+        return self.topic
+
 
 class RewardStudentPoint(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -49,8 +60,17 @@ class RewardItem(models.Model):
     detail_instruction = models.CharField(max_length=250)
     created = models.DateTimeField(auto_now_add=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
-
-
     
     def __str__(self):
         return self.name
+    
+
+class Feedback(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
+    lecturer = models.ForeignKey(Lecturer, on_delete=models.CASCADE)
+    feedback = models.CharField(max_length=250)
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.feedback
