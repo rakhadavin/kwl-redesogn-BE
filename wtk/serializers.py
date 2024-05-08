@@ -79,6 +79,12 @@ class WtkPollingAnswerSerializer(serializers.ModelSerializer):
         model = WtkChoices
         fields = ['option_answer', 'id']
 
+class WtkMultipleChoiceAnswerSerializer(serializers.Serializer):
+    choices = serializers.ListField(
+        child=serializers.IntegerField(required=True),
+        required=True
+    )
+
 class WtkPollingQuestionSerializer(serializers.ModelSerializer):
     choices = WtkPollingAnswerSerializer(many=True, read_only=True, source='wtkchoices_set')
     class Meta:

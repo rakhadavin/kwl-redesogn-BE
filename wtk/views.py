@@ -8,7 +8,7 @@ from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundEx
 from .models import Prereading, WtkPollQuestion, WantToKnow, WtkPollStudentAnswer, WtkChoices, WtkReflection, WtkReflectionStudentAnswer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionAnswerSerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer, EditPollingQuestionSerializer
+from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionAnswerSerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer, EditPollingQuestionSerializer, WtkMultipleChoiceAnswerSerializer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
@@ -199,6 +199,21 @@ class PollingDetailView(APIView):
             raise WtkDoesNotExistException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class WtkMultipleVoteView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    @swagger_auto_schema(operation_description="Save a multiple choice answer")
+    def post(self, request):
+
+        try:
+            serializer = WtkMultipleChoiceAnswerSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            choices = serializer.validated_data['choices']
+            for choice in choices:
+                print(choice)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class WtkEssayAnswerView(APIView):

@@ -6,11 +6,13 @@ urlpatterns = [
 
     path('poll', PollingListView.as_view()),
     path('poll/<int:topic_id>', PollingDetailView.as_view()),
+    path('poll/answer', WtkEssayAnswerView.as_view()),
     path('essay', WtkEssayListView.as_view()),
     path('essay/<int:topic_id>', WtkEssayDetailView.as_view()),
     path('essay/answer', WtkEssayAnswerView.as_view()),
     path('preread', PrereadingListView.as_view()),
     path('preread/<int:topic_id>', PrereadingDetailView.as_view()),
+
 
     # path('poll/add', PollingView.add_polling_question),
     # path('poll/vote', PollingView.vote_multiple_choice),
