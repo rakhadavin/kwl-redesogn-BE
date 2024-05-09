@@ -45,8 +45,7 @@ class LoginView(APIView):
             else:
                 
                 user = authenticate(request, username=username, password=password)
-                print(username)
-                print(password)
+
                 if user is not None:
                     return Response(data = {"message":'Login Success',"data":get_tokens_for_user(user)}, status=status.HTTP_200_OK)
                 else:
@@ -185,7 +184,7 @@ class RequestPasswordResetEmailView(APIView):
         try:
             send_mail(
                 subject='Reset Password',
-                message='Click the link below to reset your password\n\nhttps://localhost:3000/reset-password?token=' + token,
+                message='Click the link below to reset your password\n\nhttps://kowl.cs.ui.ac.id/reset-password?token=' + token,
                 from_email="kowl.apps@gmail.com",
                 recipient_list=[user.email],
                 fail_silently=False,
@@ -203,6 +202,7 @@ class ResetPasswordConfirmByTokenView(APIView):
     @swagger_auto_schema(request_body=ChangePasswordSerializer)
     def post(self, request, token):
         try:
+            
             new_password_serializer = ChangePasswordSerializer(data=request.data)
             new_password_serializer.is_valid(raise_exception=True)
               

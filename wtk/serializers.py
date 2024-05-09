@@ -32,9 +32,11 @@ class AddPollingQuestionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         with transaction.atomic():
-            wtk, created = WantToKnow.objects.get_or_create(topic_id=validated_data['topic'], type=validated_data['type'])
+            wtk, created = WantToKnow.objects.get_or_create(topic_id=validated_data['topic'])
             if not created:
                 raise ExistingWtkException("Want to know already exists")
+            wtk.type = validated_data['type']
+            wtk.save()
             
             poll_question = WtkPollQuestion.objects.create(question=validated_data['question'], score=validated_data['score'], wtk=wtk)
             for i in range(len(validated_data['options'])):
@@ -84,6 +86,7 @@ class WtkMultipleChoiceAnswerSerializer(serializers.Serializer):
         child=serializers.IntegerField(required=True),
         required=True
     )
+    topic = serializers.IntegerField(required=True)
 
 class WtkPollingQuestionSerializer(serializers.ModelSerializer):
     choices = WtkPollingAnswerSerializer(many=True, read_only=True, source='wtkchoices_set')
@@ -105,9 +108,11 @@ class AddWtkEssaySerializer(serializers.ModelSerializer):
         with transaction.atomic():
             topic = get_topic(validated_data['topic'])
 
-            wtk, created = WantToKnow.objects.get_or_create(topic=topic, type=validated_data['type'])
+            wtk, created = WantToKnow.objects.get_or_create(topic=topic)
             if not created:
                 raise ExistingWtkException("Want to know already exists")
+            wtk.type = validated_data['type']
+            wtk.save()
             
             wtk_essay = WtkReflection.objects.create(wtk=wtk, question=validated_data['question'], score=validated_data['score'])
         

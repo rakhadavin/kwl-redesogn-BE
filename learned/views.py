@@ -3,8 +3,8 @@ from django.shortcuts import render
 
 from authentication.models import Student
 from learned.api_exceptions import LearnedDoesNotExistException, LearnedReflectionNotFoundException
-from .serializers import AddLearnedEssaySerializer, EditLearnedEssaySerializer, LearnedReflectionAnswerSerializer, LearnedReflectionSerializer, AddLearnedQuizQuestionSerializer, EditLearnedQuizQuestionSerializer, LearnedQuizQuestionSerializer 
-from .models import Learned, LearnedReflection, LearnedReflectionStudentAnswer, LearnedQuizQuestion, LearnedQuizStudentAnswer
+from .serializers import AddLearnedEssaySerializer, EditLearnedEssaySerializer, LearnedQuizAnswerSerializer, LearnedReflectionAnswerSerializer, LearnedReflectionSerializer, AddLearnedQuizQuestionSerializer, EditLearnedQuizQuestionSerializer, LearnedQuizQuestionSerializer 
+from .models import Learned, LearnedQuizOption, LearnedReflection, LearnedReflectionStudentAnswer, LearnedQuizQuestion, LearnedQuizStudentAnswer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -12,6 +12,7 @@ from rest_framework import status
 from course.models import RewardStudentPoint, KwlPoint
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
+from django.db import transaction
 
 class LearnedQuizListView(APIView):
     permission_classes = [IsAuthenticated,]
@@ -156,26 +157,30 @@ class LearnedEssayAnswerView(APIView):
     @swagger_auto_schema(operation_description="Save a reflection answer")
     def post(self, request):
         try:
-            userid = request.user
-            serializer = LearnedReflectionAnswerSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            topic = serializer.validated_data['topic']
-            reflection = serializer.validated_data['reflection']
-            student = Student.objects.get(user_id=userid)
-         
-            learned_reflection = LearnedReflection.objects.get(learned__topic_id=topic)
-            answer, answer_created = LearnedReflectionStudentAnswer.objects.get_or_create(learned_ref=learned_reflection, student=student)
-            answer.reflection = reflection
-            answer.save()
-            student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned_reflection.learned.topic.course)
-            kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=learned_reflection.learned.topic)
-            if kwl_created:
-                kwl_point.learned_score = learned_reflection.score
-                kwl_point.save()
-            if reward_created:
-                total_score = learned_reflection.score + student_point.total_point
-                student_point.total_point = total_score
-                student_point.save()
+            with transaction.atomic():
+                userid = request.user
+                serializer = LearnedReflectionAnswerSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                topic = serializer.validated_data['topic']
+                reflection = serializer.validated_data['reflection']
+                student = Student.objects.get(user_id=userid)
+            
+                learned_reflection = LearnedReflection.objects.get(learned__topic_id=topic)
+                answer, answer_created = LearnedReflectionStudentAnswer.objects.get_or_create(learned_ref=learned_reflection, student=student)
+                answer.reflection = reflection
+                answer.save()
+                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned_reflection.learned.topic.course)
+                kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=learned_reflection.learned.topic)
+                kwl_point.kwl_status = 'learned'
+                learned_reflection.learned.total_participants += 1
+                learned_reflection.learned.save()
+                
+                if answer_created:
+                    kwl_point.learned_score = learned_reflection.score
+                    kwl_point.save()
+                    total_score = learned_reflection.score + student_point.total_point
+                    student_point.total_point = total_score
+                    student_point.save()
             return Response({"message": "Reflection answer saved successfully"}, status=status.HTTP_201_CREATED)
         except LearnedReflection.DoesNotExist:
             raise LearnedReflectionNotFoundException()
@@ -183,3 +188,42 @@ class LearnedEssayAnswerView(APIView):
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class LearnedQuizAnswerView(APIView):
+    permission_classes = [IsAuthenticated,]
+    
+    def post(self, request):
+        try:
+            with transaction.atomic():
+                userid = request.user
+                serializer = LearnedQuizAnswerSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                topic = serializer.validated_data['topic']
+                answers = serializer.validated_data['answers']
+                student = Student.objects.get(user_id=userid)
+                quiz_answers, answer_created = LearnedQuizStudentAnswer.objects.get_or_create(student=student)
+                learned = Learned.objects.get(topic_id=topic)
+                learned.total_participants += 1
+                learned.save()
+                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned.topic.course)
+                kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=learned.topic)
+                kwl_point.kwl_status = 'learned'
+                for answer_pk in answers:
+                    quiz_option = LearnedQuizOption.objects.get(id=answer_pk)
+                    quiz_answers.answers.add(quiz_option)
+                    quiz_answers.save()
+
+                    if answer_created:
+                        if quiz_option.isCorrect:
+                            kwl_point.learned_score += quiz_option.learned_quiz.score
+                            total_score = quiz_option.learned_quiz.score + student_point.total_point
+                            student_point.total_point = total_score
+                           
+                kwl_point.save()
+                student_point.save()
+                return Response({"message": "Quiz answer saved successfully"}, status=status.HTTP_201_CREATED)
+        except LearnedQuizQuestion.DoesNotExist:
+            raise LearnedReflectionNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                

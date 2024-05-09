@@ -14,6 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.views import APIView
+from django.db import transaction
 # Create your views here.
 
 class WtkEssayListView(APIView):
@@ -205,15 +206,35 @@ class WtkMultipleVoteView(APIView):
 
     @swagger_auto_schema(operation_description="Save a multiple choice answer")
     def post(self, request):
-
         try:
-            serializer = WtkMultipleChoiceAnswerSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            choices = serializer.validated_data['choices']
-            for choice in choices:
-                print(choice)
+            with transaction.atomic():
+                userid = request.user
+                student = Student.objects.get(user_id=userid)
+                serializer = WtkMultipleChoiceAnswerSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                choices = serializer.validated_data['choices']
+                topic = serializer.validated_data['topic']
+                wtk_poll_question = WtkPollQuestion.objects.get(wtk__topic_id=topic)
+                student_answer, answer_created = WtkPollStudentAnswer.objects.get_or_create(wtk_poll=wtk_poll_question, student=student)
+                for choice in choices:
+                    choice = WtkChoices.objects.get(id=choice)
+                    student_answer.choices.add(choice)
+                    choice.total_votes += 1
+                    choice.save()
+                wtk_poll_question.wtk.total_participants += 1  
+                wtk_poll_question.save() 
+                reward_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_poll_question.wtk.topic.course)
+                if answer_created:
+                    reward_point.total_point = wtk_poll_question.score
+                    kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_poll_question.wtk.topic)
+                    kwl_point.kwl_status = 'wtk'
+                    kwl_point.wtk_score = wtk_poll_question.score
+                    reward_point.total_point += wtk_poll_question.score
+            return Response({"message": "Multiple choice answer saved successfully"}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    
 
 
 class WtkEssayAnswerView(APIView):
@@ -222,26 +243,30 @@ class WtkEssayAnswerView(APIView):
     @swagger_auto_schema(operation_description="Save a reflection answer")
     def post(self, request):
         try:
-            userid = request.user
-            serializer = WtkReflectionAnswerSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            topic = serializer.validated_data['topic']
-            reflection = serializer.validated_data['reflection']
-            student = Student.objects.get(user_id=userid)
-         
-            wtk_reflection = WtkReflection.objects.get(wtk__topic_id=topic)
-            answer, answer_created = WtkReflectionStudentAnswer.objects.get_or_create(wtk_ref=wtk_reflection, student=student)
-            answer.reflection = reflection
-            answer.save()
-            student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_reflection.wtk.topic.course)
-            kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_reflection.wtk.topic)
-            if kwl_created:
-                kwl_point.wtk_score = wtk_reflection.score
-                kwl_point.save()
-            if reward_created:
-                total_score = wtk_reflection.score + student_point.total_point
-                student_point.total_point = total_score
-                student_point.save()
+            with transaction.atomic():
+                userid = request.user
+                serializer = WtkReflectionAnswerSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                topic = serializer.validated_data['topic']
+                reflection = serializer.validated_data['reflection']
+                student = Student.objects.get(user_id=userid)
+            
+                wtk_reflection = WtkReflection.objects.get(wtk__topic_id=topic)
+                answer, answer_created = WtkReflectionStudentAnswer.objects.get_or_create(wtk_ref=wtk_reflection, student=student)
+                answer.reflection = reflection
+                answer.save()
+                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_reflection.wtk.topic.course)
+                kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_reflection.wtk.topic)
+                kwl_point.kwl_status = 'wtk'
+                wtk_reflection.wtk.total_participants += 1
+                wtk_reflection.save()
+                if kwl_created:
+                    kwl_point.wtk_score = wtk_reflection.score
+                    kwl_point.save()
+                if reward_created:
+                    total_score = wtk_reflection.score + student_point.total_point
+                    student_point.total_point = total_score
+                    student_point.save()
             return Response({"message": "Reflection answer saved successfully"}, status=status.HTTP_201_CREATED)
         except WtkReflection.DoesNotExist:
             raise WtkReflectionNotFoundException()

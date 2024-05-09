@@ -1,4 +1,4 @@
-from .views import PollingListView, PollingDetailView, WtkEssayDetailView, WtkEssayListView, PrereadingDetailView, PrereadingListView, WtkEssayAnswerView
+from .views import PollingListView, PollingDetailView, WtkEssayDetailView, WtkEssayListView, PrereadingDetailView, PrereadingListView, WtkEssayAnswerView, WtkMultipleVoteView
 from django.urls import path
 
 
@@ -6,7 +6,7 @@ urlpatterns = [
 
     path('poll', PollingListView.as_view()),
     path('poll/<int:topic_id>', PollingDetailView.as_view()),
-    path('poll/answer', WtkEssayAnswerView.as_view()),
+    path('poll/answer', WtkMultipleVoteView.as_view()),
     path('essay', WtkEssayListView.as_view()),
     path('essay/<int:topic_id>', WtkEssayDetailView.as_view()),
     path('essay/answer', WtkEssayAnswerView.as_view()),

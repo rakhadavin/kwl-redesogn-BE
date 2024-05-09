@@ -20,9 +20,16 @@ urlpatterns = [
     path('lecturer', views.CourseLecturerView.as_view()),
     path('student', views.CourseStudentView.as_view()),
 
-    path('reward/', views.RewardList.as_view()),
+    path('reward', views.RewardList.as_view()),
     path('reward/<int:pk>', views.RewardDetail.as_view()),
     path('reward/<int:course_id>/all', views.RewardCourseView.as_view()),
+
+    path('feedback', views.FeedbackList.as_view()),
+    path('feedback/<int:pk>', views.FeedbackDetail.as_view()),
+    path('feedback/<int:topic_id>/all', views.FeedbackTopicView.as_view()),
+
+    path('accessed/<int:student_id>', views.LastAccessedCourseStudentView.as_view()),
+    path('accessed', views.AddLastAccessedStudentCourseView.as_view()),
     
 
 ]
