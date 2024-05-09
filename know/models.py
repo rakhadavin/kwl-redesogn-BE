@@ -9,6 +9,7 @@ class Know(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
     type = models.CharField(max_length=255, choices=CHOICES, default='reflection')
+    total_participants = models.IntegerField(default=0)
     def __str__(self):
         return self.type
 
@@ -40,11 +41,10 @@ class KnowQuizOption(models.Model):
 class KnowQuizStudentAnswer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    know_quiz = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
     student = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
-    answer = models.CharField(max_length=255)
+    answers = models.ManyToManyField(KnowQuizOption, blank=True, related_name='student_answers')
     def __str__(self):
-        return self.answer
+        return self.student.user.username
     
 class KnowReflection(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)

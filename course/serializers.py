@@ -1,16 +1,17 @@
 import datetime
+from pytz import timezone
 from rest_framework import serializers
 
 from authentication.models import Lecturer, Student
 from know.serializers import KnowSerializer
-from .models import Course, RewardItem, RewardStudentPoint, Topic
+from .models import Course, LastAccessedStudentCourse, RewardItem, RewardStudentPoint, Topic, Feedback
 from know.models import Know
 from learned.models import Learned
 from wtk.models import WantToKnow
 from wtk.serializers import WtkSerializer
 from learned.serializers import LearnedSerializer
 from .api_exceptions import CourseNotFoundException, TopicNotFoundException
-from authentication.api_exceptions import LecturerNotFoundException
+from authentication.api_exceptions import LecturerNotFoundException, StudentNotFoundException
 class CourseSerializer(serializers.ModelSerializer):
     lecturer = serializers.IntegerField(write_only=True)
     
@@ -126,15 +127,6 @@ class AddStudentToCourseSerializer(serializers.Serializer):
     student_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
-    def validate(self, data):
-        student = data.get('student_id')
-        course = data.get('course_id')
-        if not student:
-            raise serializers.ValidationError('Student id is required')
-        if not course:
-            raise serializers.ValidationError('Course id is required')
-        return data
-    
     def update(self, instance, validated_data):
         student = Student.objects.get(pk=validated_data['student_id'])  # Changed from Lecturer to Student
         instance.students.add(student)
@@ -145,15 +137,6 @@ class RemoveStudentFromCourseSerializer(serializers.Serializer):
     student_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
-    def validate(self, data):
-        student = data.get('student_id')
-        course = data.get('course_id')
-        if not student:
-            raise serializers.ValidationError('Student id is required')
-        if not course:
-            raise serializers.ValidationError('Course id is required')
-        return data
-    
     def update(self, instance, validated_data):
         student = Student.objects.get(pk=validated_data['student_id'])
         instance.students.remove(student)
@@ -163,50 +146,85 @@ class AddAssistantToCourseSerializer(serializers.Serializer):
     assistant_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
-    def validate(self, data):
-        assistant = data.get('assistant_id')
-        course = data.get('course_id')
-        if not assistant:
-            raise serializers.ValidationError('Assistant id is required')
-        if not course:
-            raise serializers.ValidationError('Course id is required')
-        return data
-    
 class RemoveAssistantFromCourseSerializer(serializers.Serializer):
     assistant_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
-    
-    def validate(self, data):
-        assistant = data.get('assistant_id')
-        course = data.get('course_id')
-        if not assistant:
-            raise serializers.ValidationError('Assistant id is required')
-        if not course:
-            raise serializers.ValidationError('Course id is required')
-        return data
     
 class AddLecturerToCourseSerializer(serializers.Serializer):
     lecturer_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
-    def validate(self, data):
-        lecturer = data.get('lecturer_id')
-        course = data.get('course_id')
-        if not lecturer:
-            raise serializers.ValidationError('Lecturer id is required')
-        if not course:
-            raise serializers.ValidationError('Course id is required')
-        return data
-    
 class RemoveLecturerFromCourseSerializer(serializers.Serializer):
     lecturer_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
-    def validate(self, data):
-        lecturer = data.get('lecturer_id')
-        course = data.get('course_id')
-        if not lecturer:
-            raise serializers.ValidationError('Lecturer id is required')
-        if not course:
-            raise serializers.ValidationError('Course id is required')
-        return data
+class LastAccessedStudentCourseSerializer(serializers.ModelSerializer):
+    student = serializers.IntegerField(write_only=True)
+    course = serializers.IntegerField(write_only=True)
+    course_name = serializers.CharField(source='course.full_name', read_only=True)
+    # last_accessed = serializers.SerializerMethodField(read_only=True)
+
+    def validate(self, attrs):
+        if 'student' in attrs:
+            if not Student.objects.filter(pk=attrs['student']).exists():
+                raise StudentNotFoundException()
+        if 'course' in attrs:
+            if not Course.objects.filter(pk=attrs['course']).exists():
+                raise CourseNotFoundException()
+        return super().validate(attrs)
+
+    class Meta:
+        model = LastAccessedStudentCourse
+        fields = ['student','course','last_accessed','id','course_name']
+
+    # def get_last_accessed(self, obj):
+    #     jakarta_tz = timezone('Asia/Jakarta')
+    #     return obj.last_accessed.astimezone(jakarta_tz).strftime('%d-%m-%Y %H:%M:%S')
+
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    student = serializers.IntegerField(write_only=True)
+    topic = serializers.IntegerField(write_only=True)
+    lecturer = serializers.IntegerField(write_only=True)
+    student_name = serializers.CharField(source='student.user.username', read_only=True)
+    lecturer_name = serializers.CharField(source='lecturer.user.username', read_only=True)
+    topic_name = serializers.CharField(source='topic.name', read_only=True)
+    class Meta:
+        model = Feedback
+        fields = ['student','topic','feedback','id','lecturer', 'student_name','lecturer_name', 'topic_name']
+    
+    def validate(self, attrs):
+        if 'student' in attrs:
+            if not Student.objects.filter(pk=attrs['student']).exists():
+                raise StudentNotFoundException()
+        if 'topic' in attrs:
+            if not Topic.objects.filter(pk=attrs['topic']).exists():
+                raise TopicNotFoundException()
+        if 'lecturer' in attrs:
+            if not Lecturer.objects.filter(pk=attrs['lecturer']).exists():
+                raise LecturerNotFoundException()
+        return super().validate(attrs)
+    
+    def create(self, validated_data):
+        student_id = validated_data.pop('student')
+        topic_id = validated_data.pop('topic')
+        lecturer_id = validated_data.pop('lecturer')
+        feedback, created = Feedback.objects.get_or_create(student_id=student_id, topic_id=topic_id, lecturer_id=lecturer_id, **validated_data)
+
+        return feedback
+    
+    def update(self, instance, validated_data):
+        student_id = validated_data.get('student', instance.student.id)
+        topic_id = validated_data.get('topic', instance.topic.id)
+        lecturer_id = validated_data.get('lecturer', instance.lecturer.id)
+        instance.student_id = student_id
+        instance.topic_id = topic_id
+        instance.lecturer_id = lecturer_id
+        instance.feedback = validated_data.get('feedback', instance.feedback)
+        instance.save()
+        return instance
+    
+    
+    
+    
+

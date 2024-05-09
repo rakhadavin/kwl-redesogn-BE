@@ -8,9 +8,14 @@ COLOR = [
     ('lulu-yellow', 'lulu-yellow')
 ]
 
+KWL_STATUS = [
+    ('know', 'know'),
+    ('wtk', 'wtk'),
+    ('learned', 'learned')
+]
 # Create your models here.
 class Course(models.Model):
-    short_name = models.CharField(max_length=15)
+    short_name = models.CharField(max_length=30)
     full_name = models.CharField(max_length=100)
     color_theme = models.CharField(max_length=11, choices=COLOR)
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
@@ -29,6 +34,14 @@ class Topic(models.Model):
 
     def __str__(self):
         return self.name
+    
+class LastAccessedStudentCourse(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
+    last_accessed = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.student.user.username
 
 class KwlPoint(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -37,9 +50,13 @@ class KwlPoint(models.Model):
     learned_score = models.IntegerField(default=0)
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True)
+    kwl_status = models.CharField(max_length=10, choices=KWL_STATUS, default='know')
     
     def __str__(self):
-        return self.topic
+        return self.topic.name
+    
+    def get_total_point(self):
+        return self.know_score + self.wtk_score + self.learned_score
 
 
 class RewardStudentPoint(models.Model):
@@ -47,6 +64,7 @@ class RewardStudentPoint(models.Model):
     total_point = models.IntegerField(default=0)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True)
+
     
     def __str__(self):
         return self.student.user.username

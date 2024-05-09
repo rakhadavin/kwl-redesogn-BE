@@ -1,9 +1,11 @@
 from django.shortcuts import render
+from django.db.models import F
 
 import os
 from django.conf import settings
 from wordcloud import WordCloud
-
+import matplotlib
+matplotlib.use('Agg')
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
@@ -13,28 +15,41 @@ from rest_framework.views import APIView
 from django.http import Http404
 from analysis import models
 from course.api_exceptions import TopicNotFoundException
-from course.models import Topic, RewardStudentPoint, KwlPoint
-from know.models import KnowReflectionStudentAnswer, KnowReflection
-from learned.models import LearnedReflectionStudentAnswer, LearnedReflection
-from wtk.models import WtkReflectionStudentAnswer, WtkPollStudentAnswer, WtkChoices
+from course.models import Topic, KwlPoint
+from know.models import Know, KnowReflectionStudentAnswer, KnowQuizStudentAnswer, KnowQuizQuestion
+from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedQuizQuestion
+from wtk.models import WantToKnow, WtkReflectionStudentAnswer, WtkPollQuestion
+from drf_yasg.utils import swagger_auto_schema
 
-
+from .api_exceptions import InvalidTypeException, EmptyReflectionException
 
 # Create your views here.
-
+def get_topic(topic_id):
+    try:
+        return Topic.objects.get(pk=topic_id)
+    except Topic.DoesNotExist:
+        raise TopicNotFoundException()
+    
 class WordCloudAPIView(APIView):
     def get(self, request, type, topic):
 
         reflections = []
 
-        if type == 'learned':
-            reflections = LearnedReflectionStudentAnswer.objects.filter(learned=topic).values_list('reflection', flat=True)
-        elif type == 'wtk':
-            reflections = WtkReflectionStudentAnswer.objects.filter(wtk=topic).values_list('reflection', flat=True)
-        elif type == 'know':
-            reflections = KnowReflectionStudentAnswer.objects.filter(know=topic).values_list('reflection', flat=True)
+        topic = get_topic(topic)
+        
 
+        if type == 'learned':
+            reflections = LearnedReflectionStudentAnswer.objects.filter(learned_ref__know__topic=topic).values_list('reflection', flat=True)
+        elif type == 'wtk':
+            reflections = WtkReflectionStudentAnswer.objects.filter(wtk_ref__know__topic=topic).values_list('reflection', flat=True)
+        elif type == 'know':
+            reflections = KnowReflectionStudentAnswer.objects.filter(know_ref__know__topic=topic).values_list('reflection', flat=True)
+        else:
+            raise InvalidTypeException()
+        if len(reflections) == 0:
+            raise EmptyReflectionException()
         all_reflections = ' '.join(reflections)
+       
 
         wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_reflections)
 
@@ -49,7 +64,7 @@ class WordCloudAPIView(APIView):
 
 class KwlParticipantCountView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(operation_description="Get the number of participants for each KWL stage", responses={200: "OK", 400: "Bad Request"})
     def get(self, request,topic):
 
         try:
@@ -58,31 +73,36 @@ class KwlParticipantCountView(APIView):
             topic = Topic.objects.get(id=topic_id)
             course = topic.course
             total_enrolled_students = course.students.all().count()
+            if total_enrolled_students == 0:
+                return Response({'error': 'No students enrolled in this course.'}, status=status.HTTP_400_BAD_REQUEST)
             
-            know_participants = KnowReflectionStudentAnswer.objects.filter(know=topic_id).values_list('student_id', flat=True)
-            learned_participants = LearnedReflectionStudentAnswer.objects.filter(learned=topic_id).values_list('student_id', flat=True)
-            wtk_participants = WtkReflectionStudentAnswer.objects.filter(wtk=topic_id).values_list('student_id', flat=True)
+            know = Know.objects.get(topic=topic)
+            learned = Learned.objects.get(topic=topic)
+            wtk = WantToKnow.objects.get(topic=topic)
 
-            know_count = len(know_participants)
+            know_count = know.total_participants
             know_percentage = (know_count / total_enrolled_students) * 100
-            learned_count = len(learned_participants)
+            learned_count = learned.total_participants
             learned_percentage = (learned_count / total_enrolled_students) * 100
-            wtk_count = len(wtk_participants)
+            wtk_count = wtk.total_participants
             wtk_percentage = (wtk_count / total_enrolled_students) * 100
+
+        
 
             return Response({'know': {'count': know_count, 'percentage': know_percentage}, 'learned': {'count': learned_count, 'percentage': learned_percentage}, 'wtk': {'count': wtk_count, 'percentage': wtk_percentage}})   
         except Topic.DoesNotExist:
             raise TopicNotFoundException()
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         
 class KwlPointLadderView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, topic):
-        four_highest_student_points = KwlPoint.objects.filter(topic=topic).order_by('-total_point')[:4]
-        four_lowest_student_points = KwlPoint.objects.filter(topic=topic).order_by('total_point')[:4]
-
+        kwl_points = KwlPoint.objects.annotate(total_point=F('know_score') + F('wtk_score') + F('learned_score'))
+        four_highest_student_points = kwl_points.filter(topic=topic).order_by('-total_point')[:4]
+        four_lowest_student_points = kwl_points.filter(topic=topic).order_by('total_point')[:4]
 
         four_highest_student_points_data = []
         four_lowest_student_points_data = []
@@ -90,33 +110,130 @@ class KwlPointLadderView(APIView):
         for student_point in four_highest_student_points:
             student_data = {
                 'student': student_point.student.user.username,
-                'total_point': student_point.total_point
+                'total_point': student_point.get_total_point()
             }
             four_highest_student_points_data.append(student_data)
 
         for student_point in four_lowest_student_points:
             student_data = {
                 'student': student_point.student.user.username,
-                'total_point': student_point.total_point
+                'total_point': student_point.get_total_point()
             }
             four_lowest_student_points_data.append(student_data)
         
         return Response({'highest': four_highest_student_points_data, 'lowest': four_lowest_student_points_data})
 
-class TopicPollingAnalysis(APIView):
+class TopicPollingAnalysisView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, topic):
-        poll_choices = []
         poll_data = []
         topic = Topic.objects.get(id=topic)
-        for poll in topic.polls.all():
-            poll_data.append({
-                'question': poll.question,
-                'choices': poll.choices.all().values_list('choice', flat=True)
-            })
+        question = WtkPollQuestion.objects.get(wtk__topic=topic)
+        choices = question.choices.all()
+        for choice in choices:
+            choice_data = {
+                'choice': choice.option_answer,
+                'total_votes': choice.total_votes
+            }
+            poll_data.append(choice_data)
 
 
-        poll_data = WtkPollStudentAnswer.objects.filter(wtk=topic).values('poll__question').annotate(count=models.Count('poll__question'))
+        return Response(poll_data, status=status.HTTP_200_OK)
+    
+class QuizAccuracyAnalysisView(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(operation_description="Get the number of correct answers for each quiz question", responses={200: "OK", 400: "Bad Request"})
+    def get(self, request, type, topic):
+        topic = Topic.objects.get(id=topic)
+        quiz_data = []
+        if type == 'know':
+            quiz_question = KnowQuizQuestion.objects.filter(know__topic=topic)
+            for question in quiz_question:
+                correct_answers = KnowQuizStudentAnswer.objects.filter(answers__know_quiz=question, answers__isCorrect=True).count()
+                accuracy = (correct_answers / question.know.total_participants) * 100
+                question_data = {
+                    'question': question.question,
+                    'accuracy': accuracy
+                }
+                quiz_data.append(question_data)
+        elif type == 'learned':
+            quiz_question = LearnedQuizQuestion.objects.filter(learned__topic=topic)
+            for question in quiz_question:
+                correct_answers = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz=question, answers__isCorrect=True).count()
+                accuracy = (correct_answers / question.learned.total_participants) * 100
+                question_data = {
+                    'question': question.question,
+                    'accuracy': accuracy
+                }
+                quiz_data.append(question_data)
+        else:
+            raise InvalidTypeException()
+            
 
-        
+        return Response({'questions': quiz_data}, status=status.HTTP_200_OK)
+       
+import matplotlib.pyplot as plt
+import base64
+from io import BytesIO
+
+class QuizBarchartImageView(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(operation_description="Get the image of the barchart for the quiz questions", responses={200: "OK", 400: "Bad Request"})
+    def get(self, request, type, topic):
+        topic = Topic.objects.get(id=topic)
+        quiz_data = []
+        if type == 'know':
+            quiz_question = KnowQuizQuestion.objects.filter(know__topic=topic)
+            for index, question in enumerate(quiz_question):
+                correct_answers = KnowQuizStudentAnswer.objects.filter(answers__know_quiz=question, answers__isCorrect=True).count()
+                incorrect_answers = question.know.total_participants - correct_answers
+                question_data = {
+                    'question': index+1,
+                    'correct_answers': correct_answers,
+                    'incorrect_answers': incorrect_answers
+                }
+                quiz_data.append(question_data)
+        elif type == 'learned':
+            quiz_question = LearnedQuizQuestion.objects.filter(learned__topic=topic)
+            for question in quiz_question:
+                correct_answers = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz=question, answers__isCorrect=True).count()
+                incorrect_answers = question.learned.total_participants - correct_answers
+                question_data = {
+                    'question': index+1,
+                    'correct_answers': correct_answers,
+                    'incorrect_answers': incorrect_answers
+                }
+                quiz_data.append(question_data)
+        else:
+            raise InvalidTypeException()
+
+        # Generate bar chart
+        fig, ax = plt.subplots()
+        questions = [data['question'] for data in quiz_data]
+        correct_answers = [data['correct_answers'] for data in quiz_data]
+        incorrect_answers = [data['incorrect_answers'] for data in quiz_data]
+        ax.bar(range(len(questions)), correct_answers, label='Correct Answers')
+        ax.bar(range(len(questions)), incorrect_answers, bottom=correct_answers, label='Incorrect Answers')
+
+        # Set x-ticks and x-ticklabels
+        ax.set_xticks(range(len(questions)))
+        ax.set_xticklabels(questions)
+
+        yticks = range(0, max(correct_answers + incorrect_answers) + 1)
+        ax.set_yticks(yticks)
+        ax.set_yticklabels([str(ytick) for ytick in yticks])
+
+
+        ax.set_ylabel('Number of Answers')
+        ax.set_title('Quiz Answers Bar Chart')
+        ax.legend()
+
+        # Save the plot to a file in the media root directory
+        image_path = os.path.join(settings.MEDIA_ROOT, 'barchart.png')
+        plt.savefig(image_path)
+
+        # Create the URL to access the image
+        image_url = os.path.join(settings.MEDIA_URL, 'barchart.png')
+
+        return Response({'questions': quiz_data, 'barchart': image_url}, status=status.HTTP_200_OK)

@@ -55,13 +55,14 @@ class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
         validated_data.pop('correct_option')   
 
         with transaction.atomic():
-            know, created = Know.objects.get_or_create(topic=topic, type=validated_data['type'])
+            know, created = Know.objects.get_or_create(topic=topic)
 
-            if not created:
+            if not created and know.type != validated_data['type']:
                 raise ExistingKnowException("Know already exists")
             
             validated_data['know'] = know
-            validated_data.pop('type')
+            know.type = validated_data.pop('type')
+            know.save()
             
             know_quiz = KnowQuizQuestion.objects.create(**validated_data)
             options = [KnowQuizOption(know_quiz=know_quiz, **option_data) for option_data in options_data]
@@ -117,10 +118,12 @@ class AddKnowEssaySerializer(serializers.ModelSerializer):
         with transaction.atomic():
             topic = get_topic(validated_data['topic'])
 
-            know, created = Know.objects.get_or_create(topic=topic, type=validated_data['type'])
+            know, created = Know.objects.get_or_create(topic=topic)
             if not created:
                 raise ExistingKnowException("Know already exists")
 
+            know.type = validated_data.pop('type')
+            know.save()
             know_essay = KnowReflection.objects.create(know=know, question=validated_data['question'], score=validated_data['score'])
         
         return know_essay
@@ -150,11 +153,11 @@ class KnowReflectionAnswerSerializer(serializers.Serializer):
     topic = serializers.IntegerField()
 
 class KnowQuizAnswerSerializer(serializers.Serializer):
-    answer = serializers.CharField(max_length=255)
-    id = serializers.IntegerField()
-
-class KnowQuizAnswersSerializer(serializers.Serializer):
-    answers = KnowQuizAnswerSerializer(many=True)
+    answers = serializers.ListField(
+        child=serializers.IntegerField(required=True),
+        required=True
+    )
+    topic = serializers.IntegerField(required=True)
 
 def get_topic(topic_id):
     try:

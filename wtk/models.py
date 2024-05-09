@@ -8,6 +8,7 @@ class WantToKnow(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
     type = models.CharField(max_length=255, choices=wtk_choices, default='reflection')
+    total_participants = models.IntegerField(default=0)
     def __str__(self):
         return self.type
 
@@ -25,7 +26,8 @@ class WtkPollQuestion(models.Model):
 class WtkChoices(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    option_answer = models.CharField(max_length=255)
+    option_answer = models.CharField(max_length=255)   
+    total_votes = models.IntegerField(default=0)
     
     def __str__(self):
         return self.option_answer

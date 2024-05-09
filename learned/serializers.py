@@ -24,7 +24,7 @@ class LearnedQuizQuestionSerializer(serializers.ModelSerializer):
     options = LearnedQuizOptionsSerializer(source='get_answers', many=True, read_only=True)
     class Meta:
         model = LearnedQuizQuestion
-        fields = ('id', 'question', 'score', 'image', 'learned' )
+        fields = ('id', 'question', 'score', 'image', 'learned', 'options' )
 
 class LearnedSerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,13 +60,14 @@ class AddLearnedQuizQuestionSerializer(serializers.ModelSerializer):
         validated_data.pop('correct_option')   
 
         with transaction.atomic():
-            learned, created = Learned.objects.get_or_create(topic=topic, type=validated_data['type'])
+            learned, created = Learned.objects.get_or_create(topic=topic)
 
-            if not created:
+            if not created and learned.type != validated_data['type']:
                 raise ExistingLearnedException("Learned already exists")
             
             validated_data['learned'] = learned 
-            validated_data.pop('type')
+            learned.type = validated_data.pop('type')
+            learned.save()
             
             learned_quiz = LearnedQuizQuestion.objects.create(**validated_data)
             options = [LearnedQuizOption(learned_quiz=learned_quiz, **option_data) for option_data in options_data]
@@ -120,9 +121,11 @@ class AddLearnedEssaySerializer(serializers.ModelSerializer):
         with transaction.atomic():
             topic = get_topic(validated_data['topic'])
 
-            learned, created = Learned.objects.get_or_create(topic=topic, type=validated_data['type'])
+            learned, created = Learned.objects.get_or_create(topic=topic)
             if not created:
                 raise ExistingLearnedException("Learned already exists")
+            learned.type = validated_data['type']
+            learned.save()
             
             learned_essay = LearnedReflection.objects.create(learned=learned, question=validated_data['question'], score=validated_data['score'])
             
@@ -148,6 +151,13 @@ class LearnedReflectionSerializer(serializers.ModelSerializer):
 class LearnedReflectionAnswerSerializer(serializers.Serializer):
     reflection = serializers.CharField(max_length=255)
     topic = serializers.IntegerField(write_only=True)
+
+class LearnedQuizAnswerSerializer(serializers.Serializer):
+    answers = serializers.ListField(
+        child=serializers.IntegerField(required=True),
+        required=True
+    )
+    topic = serializers.IntegerField(required=True)
 
 def get_topic(topic_id):
     try:
