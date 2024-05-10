@@ -39,16 +39,17 @@ class WordCloudAPIView(APIView):
         
 
         if type == 'learned':
-            reflections = LearnedReflectionStudentAnswer.objects.filter(learned_ref__know__topic=topic).values_list('reflection', flat=True)
+            reflections = LearnedReflectionStudentAnswer.objects.filter(learned_ref__learned__topic=topic).values_list('student__user__username', 'reflection')
         elif type == 'wtk':
-            reflections = WtkReflectionStudentAnswer.objects.filter(wtk_ref__know__topic=topic).values_list('reflection', flat=True)
+            reflections = WtkReflectionStudentAnswer.objects.filter(wtk_ref__wtk__topic=topic).values_list('student__user__username', 'reflection')
         elif type == 'know':
-            reflections = KnowReflectionStudentAnswer.objects.filter(know_ref__know__topic=topic).values_list('reflection', flat=True)
+            reflections = KnowReflectionStudentAnswer.objects.filter(know_ref__know__topic=topic).values_list('student__user__username', 'reflection')
         else:
             raise InvalidTypeException()
         if len(reflections) == 0:
             raise EmptyReflectionException()
-        all_reflections = ' '.join(reflections)
+        print(reflections)
+        all_reflections = ' '.join(reflection[1] for reflection in reflections)
        
 
         wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_reflections)
@@ -59,7 +60,7 @@ class WordCloudAPIView(APIView):
 
         image_url = os.path.join(settings.MEDIA_URL, 'word_cloud.png')
 
-        return Response({'image_url': image_url})
+        return Response({'image_url': image_url, 'reflections': reflections})
 
 
 class KwlParticipantCountView(APIView):
@@ -91,8 +92,10 @@ class KwlParticipantCountView(APIView):
 
             return Response({'know': {'count': know_count, 'percentage': know_percentage}, 'learned': {'count': learned_count, 'percentage': learned_percentage}, 'wtk': {'count': wtk_count, 'percentage': wtk_percentage}})   
         except Topic.DoesNotExist:
+            
             raise TopicNotFoundException()
         except Exception as e:
+            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         
