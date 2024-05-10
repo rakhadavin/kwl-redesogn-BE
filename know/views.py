@@ -124,7 +124,6 @@ class KnowEssayDetailView(APIView):
         try:
             print(request.user.username)
             essay = KnowReflection.objects.get(know__topic_id=topic_id)
-            self.check_object_permissions(request, essay)
             serializer = KnowReflectionSerializer(essay)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except KnowReflection.DoesNotExist:
@@ -136,6 +135,7 @@ class KnowEssayDetailView(APIView):
     def put(self, request, topic_id):
         try:
             essay = KnowReflection.objects.get(know__topic_id=topic_id)
+            self.check_object_permissions(request, essay)
             serializer = EditKnowEssaySerializer(essay, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()

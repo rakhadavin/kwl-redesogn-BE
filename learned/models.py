@@ -18,7 +18,6 @@ class LearnedQuizQuestion(models.Model):
     question = models.CharField(max_length=255)
     learned = models.ForeignKey('Learned', on_delete=models.CASCADE, blank=True, null=True)
     score = models.IntegerField(default=0)
-    image = models.ImageField(upload_to='learned_images/', blank=True, null=True)
     def __str__(self):
         return self.question
     

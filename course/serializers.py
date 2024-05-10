@@ -228,3 +228,8 @@ class FeedbackSerializer(serializers.ModelSerializer):
     
     
 
+class RedeemSerializer(serializers.Serializer):
+    student_id = serializers.IntegerField()
+    reward_id = serializers.IntegerField()
+    course_id = serializers.IntegerField()
+    

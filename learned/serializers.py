@@ -24,7 +24,7 @@ class LearnedQuizQuestionSerializer(serializers.ModelSerializer):
     options = LearnedQuizOptionsSerializer(source='get_answers', many=True, read_only=True)
     class Meta:
         model = LearnedQuizQuestion
-        fields = ('id', 'question', 'score', 'image', 'learned', 'options' )
+        fields = ('id', 'question', 'score', 'learned', 'options' )
 
 class LearnedSerializer(serializers.ModelSerializer):
     class Meta:
@@ -43,7 +43,7 @@ class AddLearnedQuizQuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LearnedQuizQuestion
-        fields = ['option_a', 'option_b', 'option_c', 'option_d', 'question', 'type', 'image', 'correct_option', 'score', 'topic', 'learned']
+        fields = ['option_a', 'option_b', 'option_c', 'option_d', 'question', 'type', 'correct_option', 'score', 'topic', 'learned']
     
     def create(self, validated_data):
         topic_id = validated_data.pop('topic', None)
@@ -81,18 +81,12 @@ class EditLearnedQuizQuestionSerializer(serializers.Serializer):
     option_c = serializers.CharField(max_length=255, write_only=True)
     option_d = serializers.CharField(max_length=255, write_only=True)
     question = serializers.CharField(max_length=255)
-    image = serializers.ImageField(required=False)
     correct_option = serializers.ChoiceField(choices=option_choices, required=False, write_only=True)
     score = serializers.IntegerField(required=False)
 
     def update(self, instance, validated_data):
         instance.question = validated_data['question']
         instance.score = validated_data['score']
-
-        if 'image' in validated_data:
-            instance.image.delete(save=False)
-            instance.image = validated_data['image']
-
         instance.save()
    
         options = instance.get_answers()

@@ -17,6 +17,7 @@ class KwlUserSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'password', 'role', 'nama_lengkap','domisili', 'profile_photo']
 
     def to_internal_value(self, data):
+        print(data)
         if KwlUser.objects.filter(email=data['email']).exists():
             raise ExistingEmailException
         if KwlUser.objects.filter(username=data['username']).exists():
@@ -38,11 +39,15 @@ class LecturerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-    def get_initial(self):
-        initial = super().get_initial()
-        if self.instance is not None:
-            initial['user'] = KwlUserSerializer(self.instance.user).data
-        return initial
+    # def to_internal_value(self, data):
+    #     print(data)
+    #     return super().to_internal_value(data)
+    # def get_initial(self):
+    #     initial = super().get_initial()
+    #     if self.instance is not None:
+    #         initial['user'] = KwlUserSerializer(self.instance.user).data
+           
+    #     return initial
 
     def create(self, validated_data):
         """

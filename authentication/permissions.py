@@ -39,10 +39,6 @@ class isLecturerInKnowCourse(BasePermission):
     """
     Allows access only to authenticated users.
     """
-
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.role == "lecturer")
-    
     def has_object_permission(self, request, view, obj):
         print("dfd")
         lecturer = Lecturer.objects.get(user_id=request.user.id)

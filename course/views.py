@@ -1,22 +1,24 @@
+from datetime import datetime
+
 from django.utils import timezone
 
-from django.http import Http404, JsonResponse
+from django.http import Http404
 from django.shortcuts import render
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from authentication.models import Student
 from authentication.serializers import LecturerSerializer, StudentSerializer
-from .models import Course, Feedback, RewardItem, Topic, LastAccessedStudentCourse
+from .models import Course, Feedback, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse
 from authentication.models import Lecturer
 from rest_framework import status
-from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer
+from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer
 from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg.utils import swagger_auto_schema
-from .api_exceptions import CourseNotFoundException
+from .api_exceptions import CourseNotFoundException, StudentPointNotFoundException
 from authentication.api_exceptions import LecturerNotFoundException, StudentNotFoundException
 
 
@@ -252,6 +254,7 @@ class RewardCourseView(APIView):
         try:
             course = Course.objects.get(pk=course_id)
             rewards = RewardItem.objects.filter(course=course)
+            rewards = [reward for reward in rewards if datetime.strptime(reward.expired_date, '%d-%m-%Y').date() >= timezone.now().date()]
             serializer = RewardItemSerializer(rewards, many=True)
             return Response(serializer.data)
         except Course.DoesNotExist:
@@ -453,4 +456,71 @@ class AddLastAccessedStudentCourseView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class RedeemRewardView(APIView):
+    permission_classes = [IsAuthenticated,]
+    @swagger_auto_schema(operation_summary="Redeem reward by student id and reward id")
+    def post(self, request, format=None):
+        try:
+            serializer = RedeemSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            student_id = serializer.validated_data['student_id']
+            reward_id = serializer.validated_data['reward_id']
+            course_id = serializer.validated_data['course_id']
+            student = Student.objects.get(pk=student_id)
+            reward = RewardItem.objects.get(pk=reward_id)
+            course = Course.objects.get(pk=course_id)
+            student_point = RewardStudentPoint.objects.get(student=student, course=course)
+            if student_point.total_point < reward.point:
+                return Response({"message":"Insufficient point"}, status=status.HTTP_400_BAD_REQUEST)
             
+            if reward.stock > 0:
+                reward.stock -= 1
+                student_point.total_point -= reward.point
+                student_point.save()
+                reward.save()
+                return Response({"message":"Reward redeemed"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message":"Reward out of stock"}, status=status.HTTP_400_BAD_REQUEST)
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
+        except RewardItem.DoesNotExist:
+            raise CourseNotFoundException()
+        except RewardStudentPoint.DoesNotExist:
+            raise StudentPointNotFoundException()
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+        
+
+class CourseEnrollmentStatusView(APIView):
+    permission_classes = [IsAuthenticated,]
+    @swagger_auto_schema(operation_summary="Get all courses and its enrollment status by student id")
+    def get(self, request, student_id, format=None):
+        try:
+            student = Student.objects.get(pk=student_id)
+        except Student.DoesNotExist:
+            raise Http404
+
+        courses = Course.objects.all()
+        serializer = CourseSerializer(courses, many=True)
+
+        for course in serializer.data:
+            course['is_enrolled'] = student in course.students.all()
+
+        return Response(serializer.data)
+    
+class FeedbackCourseView(APIView):
+    permission_classes = [IsAuthenticated,]
+    @swagger_auto_schema(operation_summary="Get all feedbacks by course id")
+    def get(self, request, course_id, format=None):
+        try:
+            course = Course.objects.get(pk=course_id)
+            feedbacks = Feedback.objects.filter(topic__course=course)
+            serializer = FeedbackSerializer(feedbacks, many=True)
+            return Response(serializer.data)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

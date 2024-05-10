@@ -25,3 +25,8 @@ class RewardNotFoundException(BaseCustomException):
     def __init__(self):
         detail = 'Reward not found'
         super().__init__(detail, status.HTTP_404_NOT_FOUND)
+
+class StudentPointNotFoundException(BaseCustomException):
+    def __init__(self):
+        detail = 'Student Point not found'
+        super().__init__(detail, status.HTTP_404_NOT_FOUND)

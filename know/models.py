@@ -20,7 +20,6 @@ class KnowQuizQuestion(models.Model):
     question = models.CharField(max_length=255)
     know = models.ForeignKey('Know', on_delete=models.CASCADE, blank=True, null=True)
     score = models.IntegerField(default=0)
-    image = models.ImageField(upload_to='know_images/', blank=True, null=True)
     def __str__(self):
         return self.question
     
