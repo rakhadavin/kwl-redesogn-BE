@@ -17,12 +17,8 @@ from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer
 from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from drf_yasg.utils import swagger_auto_schema
-from drf_yasg.utils import swagger_auto_schema
 from .api_exceptions import CourseNotFoundException, StudentPointNotFoundException
 from authentication.api_exceptions import LecturerNotFoundException, StudentNotFoundException
-
-
-
 
 class CourseEnrolledView():
 
@@ -218,9 +214,14 @@ class CourseDetailView(APIView):
 
     @swagger_auto_schema(operation_summary="Retrieve a course")
     def get(self, request, pk, format=None):
-        course = self.get_object(pk)
-        serializer = CourseSerializer(course)
-        return Response(serializer.data)
+        try:
+            course = self.get_object(pk)
+            serializer = CourseSerializer(course)
+            return Response(serializer.data)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @swagger_auto_schema(request_body=CourseSerializer, operation_summary="Update a course")
     def put(self, request, pk, format=None):
@@ -242,10 +243,14 @@ class CourseDetailView(APIView):
         
     @swagger_auto_schema(operation_summary="delete a course")
     def delete(self, request, pk, format=None):
-
-        course = self.get_object(pk)
-        course.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            course = self.get_object(pk)
+            course.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 class RewardCourseView(APIView):
     permission_classes = [IsAuthenticated,]
@@ -499,18 +504,19 @@ class CourseEnrollmentStatusView(APIView):
     @swagger_auto_schema(operation_summary="Get all courses and its enrollment status by student id")
     def get(self, request, student_id, format=None):
         try:
-            student = Student.objects.get(pk=student_id)
+
+            courses = Course.objects.all()
+            courses_data = []
+            for course in courses:
+                course_data = CourseSerializer(course).data
+                course_data['enrolled'] = course.students.filter(pk=student_id).exists()
+                courses_data.append(course_data)
+            return Response(courses_data, status=status.HTTP_200_OK)
         except Student.DoesNotExist:
-            raise Http404
+            raise StudentNotFoundException
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        courses = Course.objects.all()
-        serializer = CourseSerializer(courses, many=True)
-
-        for course in serializer.data:
-            course['is_enrolled'] = student in course.students.all()
-
-        return Response(serializer.data)
-    
 class FeedbackCourseView(APIView):
     permission_classes = [IsAuthenticated,]
     @swagger_auto_schema(operation_summary="Get all feedbacks by course id")
