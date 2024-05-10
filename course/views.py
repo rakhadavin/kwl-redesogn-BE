@@ -508,12 +508,10 @@ class CourseEnrollmentStatusView(APIView):
             courses = Course.objects.all()
             courses_data = []
             for course in courses:
-                course_data = {}
-                course_data['course'] = CourseSerializer(course).data
+                course_data = CourseSerializer(course).data
                 course_data['enrolled'] = course.students.filter(pk=student_id).exists()
                 courses_data.append(course_data)
             return Response(courses_data, status=status.HTTP_200_OK)
-
         except Student.DoesNotExist:
             raise StudentNotFoundException
         except Exception as e:
