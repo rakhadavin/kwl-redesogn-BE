@@ -524,17 +524,54 @@ class CourseEnrollmentStatusView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class FeedbackCourseView(APIView):
+class FeedbackStudentCourseView(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_summary="Get all feedbacks by course id")
-    def get(self, request, course_id, format=None):
+    @swagger_auto_schema(operation_summary="Get all feedbacks by course id and student_id")
+    def get(self, request, course_id, student_id, format=None):
         try:
+            student = Student.objects.get(pk=student_id)
             course = Course.objects.get(pk=course_id)
-            feedbacks = Feedback.objects.filter(topic__course=course)
+            feedbacks = Feedback.objects.filter(topic__course=course, student=student)
             serializer = FeedbackSerializer(feedbacks, many=True)
-            return Response(serializer.data)
+            new_data = {
+                'course_full_name': course.full_name,
+                'course_short_name': course.short_name,
+                'feedbacks': serializer.data
+            }
+            return Response(new_data, status=status.HTTP_200_OK)
         except Course.DoesNotExist:
             raise CourseNotFoundException()
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class RedeemHistoryDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated,]
+    queryset = RedeemHistory.objects.all()
+    serializer_class = RedeemSerializer
+
+    @swagger_auto_schema(operation_summary="Retrieve reward history by student id")
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    
+class RedeemHistoryListView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    @swagger_auto_schema(operation_summary="List all redeem history by student id")
+    def get(self, request, student_id, format=None):
+        try:
+            student = Student.objects.get(pk=student_id)
+            rewards = RedeemHistory.objects.filter(student=student)
+            serializer = RedeemSerializer(rewards, many=True)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
