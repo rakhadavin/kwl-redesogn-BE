@@ -35,6 +35,8 @@ urlpatterns = [
     path('accessed', views.AddLastAccessedStudentCourseView.as_view()),
 
     path('redeem', views.RedeemRewardView.as_view()),
+    path('redeem/<int:pk>', views.RedeemHistoryDetailView.as_view()),
+    path('redeem/<int:student_id>/all', views.RedeemHistoryListView.as_view()),
     
 
 ]

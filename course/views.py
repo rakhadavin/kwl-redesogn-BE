@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 
 from authentication.models import Student
 from authentication.serializers import LecturerSerializer, StudentSerializer
-from .models import Course, Feedback, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse
+from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse
 from authentication.models import Lecturer
 from rest_framework import status
 from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer
@@ -19,6 +19,7 @@ from rest_framework.decorators import api_view, permission_classes
 from drf_yasg.utils import swagger_auto_schema
 from .api_exceptions import CourseNotFoundException, StudentPointNotFoundException
 from authentication.api_exceptions import LecturerNotFoundException, StudentNotFoundException
+from django.db import transaction
 
 class CourseEnrolledView():
 
@@ -467,26 +468,33 @@ class RedeemRewardView(APIView):
     @swagger_auto_schema(operation_summary="Redeem reward by student id and reward id")
     def post(self, request, format=None):
         try:
-            serializer = RedeemSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            student_id = serializer.validated_data['student_id']
-            reward_id = serializer.validated_data['reward_id']
-            course_id = serializer.validated_data['course_id']
-            student = Student.objects.get(pk=student_id)
-            reward = RewardItem.objects.get(pk=reward_id)
-            course = Course.objects.get(pk=course_id)
-            student_point = RewardStudentPoint.objects.get(student=student, course=course)
-            if student_point.total_point < reward.point:
-                return Response({"message":"Insufficient point"}, status=status.HTTP_400_BAD_REQUEST)
-            
-            if reward.stock > 0:
-                reward.stock -= 1
-                student_point.total_point -= reward.point
-                student_point.save()
-                reward.save()
-                return Response({"message":"Reward redeemed"}, status=status.HTTP_200_OK)
-            else:
-                return Response({"message":"Reward out of stock"}, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                serializer = RedeemSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+
+                student_id = serializer.validated_data['student_id']
+                reward_id = serializer.validated_data['reward_id']
+                course_id = serializer.validated_data['course_id']
+
+                student = Student.objects.get(pk=student_id)
+                reward = RewardItem.objects.get(pk=reward_id)
+                course = Course.objects.get(pk=course_id)
+
+                student_point = RewardStudentPoint.objects.get(student=student, course=course)
+
+                if student_point.total_point < reward.point:
+                    return Response({"message":"Insufficient point"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                if reward.stock > 0:
+                    reward.stock -= 1
+                    student_point.total_point -= reward.point
+                    student_point.save()
+                    reward.save()
+                    RedeemHistory.objects.create(student=student, reward=reward)
+                    return Response({"message":"Reward redeemed"}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"message":"Reward out of stock"}, status=status.HTTP_400_BAD_REQUEST)
+                
         except Student.DoesNotExist:
             raise StudentNotFoundException()
         except RewardItem.DoesNotExist:
@@ -504,7 +512,6 @@ class CourseEnrollmentStatusView(APIView):
     @swagger_auto_schema(operation_summary="Get all courses and its enrollment status by student id")
     def get(self, request, student_id, format=None):
         try:
-
             courses = Course.objects.all()
             courses_data = []
             for course in courses:
@@ -528,5 +535,34 @@ class FeedbackCourseView(APIView):
             return Response(serializer.data)
         except Course.DoesNotExist:
             raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class RedeemHistoryDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated,]
+    queryset = RedeemHistory.objects.all()
+    serializer_class = RedeemSerializer
+
+    @swagger_auto_schema(operation_summary="Retrieve reward history by student id")
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    
+class RedeemHistoryListView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    @swagger_auto_schema(operation_summary="List all redeem history by student id")
+    def get(self, request, student_id, format=None):
+        try:
+            student = Student.objects.get(pk=student_id)
+            rewards = RedeemHistory.objects.filter(student=student)
+            serializer = RedeemSerializer(rewards, many=True)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

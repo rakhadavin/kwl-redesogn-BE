@@ -4,30 +4,30 @@ from django.shortcuts import render
 
 from authentication.models import Student
 from know.models import KnowQuizQuestion, KnowQuizStudentAnswer, KnowReflectionStudentAnswer
-from .serializers import AddKnowQuizQuestionSerializer, KnowQuizOptionsSerializer, KnowQuizQuestionSerializer, AddKnowEssaySerializer, KnowReflectionSerializer, EditKnowQuizQuestionSerializer, EditKnowEssaySerializer, KnowSerializer, KnowReflectionAnswerSerializer, KnowQuizAnswerSerializer
+from .serializers import KnowQuizQuestionSerializer, AddKnowEssaySerializer, KnowReflectionSerializer, EditKnowQuizQuestionSerializer, EditKnowEssaySerializer, KnowSerializer, KnowReflectionAnswerSerializer, KnowQuizAnswerSerializer, BulkAddQuizSerializer, BulkEditQuizSerializer
 from rest_framework import status
 from course.models import RewardStudentPoint, KwlPoint
 from .models import Know, KnowQuizOption, KnowQuizQuestion, KnowReflection
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .api_exceptions import ExistingKnowException, KnowQuizNotFoundException, KnowReflectionNotFoundException, KnowDoesNotExistException
+from .api_exceptions import KnowQuizNotFoundException, KnowReflectionNotFoundException, KnowDoesNotExistException
 from drf_yasg.utils import swagger_auto_schema
 from django.db import transaction
 from authentication.permissions import isLecturer, isLecturerInKnowCourse
 
 class KnowQuizListView(APIView):
     permission_classes = [IsAuthenticated,]
-
-    @swagger_auto_schema(operation_summary="Add a quiz question", request_body=AddKnowQuizQuestionSerializer)
+    @swagger_auto_schema(operation_summary="Add many", request_body=BulkAddQuizSerializer)
     def post(self, request):
         try:
-            serializer = AddKnowQuizQuestionSerializer(data=request.data)
+            serializer = BulkAddQuizSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            return Response({"message": "Quiz added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+
+            return Response({"message": "Quizzes added successfully"}, status=status.HTTP_201_CREATED)
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     @swagger_auto_schema(operation_summary="Get all quiz questions")
@@ -36,6 +36,30 @@ class KnowQuizListView(APIView):
             know_quiz = KnowQuizQuestion.objects.all()
             serializer = KnowQuizQuestionSerializer(know_quiz, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @swagger_auto_schema(operation_summary="Bulk edit questions")
+    def put(self, request):
+        try:
+            serializer = BulkEditQuizSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            with transaction.atomic():
+                for question in serializer.validated_data['questions']:
+                    know_quiz = KnowQuizQuestion.objects.get(pk=question['id'])
+                    know_quiz.question = question['question']
+                    know_quiz.score = question['score']
+                    know_quiz.save()
+                    options = know_quiz.get_answers()
+                    options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
+                    for option in options_tuple:
+                        if option[0] in question:
+                            answer = options.get(alias=option[0])
+                            answer.option_answer = question[option[0]]
+                            answer.isCorrect = question['correct_option'] == option[1]
+                            answer.save()
+
+            return Response({"message": "Quizzes updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

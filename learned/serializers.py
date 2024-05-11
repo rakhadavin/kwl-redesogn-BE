@@ -38,42 +38,40 @@ class AddLearnedQuizQuestionSerializer(serializers.ModelSerializer):
     option_c = serializers.CharField(max_length=255, write_only=True)
     option_d = serializers.CharField(max_length=255, write_only=True)
     correct_option = serializers.ChoiceField(choices=option_choices, required=True, write_only=True)
-    topic = serializers.IntegerField(write_only=True)
-    type = serializers.ChoiceField(choices=learned_choices, required=True, write_only=True)
 
     class Meta:
         model = LearnedQuizQuestion
-        fields = ['option_a', 'option_b', 'option_c', 'option_d', 'question', 'type', 'correct_option', 'score', 'topic', 'learned']
-    
+        fields = ['option_a', 'option_b', 'option_c', 'option_d', 'question', 'correct_option', 'score', 'learned']
+
+
+class BulkAddLearnedQuizSerializer(serializers.Serializer):
+    topic = serializers.IntegerField(write_only=True)
+    type = serializers.ChoiceField(choices=learned_choices, required=True, write_only=True)
+    questions = AddLearnedQuizQuestionSerializer(many=True, write_only=True)
+
     def create(self, validated_data):
-        topic_id = validated_data.pop('topic', None)
-
-        topic = get_topic(topic_id)
-
-        options_data = [
-        {'option_answer': validated_data.pop('option_a'), 'isCorrect': validated_data['correct_option'] == 'Opsi A', 'alias': 'option_a'},
-        {'option_answer': validated_data.pop('option_b'), 'isCorrect': validated_data['correct_option'] == 'Opsi B', 'alias': 'option_b'},
-        {'option_answer': validated_data.pop('option_c'), 'isCorrect': validated_data['correct_option'] == 'Opsi C', 'alias': 'option_c'},
-        {'option_answer': validated_data.pop('option_d'), 'isCorrect': validated_data['correct_option'] == 'Opsi D', 'alias': 'option_d'}
-        ]
-
-        validated_data.pop('correct_option')   
-
+        topic = get_topic(validated_data['topic'])
         with transaction.atomic():
             learned, created = Learned.objects.get_or_create(topic=topic)
-
-            if not created and learned.type != validated_data['type']:
+            if not created:
                 raise ExistingLearnedException("Learned already exists")
-            
-            validated_data['learned'] = learned 
-            learned.type = validated_data.pop('type')
+            learned.type = validated_data['type']
             learned.save()
-            
-            learned_quiz = LearnedQuizQuestion.objects.create(**validated_data)
-            options = [LearnedQuizOption(learned_quiz=learned_quiz, **option_data) for option_data in options_data]
-            LearnedQuizOption.objects.bulk_create(options)
-        return learned_quiz
+            questions = validated_data.pop('questions')
+            for question in questions:
+                question['learned'] = learned
+                options_data = [
+                {'option_answer': question.pop('option_a'), 'isCorrect': question['correct_option'] == 'Opsi A', 'alias': 'option_a'},
+                {'option_answer': question.pop('option_b'), 'isCorrect': question['correct_option'] == 'Opsi B', 'alias': 'option_b'},
+                {'option_answer': question.pop('option_c'), 'isCorrect': question['correct_option'] == 'Opsi C', 'alias': 'option_c'},
+                {'option_answer': question.pop('option_d'), 'isCorrect': question['correct_option'] == 'Opsi D', 'alias': 'option_d'}
+                ]
+                question.pop('correct_option')      
+                learned_quiz = LearnedQuizQuestion.objects.create(**question)
+                options = [LearnedQuizOption(learned_quiz=learned_quiz, **option_data) for option_data in options_data]
+                LearnedQuizOption.objects.bulk_create(options)
 
+        return learned
 
 class EditLearnedQuizQuestionSerializer(serializers.Serializer):
     option_a = serializers.CharField(max_length=255, write_only=True)
@@ -83,23 +81,11 @@ class EditLearnedQuizQuestionSerializer(serializers.Serializer):
     question = serializers.CharField(max_length=255)
     correct_option = serializers.ChoiceField(choices=option_choices, required=False, write_only=True)
     score = serializers.IntegerField(required=False)
+    id =  serializers.IntegerField(required=True, write_only=True)
 
-    def update(self, instance, validated_data):
-        instance.question = validated_data['question']
-        instance.score = validated_data['score']
-        instance.save()
-   
-        options = instance.get_answers()
-        options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
-        for option in options_tuple:
-            if option[0] in validated_data:
-                answer = options.get(alias=option[0])
-                answer.option_answer = validated_data[option[0]]
-                if 'correct_option' in validated_data:
-                    answer.isCorrect = validated_data['correct_option'] == option[1]
-                answer.save()
+class BulkEditQuizSerializer(serializers.Serializer):
+    questions = EditLearnedQuizQuestionSerializer(many=True, write_only=True)
 
-        return instance
 
 class AddLearnedEssaySerializer(serializers.ModelSerializer):
     question = serializers.CharField(max_length=255)

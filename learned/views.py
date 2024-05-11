@@ -3,7 +3,7 @@ from django.shortcuts import render
 
 from authentication.models import Student
 from learned.api_exceptions import LearnedDoesNotExistException, LearnedReflectionNotFoundException
-from .serializers import AddLearnedEssaySerializer, EditLearnedEssaySerializer, LearnedQuizAnswerSerializer, LearnedReflectionAnswerSerializer, LearnedReflectionSerializer, AddLearnedQuizQuestionSerializer, EditLearnedQuizQuestionSerializer, LearnedQuizQuestionSerializer 
+from .serializers import AddLearnedEssaySerializer, EditLearnedEssaySerializer, LearnedQuizAnswerSerializer, LearnedReflectionAnswerSerializer, LearnedReflectionSerializer, AddLearnedQuizQuestionSerializer, EditLearnedQuizQuestionSerializer, LearnedQuizQuestionSerializer, BulkEditQuizSerializer, BulkAddLearnedQuizSerializer 
 from .models import Learned, LearnedQuizOption, LearnedReflection, LearnedReflectionStudentAnswer, LearnedQuizQuestion, LearnedQuizStudentAnswer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -17,10 +17,10 @@ from django.db import transaction
 class LearnedQuizListView(APIView):
     permission_classes = [IsAuthenticated,]
 
-    @swagger_auto_schema(operation_description="Add a learned quiz", request_body=AddLearnedQuizQuestionSerializer)
+    @swagger_auto_schema(operation_description="Add bulk of learned quiz", request_body=BulkAddLearnedQuizSerializer)
     def post(self, request):
         try:
-            serializer = AddLearnedQuizQuestionSerializer(data=request.data)
+            serializer = BulkAddLearnedQuizSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response({"message": "Quiz added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
@@ -33,6 +33,33 @@ class LearnedQuizListView(APIView):
             learned_quiz = LearnedQuizQuestion.objects.all()
             serializer = LearnedQuizQuestionSerializer(learned_quiz, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @swagger_auto_schema(operation_description="Edit bulk of learned quiz", request_body=BulkEditQuizSerializer)
+    def put(self, request):
+        try:
+            serializer = BulkEditQuizSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            with transaction.atomic():
+                validated_data = serializer.validated_data
+                questions = validated_data.pop('questions')
+                for question in questions:
+                    question_instance = LearnedQuizQuestion.objects.get(pk=question['id'])
+                    question_instance.question = question['question']
+                    question_instance.score = question['score']
+                    question_instance.save()
+                    options = question_instance.get_answers()
+                    options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
+                    for option in options_tuple:
+                        if option[0] in question:
+                            answer = options.get(alias=option[0])
+                            answer.option_answer = question[option[0]]
+                            if 'correct_option' in question:
+                                answer.isCorrect = question['correct_option'] == option[1]
+                            answer.save()
+      
+            return Response({"message": "Quiz updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         

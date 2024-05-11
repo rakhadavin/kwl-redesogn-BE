@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from authentication.models import Lecturer, Student
 from know.serializers import KnowSerializer
-from .models import Course, LastAccessedStudentCourse, RewardItem, RewardStudentPoint, Topic, Feedback
+from .models import Course, LastAccessedStudentCourse, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory
 from know.models import Know
 from learned.models import Learned
 from wtk.models import WantToKnow
@@ -225,7 +225,10 @@ class FeedbackSerializer(serializers.ModelSerializer):
         return instance
     
     
-    
+class RedeemHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RedeemHistory
+        fields = ['student','reward','course','created','id']
     
 
 class RedeemSerializer(serializers.Serializer):

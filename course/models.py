@@ -92,3 +92,11 @@ class Feedback(models.Model):
     
     def __str__(self):
         return self.feedback
+    
+class RedeemHistory(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    reward_item = models.ForeignKey(RewardItem, on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.student.user.username
