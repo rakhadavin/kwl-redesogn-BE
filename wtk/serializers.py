@@ -172,7 +172,7 @@ class PrereadingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prereading
         fields = ('id', 'prereading', 'file', 'topic')
-
+    
 class WtkReflectionAnswerSerializer(serializers.Serializer):
     reflection = serializers.CharField(max_length=255)
     topic = serializers.IntegerField(write_only=True)
