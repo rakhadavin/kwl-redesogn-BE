@@ -10,10 +10,10 @@ from rest_framework.views import APIView
 
 from authentication.models import Student
 from authentication.serializers import LecturerSerializer, StudentSerializer
-from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse
+from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse, KwlPoint
 from authentication.models import Lecturer
 from rest_framework import status
-from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer
+from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer
 from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from drf_yasg.utils import swagger_auto_schema
@@ -253,7 +253,24 @@ class CourseDetailView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-class RewardCourseView(APIView):
+# class RewardCourseView(APIView):
+#     permission_classes = [IsAuthenticated,]
+#     @swagger_auto_schema(operation_summary="Get all rewards by course id")
+#     def get(self, request, course_id, format=None):
+#         try:
+#             course = Course.objects.get(pk=course_id)
+#             rewards = RewardItem.objects.filter(course=course)
+#             rewards = [reward for reward in rewards if datetime.strptime(reward.expired_date, '%Y-%m-%d').date() >= timezone.now().date()]
+#             serializer = RewardItemSerializer(rewards, many=True)
+#             return Response(serializer.data)
+#         except Course.DoesNotExist:
+#             raise CourseNotFoundException()
+#         except Exception as e:
+#             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+    
+class RewardRedeemCourseView(APIView):
     permission_classes = [IsAuthenticated,]
     @swagger_auto_schema(operation_summary="Get all rewards by course id")
     def get(self, request, course_id, format=None):
@@ -572,5 +589,24 @@ class RedeemHistoryListView(APIView):
             return Response(serializer.data)
         except Student.DoesNotExist:
             raise StudentNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class KwlPointTopicDetailView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    @swagger_auto_schema(operation_summary="List all kwl point by topic id and student id")
+    def get(self, request, topic_id, student_id, format=None):
+        try:
+            student = Student.objects.get(pk=student_id)
+            topic = Topic.objects.get(pk=topic_id)
+            kwl_points = KwlPoint.objects.get(student=student, topic=topic)
+            serializer = KwlPointSerializer(kwl_points)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
+        except Topic.DoesNotExist:
+            raise CourseNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -39,5 +39,7 @@ urlpatterns = [
     path('redeem/<int:student_id>/all', views.RedeemHistoryListView.as_view()),
     
 
+    path('kwl-point/<int:topic_id>/<int:student_id>', views.KwlPointTopicDetailView().as_view()),
+
 ]
 
