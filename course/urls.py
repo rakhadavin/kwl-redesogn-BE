@@ -29,7 +29,7 @@ urlpatterns = [
     path('feedback', views.FeedbackList.as_view()),
     path('feedback/<int:pk>', views.FeedbackDetail.as_view()),
     path('feedback/<int:topic_id>/all', views.FeedbackTopicView.as_view()),
-    path('feedback/course/<int:course_id>', views.FeedbackCourseView.as_view()),
+    path('feedback/student/<int:course_id>/<int:student_id>', views.FeedbackStudentCourseView.as_view()),
 
     path('accessed/<int:student_id>', views.LastAccessedCourseStudentView.as_view()),
     path('accessed', views.AddLastAccessedStudentCourseView.as_view()),
