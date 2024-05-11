@@ -260,7 +260,7 @@ class RewardCourseView(APIView):
         try:
             course = Course.objects.get(pk=course_id)
             rewards = RewardItem.objects.filter(course=course)
-            rewards = [reward for reward in rewards if datetime.strptime(reward.expired_date, '%d-%m-%Y').date() >= timezone.now().date()]
+            rewards = [reward for reward in rewards if datetime.strptime(reward.expired_date, '%Y-%m-%d').date() >= timezone.now().date()]
             serializer = RewardItemSerializer(rewards, many=True)
             return Response(serializer.data)
         except Course.DoesNotExist:
@@ -541,35 +541,6 @@ class FeedbackStudentCourseView(APIView):
             return Response(new_data, status=status.HTTP_200_OK)
         except Course.DoesNotExist:
             raise CourseNotFoundException()
-        except Student.DoesNotExist:
-            raise StudentNotFoundException()
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
-class RedeemHistoryDetailView(generics.RetrieveAPIView):
-    permission_classes = [IsAuthenticated,]
-    queryset = RedeemHistory.objects.all()
-    serializer_class = RedeemSerializer
-
-    @swagger_auto_schema(operation_summary="Retrieve reward history by student id")
-    def get(self, request, *args, **kwargs):
-        try:
-            return super().get(request, *args, **kwargs)
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-    
-class RedeemHistoryListView(APIView):
-    permission_classes = [IsAuthenticated,]
-
-    @swagger_auto_schema(operation_summary="List all redeem history by student id")
-    def get(self, request, student_id, format=None):
-        try:
-            student = Student.objects.get(pk=student_id)
-            rewards = RedeemHistory.objects.filter(student=student)
-            serializer = RedeemSerializer(rewards, many=True)
-            return Response(serializer.data)
         except Student.DoesNotExist:
             raise StudentNotFoundException()
         except Exception as e:
