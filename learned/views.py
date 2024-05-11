@@ -201,10 +201,8 @@ class LearnedEssayAnswerView(APIView):
                 kwl_point.kwl_status = 'learned'
                 learned_reflection.learned.total_participants += 1
                 learned_reflection.learned.save()
-                
+                kwl_point.save()
                 if answer_created:
-                    kwl_point.learned_score = learned_reflection.score
-                    kwl_point.save()
                     total_score = learned_reflection.score + student_point.total_point
                     student_point.total_point = total_score
                     student_point.save()
@@ -234,6 +232,7 @@ class LearnedQuizAnswerView(APIView):
                 student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned.topic.course)
                 kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=learned.topic)
                 kwl_point.kwl_status = 'learned'
+                
                 for answer_pk in answers:
                     quiz_option = LearnedQuizOption.objects.get(id=answer_pk)
                     quiz_answers.answers.add(quiz_option)
@@ -241,7 +240,6 @@ class LearnedQuizAnswerView(APIView):
 
                     if answer_created:
                         if quiz_option.isCorrect:
-                            kwl_point.learned_score += quiz_option.learned_quiz.score
                             total_score = quiz_option.learned_quiz.score + student_point.total_point
                             student_point.total_point = total_score
                            

@@ -6,6 +6,7 @@ from django.conf import settings
 from wordcloud import WordCloud
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
@@ -99,32 +100,32 @@ class KwlParticipantCountView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         
-class KwlPointLadderView(APIView):
-    permission_classes = [IsAuthenticated]
+# class KwlPointLadderView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def get(self, request, topic):
-        kwl_points = KwlPoint.objects.annotate(total_point=F('know_score') + F('wtk_score') + F('learned_score'))
-        four_highest_student_points = kwl_points.filter(topic=topic).order_by('-total_point')[:4]
-        four_lowest_student_points = kwl_points.filter(topic=topic).order_by('total_point')[:4]
+#     def get(self, request, topic):
+#         kwl_points = KwlPoint.objects.annotate(total_point=F('know_score') + F('wtk_score') + F('learned_score'))
+#         four_highest_student_points = kwl_points.filter(topic=topic).order_by('-total_point')[:4]
+#         four_lowest_student_points = kwl_points.filter(topic=topic).order_by('total_point')[:4]
 
-        four_highest_student_points_data = []
-        four_lowest_student_points_data = []
+#         four_highest_student_points_data = []
+#         four_lowest_student_points_data = []
 
-        for student_point in four_highest_student_points:
-            student_data = {
-                'student': student_point.student.user.username,
-                'total_point': student_point.get_total_point()
-            }
-            four_highest_student_points_data.append(student_data)
+#         for student_point in four_highest_student_points:
+#             student_data = {
+#                 'student': student_point.student.user.username,
+#                 'total_point': student_point.get_total_point()
+#             }
+#             four_highest_student_points_data.append(student_data)
 
-        for student_point in four_lowest_student_points:
-            student_data = {
-                'student': student_point.student.user.username,
-                'total_point': student_point.get_total_point()
-            }
-            four_lowest_student_points_data.append(student_data)
+#         for student_point in four_lowest_student_points:
+#             student_data = {
+#                 'student': student_point.student.user.username,
+#                 'total_point': student_point.get_total_point()
+#             }
+#             four_lowest_student_points_data.append(student_data)
         
-        return Response({'highest': four_highest_student_points_data, 'lowest': four_lowest_student_points_data})
+#         return Response({'highest': four_highest_student_points_data, 'lowest': four_lowest_student_points_data})
 
 class TopicPollingAnalysisView(APIView):
     permission_classes = [IsAuthenticated]
@@ -176,9 +177,6 @@ class QuizAccuracyAnalysisView(APIView):
 
         return Response({'questions': quiz_data}, status=status.HTTP_200_OK)
        
-import matplotlib.pyplot as plt
-import base64
-from io import BytesIO
 
 class QuizBarchartImageView(APIView):
     permission_classes = [IsAuthenticated]

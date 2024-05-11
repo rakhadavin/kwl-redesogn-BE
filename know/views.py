@@ -174,6 +174,7 @@ class KnowEssayDetailView(APIView):
         try:
             know = Know.objects.get(topic=topic_id)
             know.delete()
+            
             return Response({"message": "Reflection question deleted successfully"}, status=status.HTTP_200_OK)
         except Know.DoesNotExist:
             raise KnowDoesNotExistException()
@@ -197,17 +198,20 @@ class KnowEssayAnswerView(APIView):
             answer, answer_created = KnowReflectionStudentAnswer.objects.get_or_create(know_ref=know_reflection, student=student)
             answer.reflection = reflection
             answer.save()
+
             student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=know_reflection.know.topic.course)
             kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=know_reflection.know.topic)
             kwl_point.kwl_status = 'know'
-            know_reflection.know.total_participants += 1
-            know_reflection.know.save()
+
             if answer_created:
-                kwl_point.know_score = know_reflection.score
-                kwl_point.save()
+                know_reflection.know.total_participants += 1
+                know_reflection.know.save()
                 total_score = know_reflection.score + student_point.total_point
                 student_point.total_point = total_score
-                student_point.save()
+
+            student_point.save()
+            kwl_point.save()
+
             return Response({"message": "Reflection answer saved successfully"}, status=status.HTTP_201_CREATED)
         except KnowReflection.DoesNotExist:
             raise KnowReflectionNotFoundException()
@@ -228,24 +232,28 @@ class KnowQuizAnswerView(APIView):
 
                 student = Student.objects.get(user_id=userid)
                 know = Know.objects.get(topic_id=topic)
-                know.total_participants += 1
-                know.save()
+             
                 answers = serializer.validated_data['answers']
                 quiz_answers, answer_created = KnowQuizStudentAnswer.objects.get_or_create(student=student)
                 student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=know.topic.course)
                 kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=know.topic)
+                
+                if answer_created:
+                    know.total_participants += 1
+                    know.save()
+
                 kwl_point.kwl_status = 'know'
-               
+                quiz_answers.answers.clear()
+ 
                 for answer_pk in answers:
                     quiz_option = KnowQuizOption.objects.get(id=answer_pk)
                     quiz_answers.answers.add(quiz_option)
-                    quiz_answers.save()
-
+                    
                     if answer_created:
                         if quiz_option.isCorrect:
-                            kwl_point.know_score += quiz_option.know_quiz.score
                             student_point.total_point += quiz_option.know_quiz.score
-                            
+
+                quiz_answers.save()     
                 kwl_point.save()
                 student_point.save()
 

@@ -216,20 +216,28 @@ class WtkMultipleVoteView(APIView):
                 topic = serializer.validated_data['topic']
                 wtk_poll_question = WtkPollQuestion.objects.get(wtk__topic_id=topic)
                 student_answer, answer_created = WtkPollStudentAnswer.objects.get_or_create(wtk_poll=wtk_poll_question, student=student)
+
+                kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_poll_question.wtk.topic)
+                reward_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_poll_question.wtk.topic.course)
+
+                student_answer.choices.clear()
                 for choice in choices:
                     choice = WtkChoices.objects.get(id=choice)
                     student_answer.choices.add(choice)
                     choice.total_votes += 1
                     choice.save()
-                wtk_poll_question.wtk.total_participants += 1  
-                wtk_poll_question.save() 
-                reward_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_poll_question.wtk.topic.course)
+
+                kwl_point.kwl_status = 'wtk'
+
                 if answer_created:
                     reward_point.total_point = wtk_poll_question.score
-                    kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_poll_question.wtk.topic)
-                    kwl_point.kwl_status = 'wtk'
-                    kwl_point.wtk_score = wtk_poll_question.score
+                    wtk_poll_question.wtk.total_participants += 1  
                     reward_point.total_point += wtk_poll_question.score
+
+                wtk_poll_question.save() 
+                reward_point.save()
+                kwl_point.save()
+
             return Response({"message": "Multiple choice answer saved successfully"}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -255,18 +263,22 @@ class WtkEssayAnswerView(APIView):
                 answer, answer_created = WtkReflectionStudentAnswer.objects.get_or_create(wtk_ref=wtk_reflection, student=student)
                 answer.reflection = reflection
                 answer.save()
+
                 student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_reflection.wtk.topic.course)
                 kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_reflection.wtk.topic)
+                
                 kwl_point.kwl_status = 'wtk'
-                wtk_reflection.wtk.total_participants += 1
-                wtk_reflection.save()
-                if kwl_created:
-                    kwl_point.wtk_score = wtk_reflection.score
-                    kwl_point.save()
-                if reward_created:
+                
+                if answer_created:
+                    wtk_reflection.wtk.total_participants += 1
                     total_score = wtk_reflection.score + student_point.total_point
                     student_point.total_point = total_score
-                    student_point.save()
+
+                student_point.save()
+                wtk_reflection.save()
+                kwl_point.save()
+               
+
             return Response({"message": "Reflection answer saved successfully"}, status=status.HTTP_201_CREATED)
         except WtkReflection.DoesNotExist:
             raise WtkReflectionNotFoundException()
