@@ -88,6 +88,7 @@ class PrereadingListView(APIView):
             serializer.save()
             return Response({"message": "Prereading added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(operation_summary="Get all Prereading")

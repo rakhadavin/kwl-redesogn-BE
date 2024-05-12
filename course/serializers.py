@@ -236,6 +236,12 @@ class RedeemSerializer(serializers.Serializer):
     reward_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
+class RedeemHistoryListSerializer(serializers.ModelSerializer):
+    reward_item = RewardItemSerializer(read_only=True)
+    class Meta:
+        model = RedeemHistory
+        fields = ['student','reward_item','created','id']
+    
 
 class KwlPointSerializer(serializers.ModelSerializer):
     class Meta:

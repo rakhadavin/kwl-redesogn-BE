@@ -18,7 +18,7 @@ from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPo
 from authentication.models import Lecturer
 from rest_framework import status
 from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, WtkPollNotFoundException
-from .serializers import CourseSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer
+from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer
 from rest_framework import generics
 from know.models import KnowReflection, KnowReflectionStudentAnswer, KnowQuizStudentAnswer, Know
 from rest_framework.decorators import api_view, permission_classes
@@ -592,16 +592,20 @@ class RedeemHistoryDetailView(generics.RetrieveAPIView):
 class RedeemHistoryListView(APIView):
     permission_classes = [IsAuthenticated,]
 
-    @swagger_auto_schema(operation_summary="List all redeem history by student id")
-    def get(self, request, student_id, format=None):
+    @swagger_auto_schema(operation_summary="List all redeem history by course id and student id")
+    def get(self, request, student_id, course_id, format=None):
         try:
+            course = Course.objects.get(pk=course_id)
             student = Student.objects.get(pk=student_id)
-            rewards = RedeemHistory.objects.filter(student=student)
-            serializer = RedeemSerializer(rewards, many=True)
+            rewards = RedeemHistory.objects.filter(student=student, reward_item__course=course)
+            serializer = RedeemHistoryListSerializer(rewards, many=True)
             return Response(serializer.data)
         except Student.DoesNotExist:
             raise StudentNotFoundException()
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
@@ -674,7 +678,8 @@ class KwlPointView(APIView):
                         if wtk_ref.exists():
                             kwl_points['wtk_score'] = wtk_ref.first().wtk_ref.score
 
-                    if wtk_type == 'poll':
+                    if wtk_type == 'checkbox':
+                        print('hello')
                         wtk_poll = WtkPollStudentAnswer.objects.filter(student=student)
                         if wtk_poll.exists():
                             kwl_points['wtk_score'] = wtk_poll.first().wtk_poll.score

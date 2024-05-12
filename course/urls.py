@@ -36,7 +36,7 @@ urlpatterns = [
 
     path('redeem', views.RedeemRewardView.as_view()),
     path('redeem/<int:pk>', views.RedeemHistoryDetailView.as_view()),
-    path('redeem/<int:student_id>/all', views.RedeemHistoryListView.as_view()),
+    path('redeem/history/<int:course_id>/<int:student_id>', views.RedeemHistoryListView.as_view()),
     path('reward/redeem/<int:course_id>/<int:student_id>', views.RewardRedeemCourseView.as_view()),
     
 
