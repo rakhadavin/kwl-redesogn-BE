@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from authentication.models import Lecturer, Student
 from know.serializers import KnowSerializer
-from .models import Course, LastAccessedStudentCourse, LecturerPinnedCourse, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory, KwlPoint, PinnedCourse
+from .models import Course, LastAccessedStudentCourse, LecturerPinnedCourse, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory, KwlPoint
 from know.models import Know
 from learned.models import Learned
 from wtk.models import WantToKnow

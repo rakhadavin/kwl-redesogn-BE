@@ -14,7 +14,7 @@ from know.api_exceptions import KnowDoesNotExistException, KnowReflectionNotFoun
 from learned.api_exceptions import LearnedDoesNotExistException, LearnedQuizNotFoundException, LearnedReflectionNotFoundException
 from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedReflection, LearnedQuizQuestion
 from wtk.models import WantToKnow, WtkReflectionStudentAnswer, WtkPollStudentAnswer, WtkReflection, WtkPollQuestion
-from .models import Course, Feedback, LecturerPinnedCourse, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse, KwlPoint, PinnedCourse
+from .models import Course, Feedback, LecturerPinnedCourse, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse, KwlPoint
 from authentication.models import Lecturer
 from rest_framework import status
 from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, WtkPollNotFoundException
