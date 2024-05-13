@@ -14,11 +14,11 @@ from know.api_exceptions import KnowDoesNotExistException, KnowReflectionNotFoun
 from learned.api_exceptions import LearnedDoesNotExistException, LearnedQuizNotFoundException, LearnedReflectionNotFoundException
 from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedReflection, LearnedQuizQuestion
 from wtk.models import WantToKnow, WtkReflectionStudentAnswer, WtkPollStudentAnswer, WtkReflection, WtkPollQuestion
-from .models import Course, Feedback, LecturerPinnedCourse, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse, KwlPoint
+from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse, KwlPoint
 from authentication.models import Lecturer
 from rest_framework import status
 from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, WtkPollNotFoundException
-from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, TopicSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer, PinnedCourseSerializer
+from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, TopicSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer
 from rest_framework import generics
 from know.models import KnowReflectionStudentAnswer, KnowQuizStudentAnswer, Know
 from rest_framework.decorators import api_view, permission_classes
@@ -609,16 +609,35 @@ class RedeemHistoryListView(APIView):
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
+# class KwlStatusView(APIView):
+#     permission_classes = [IsAuthenticated,]
+
+#     @swagger_auto_schema(operation_summary="Get Kwl Status by topic id and student id")
+#     def get(self, request, topic_id, student_id, format=None):
+#         try:
+#             student = Student.objects.get(pk=student_id)
+#             topic = Topic.objects.get(pk=topic_id)
+#             kwl_points = KwlPoint.objects.get(student=student, topic=topic)
+#             serializer = KwlPointSerializer(kwl_points)
+#             return Response(serializer.data)
+#         except Student.DoesNotExist:
+#             raise StudentNotFoundException()
+#         except Topic.DoesNotExist:
+#             raise CourseNotFoundException()
+#         except Exception as e:
+#             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class KwlStatusView(APIView):
     permission_classes = [IsAuthenticated,]
 
-    @swagger_auto_schema(operation_summary="Get Kwl Status by topic id and student id")
-    def get(self, request, topic_id, student_id, format=None):
+    @swagger_auto_schema(operation_summary="Get Kwl Status by course id and student id")
+    def get(self, request, course_id, student_id, format=None):
         try:
             student = Student.objects.get(pk=student_id)
-            topic = Topic.objects.get(pk=topic_id)
-            kwl_points = KwlPoint.objects.get(student=student, topic=topic)
-            serializer = KwlPointSerializer(kwl_points)
+            course = Course.objects.get(pk=course_id)
+            kwl_points = KwlPoint.objects.filter(student=student, topic__course=course)
+            serializer = KwlPointSerializer(kwl_points, many=True)
+        
             return Response(serializer.data)
         except Student.DoesNotExist:
             raise StudentNotFoundException()
@@ -626,6 +645,7 @@ class KwlStatusView(APIView):
             raise CourseNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class KwlPointView(APIView):
     permission_classes = [IsAuthenticated,]
@@ -712,36 +732,3 @@ class KwlPointView(APIView):
 #                 return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 
-class PinnedLecturerListView(APIView):
-    permission_classes = [IsAuthenticated,]
-
-    @swagger_auto_schema(operation_summary="Get all pinned courses by lecturer id")
-    def get(self, request, format=None):
-        try:
-            user_id = request.user.id
-            lecturer = Lecturer.objects.get(user_id=user_id)
-            courses = LecturerPinnedCourse.objects.filter(lecturer)
-            serializer = PinnedCourseSerializer(courses, many=True)
-            return Response(serializer.data)
-        except LecturerNotFoundException:
-            raise LecturerNotFoundException()
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
-    @swagger_auto_schema(operation_summary="Pin a course to lecturer")
-    def post(self, request, format=None):
-        try:
-            user_id = request.user.id
-            lecturer = Lecturer.objects.get(user_id=user_id)
-            course = Course.objects.get(pk=request.data['course_id'])
-            pin_student, created = LecturerPinnedCourse.objects.get_or_create(student=lecturer)
-            pin_student.pinned_course.add(course)
-
-            return Response(status=status.HTTP_201_CREATED)
-        except LecturerNotFoundException:
-            raise LecturerNotFoundException()
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-    

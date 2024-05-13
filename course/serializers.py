@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from authentication.models import Lecturer, Student
 from know.serializers import KnowSerializer
-from .models import Course, LastAccessedStudentCourse, LecturerPinnedCourse, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory, KwlPoint
+from .models import Course, LastAccessedStudentCourse, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory, KwlPoint
 from know.models import Know
 from learned.models import Learned
 from wtk.models import WantToKnow
@@ -266,15 +266,8 @@ class RedeemHistoryListSerializer(serializers.ModelSerializer):
     
 
 class KwlPointSerializer(serializers.ModelSerializer):
+    topic_data = TopicSerializer(read_only=True, source='topic')
     class Meta:
         model = KwlPoint
         fields = '__all__'
 
-class PinnedCourseSerializer(serializers.ModelSerializer):
-    pinned_course = CourseSerializer(read_only=True, many=True)
-    class Meta:
-        model = LecturerPinnedCourse
-        fields = '__all__'
-
-class AddPinCourseSerializer(serializers.Serializer):
-    course_id = serializers.IntegerField()
