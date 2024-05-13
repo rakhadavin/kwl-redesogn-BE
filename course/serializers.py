@@ -266,8 +266,12 @@ class RedeemHistoryListSerializer(serializers.ModelSerializer):
     
 
 class KwlPointSerializer(serializers.ModelSerializer):
-    topic_data = TopicSerializer(read_only=True, source='topic')
     class Meta:
         model = KwlPoint
         fields = '__all__'
 
+class TopicKwlPointSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Topic
+        fields = ['name','description','id','course']
+    

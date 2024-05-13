@@ -630,15 +630,26 @@ class RedeemHistoryListView(APIView):
 class KwlStatusView(APIView):
     permission_classes = [IsAuthenticated,]
 
-    @swagger_auto_schema(operation_summary="Get Kwl Status by course id and student id")
+    @swagger_auto_schema(operation_summary="Get topics with kwl status of the student")
     def get(self, request, course_id, student_id, format=None):
         try:
+            topics_data = []
             student = Student.objects.get(pk=student_id)
             course = Course.objects.get(pk=course_id)
-            kwl_points = KwlPoint.objects.filter(student=student, topic__course=course)
-            serializer = KwlPointSerializer(kwl_points, many=True)
-        
-            return Response(serializer.data)
+            topics = Topic.objects.filter(course=course)
+            for topic in topics:
+                topic_data = {}
+                topic_data['topic_data'] = TopicSerializer(topic).data
+                try:
+                    kwl_point = KwlPoint.objects.get(student=student, topic=topic)
+                    kwl_data = KwlPointSerializer(kwl_point).data
+                    topic_data['kwl_data'] = kwl_data
+                except KwlPoint.DoesNotExist:
+                    topic_data['kwl_data'] = "kosong"
+
+                topics_data.append(topic_data)
+
+            return Response(topics_data, status=status.HTTP_200_OK)
         except Student.DoesNotExist:
             raise StudentNotFoundException()
         except Topic.DoesNotExist:
