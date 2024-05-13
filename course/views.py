@@ -18,7 +18,7 @@ from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPo
 from authentication.models import Lecturer
 from rest_framework import status
 from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, WtkPollNotFoundException
-from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, TopicSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer
+from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, RewardPointSerializer, TopicSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer
 from rest_framework import generics
 from know.models import KnowReflectionStudentAnswer, KnowQuizStudentAnswer, Know
 from rest_framework.decorators import api_view, permission_classes
@@ -536,6 +536,22 @@ class RedeemRewardView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
         
+class RewardStudentPointView(APIView):
+    permission_classes = [IsAuthenticated,]
+    @swagger_auto_schema(operation_summary="Get student point by student id and course id")
+    def get(self, request, student_id, course_id, format=None):
+        try:
+            student = Student.objects.get(pk=student_id)
+            course = Course.objects.get(pk=course_id)
+            student_point = RewardStudentPoint.objects.get(student=student, course=course)
+            serializer = RewardPointSerializer(student_point)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CourseEnrollmentStatusView(APIView):
     permission_classes = [IsAuthenticated,]

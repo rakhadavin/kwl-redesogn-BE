@@ -42,6 +42,7 @@ urlpatterns = [
 
     path('kwl-point/<int:topic_id>/<int:student_id>', views.KwlPointView.as_view()),
     path('kwl-status/<int:course_id>/<int:student_id>', views.KwlStatusView.as_view()),
+    path('student-point/<int:course_id>/<int:student_id>', views.RewardStudentPointView.as_view()),
 
 ]
 

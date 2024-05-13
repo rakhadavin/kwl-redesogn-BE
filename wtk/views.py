@@ -229,7 +229,7 @@ class WtkMultipleVoteView(APIView):
                     student_answer.choices.add(choice)
 
                     if answer_created:
-                        choice.total_vote += 1
+                        choice.total_votes += 1
                         choice.save()
 
                 kwl_point.kwl_status = 'wtk'

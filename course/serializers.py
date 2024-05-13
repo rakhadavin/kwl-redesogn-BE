@@ -109,6 +109,10 @@ class RewardItemSerializer(serializers.ModelSerializer):
         model = RewardItem
         fields = ['name','stock','point','expired_date','detail_instruction','id','course','course_data']
     
+class RewardPointSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RewardStudentPoint
+        fields = ['student','total_point','id','course']
     # def validate(self, attrs):
     #     if 'course' in attrs:
     #         if not Course.objects.filter(pk=attrs['course']).exists():
