@@ -337,6 +337,7 @@ class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
         try:
             return super().put(request, *args, **kwargs)
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(operation_summary="Delete a reward item")

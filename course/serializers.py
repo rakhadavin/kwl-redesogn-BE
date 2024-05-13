@@ -108,16 +108,12 @@ class RewardItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = RewardItem
         fields = ['name','stock','point','expired_date','detail_instruction','id','course','course_data']
-    
-class RewardPointSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RewardStudentPoint
-        fields = ['student','total_point','id','course']
-    # def validate(self, attrs):
-    #     if 'course' in attrs:
-    #         if not Course.objects.filter(pk=attrs['course']).exists():
-    #             raise CourseNotFoundException()
-    #     return super().validate(attrs)
+
+    def validate(self, attrs):  
+        if 'course' in attrs:
+            if not Course.objects.filter(pk=attrs['course']).exists():
+                raise CourseNotFoundException()
+        return super().validate(attrs)
     
     def create(self, validated_data):
         course_id = validated_data.pop('course')
@@ -138,7 +134,17 @@ class RewardPointSerializer(serializers.ModelSerializer):
         return instance
     
 
-
+    
+class RewardPointSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RewardStudentPoint
+        fields = ['student','total_point','id','course']
+    # def validate(self, attrs):
+    #     if 'course' in attrs:
+    #         if not Course.objects.filter(pk=attrs['course']).exists():
+    #             raise CourseNotFoundException()
+    #     return super().validate(attrs)
+    
 class AddStudentToCourseSerializer(serializers.Serializer):
     student_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
@@ -158,13 +164,6 @@ class RemoveStudentFromCourseSerializer(serializers.Serializer):
         instance.students.remove(student)
         return instance
     
-class AddAssistantToCourseSerializer(serializers.Serializer):
-    assistant_id = serializers.IntegerField()
-    course_id = serializers.IntegerField()
-    
-class RemoveAssistantFromCourseSerializer(serializers.Serializer):
-    assistant_id = serializers.IntegerField()
-    course_id = serializers.IntegerField()
     
 class AddLecturerToCourseSerializer(serializers.Serializer):
     lecturer_id = serializers.IntegerField()
