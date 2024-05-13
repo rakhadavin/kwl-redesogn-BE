@@ -159,6 +159,7 @@ class CourseTopicView(APIView):
         except Course.DoesNotExist:
             raise CourseNotFoundException()
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class CourseStudentView(APIView):

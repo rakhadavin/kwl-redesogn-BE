@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from course.api_exceptions import TopicNotFoundException
 from course.models import Topic
-from wtk.api_exceptions import ExistingWtkException, PrereadingAlreadyExistsException
+from wtk.api_exceptions import ExistingWtkException, PrereadingAlreadyExistsException, WtkDoesNotExistException
 from wtk.models import Prereading, WantToKnow, WtkPollQuestion, WtkChoices, WtkReflection
 from django.db import transaction
 
@@ -12,7 +12,7 @@ wtk_choices = (("checkbox", "Checkbox"), ("reflection", "Reflection"))
 class WtkSerializer(serializers.ModelSerializer):
     class Meta:
         model = WantToKnow
-        fields = ['id', 'topic', 'type']
+        fields = ['id', 'topic', 'type','prereading']
 
 class AddPollingQuestionSerializer(serializers.ModelSerializer):
     question = serializers.CharField(max_length=255)
@@ -91,6 +91,7 @@ class WtkMultipleChoiceAnswerSerializer(serializers.Serializer):
 
 class WtkPollingQuestionSerializer(serializers.ModelSerializer):
     choices = WtkPollingAnswerSerializer(many=True, read_only=True, source='wtkchoices_set')
+    wtk = WtkSerializer(read_only=True)
     class Meta:
         model = WtkPollQuestion
         fields = ['score', 'question', 'wtk', 'id', 'choices']
@@ -120,6 +121,7 @@ class AddWtkEssaySerializer(serializers.ModelSerializer):
         return wtk_essay
     
 class WtkReflectionSerializer(serializers.ModelSerializer):
+    wtk = WtkSerializer(read_only=True)
     class Meta:
         model = WtkReflection
         fields = ('id', 'question', 'score', 'wtk' )
@@ -148,6 +150,12 @@ class AddPrereadingSerializer(serializers.ModelSerializer):
         with transaction.atomic():
             topic = get_topic(validated_data['topic'])
             prereading, created = Prereading.objects.get_or_create(prereading=validated_data['prereading'], topic=topic)
+            try:
+                wtk = WantToKnow.objects.get(topic=topic)
+            except WantToKnow.DoesNotExist:
+                raise WtkDoesNotExistException()
+            wtk.prereading = prereading
+            wtk.save()
             if not created:
                 raise PrereadingAlreadyExistsException()
             if 'file' in validated_data:

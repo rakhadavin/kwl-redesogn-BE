@@ -9,6 +9,7 @@ class WantToKnow(models.Model):
     topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
     type = models.CharField(max_length=255, choices=wtk_choices, default='reflection')
     total_participants = models.IntegerField(default=0)
+    prereading = models.ForeignKey('Prereading', on_delete=models.CASCADE, blank=True, null=True)
     def __str__(self):
         return self.type
 

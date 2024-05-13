@@ -42,13 +42,23 @@ class KnowQuizListView(APIView):
     @swagger_auto_schema(operation_summary="Bulk edit questions")
     def put(self, request):
         try:
+            print("holaa")
+            print(request.data)
             serializer = BulkEditQuizSerializer(data=request.data)
+ 
             serializer.is_valid(raise_exception=True)
-            know_quiz = KnowQuizQuestion.objects.get(pk=question['id'])
+            print(serializer.data)
+   
 
             with transaction.atomic():
+                
                 for question in serializer.validated_data['questions']:
+                    print('hola')
+                    print(question)
+                    know_quiz = KnowQuizQuestion.objects.get(pk=question['id'])
+         
                     know_quiz.question = question['question']
+                    
                     options = know_quiz.get_answers()
                     options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
 
@@ -74,6 +84,7 @@ class KnowQuizListView(APIView):
 
             return Response({"message": "Quizzes updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class KnowQuizzesByTopicView(APIView):

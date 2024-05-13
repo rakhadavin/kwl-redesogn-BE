@@ -61,6 +61,7 @@ class LearnedQuizListView(APIView):
       
             return Response({"message": "Quiz updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 class LearnedQuizzesByTopicView(APIView):   
@@ -71,7 +72,7 @@ class LearnedQuizzesByTopicView(APIView):
         try:
             quiz = LearnedQuizQuestion.objects.filter(learned__topic_id=topic_id)
             serializer = LearnedQuizQuestionSerializer(quiz, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response({"questions":serializer.data}, status=status.HTTP_200_OK)
         except LearnedQuizQuestion.DoesNotExist:
             raise LearnedReflectionNotFoundException()
         except Exception as e:

@@ -4,7 +4,7 @@ from authentication.api_exceptions import StudentNotFoundException
 from authentication.models import Student
 from course.models import Topic, RewardStudentPoint
 from .models import Know, KnowQuizQuestion, KnowQuizOption, KnowReflection, KnowReflectionStudentAnswer
-from .api_exceptions import ExistingKnowException
+from .api_exceptions import ExistingKnowException, KnowQuizQuestionNotFoundException
 from course.api_exceptions import TopicNotFoundException
 from django.db import transaction
 
@@ -71,19 +71,26 @@ class BulkAddQuizSerializer(serializers.Serializer):
             return know
 
 
-class EditKnowQuizQuestionSerializer(serializers.Serializer):
+class EditKnowQuizQuestionSerializer(serializers.ModelSerializer):
     option_a = serializers.CharField(max_length=255, write_only=True)
     option_b = serializers.CharField(max_length=255, write_only=True)
     option_c = serializers.CharField(max_length=255, write_only=True)
     option_d = serializers.CharField(max_length=255, write_only=True)
-    question = serializers.CharField(max_length=255)
+    id = serializers.IntegerField(write_only=True)
     correct_option = serializers.ChoiceField(choices=option_choices, write_only=True)
     score = serializers.IntegerField()
-    id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = KnowQuizQuestion
+        fields = ['option_a', 'option_b', 'option_c', 'option_d', 'question', 'correct_option', 'score', 'know','id']
+    
+    
+
 
     
 class BulkEditQuizSerializer(serializers.Serializer):
     questions = EditKnowQuizQuestionSerializer(many=True, write_only=True)
+
     
 class AddKnowEssaySerializer(serializers.ModelSerializer):
     question = serializers.CharField(max_length=255)

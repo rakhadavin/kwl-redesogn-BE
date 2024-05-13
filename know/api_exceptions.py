@@ -29,3 +29,7 @@ class KnowReflectionNotFoundException(BaseCustomException):
 class KnowDoesNotExistException(BaseCustomException):
     def __init__(self):
         super().__init__("Know does not exist", status.HTTP_404_NOT_FOUND)
+
+class KnowQuizQuestionNotFoundException(BaseCustomException):
+    def __init__(self):
+        super().__init__("Know quiz question not found", status.HTTP_404_NOT_FOUND)
