@@ -11,7 +11,8 @@ COLOR = [
 KWL_STATUS = [
     ('know', 'know'),
     ('wtk', 'wtk'),
-    ('learned', 'learned')
+    ('learned', 'learned'),
+    
 ]
 # Create your models here.
 class Course(models.Model):
@@ -103,10 +104,3 @@ class RedeemHistory(models.Model):
     def __str__(self):
         return self.student.user.username
     
-class LecturerPinnedCourse(models.Model):
-    lecturer = models.ForeignKey(Lecturer, on_delete=models.CASCADE)
-    pinned_course = models.ManyToManyField(Course, blank=True, related_name='lecturer_pinned_course')
-    created = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return self.lecturer.user.username
