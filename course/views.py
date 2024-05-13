@@ -14,13 +14,13 @@ from know.api_exceptions import KnowDoesNotExistException, KnowReflectionNotFoun
 from learned.api_exceptions import LearnedDoesNotExistException, LearnedQuizNotFoundException, LearnedReflectionNotFoundException
 from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedReflection, LearnedQuizQuestion
 from wtk.models import WantToKnow, WtkReflectionStudentAnswer, WtkPollStudentAnswer, WtkReflection, WtkPollQuestion
-from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse, KwlPoint 
+from .models import Course, Feedback, LecturerPinnedCourse, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse, KwlPoint, PinnedCourse
 from authentication.models import Lecturer
 from rest_framework import status
 from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, WtkPollNotFoundException
-from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, TopicSerializer, AddAssistantToCourseSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveAssistantFromCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer
+from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, TopicSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer, PinnedCourseSerializer
 from rest_framework import generics
-from know.models import KnowReflection, KnowReflectionStudentAnswer, KnowQuizStudentAnswer, Know
+from know.models import KnowReflectionStudentAnswer, KnowQuizStudentAnswer, Know
 from rest_framework.decorators import api_view, permission_classes
 from drf_yasg.utils import swagger_auto_schema
 from .api_exceptions import CourseNotFoundException, StudentPointNotFoundException
@@ -626,70 +626,122 @@ class KwlStatusView(APIView):
             raise CourseNotFoundException()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
 class KwlPointView(APIView):
-        permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated,]
 
-        @swagger_auto_schema(operation_summary="Get student kwl point by topic id and student id")
-        def get(self, request, topic_id, student_id, format=None):
-            try:
-                student = Student.objects.get(pk=student_id)
-                topic = Topic.objects.get(pk=topic_id)
-                know = Know.objects.filter(topic=topic)
-                learned = Learned.objects.filter(topic=topic)
-                wtk = WantToKnow.objects.filter(topic=topic)
+    @swagger_auto_schema(operation_summary="Get student kwl point by topic id and student id")
+    def get(self, request, topic_id, student_id, format=None):
+        try:
+            student = Student.objects.get(pk=student_id)
+            topic = Topic.objects.get(pk=topic_id)
+            kwl_points = KwlPoint.objects.get(student=student, topic=topic)
+            serializer = KwlPointSerializer(kwl_points)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            raise StudentNotFoundException()
+        except Topic.DoesNotExist:
+            raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# class KwlPointView(APIView):
+#         permission_classes = [IsAuthenticated,]
+
+#         @swagger_auto_schema(operation_summary="Get student kwl point by topic id and student id")
+#         def get(self, request, topic_id, student_id, format=None):
+#             try:
+#                 student = Student.objects.get(pk=student_id)
+#                 topic = Topic.objects.get(pk=topic_id)
+#                 know = Know.objects.filter(topic=topic)
+#                 learned = Learned.objects.filter(topic=topic)
+#                 wtk = WantToKnow.objects.filter(topic=topic)
            
-                kwl_points = {'know_score': 0, 'learned_score': 0, 'wtk_score': 0}
-                if know.exists():
-                    know_type = know.first().type
-                    if know_type == 'reflection':
-                        know_ref = KnowReflectionStudentAnswer.objects.filter(student=student)
-                        if know_ref.exists():
-                            kwl_points['know_score'] = know_ref.first().know_ref.score
+#                 kwl_points = {'know_score': 0, 'learned_score': 0, 'wtk_score': 0}
+#                 if know.exists():
+#                     know_type = know.first().type
+#                     if know_type == 'reflection':
+#                         know_ref = KnowReflectionStudentAnswer.objects.filter(student=student)
+#                         if know_ref.exists():
+#                             kwl_points['know_score'] = know_ref.first().know_ref.score
 
-                    if know_type == 'quiz':
-                        know_quiz_answer = KnowQuizStudentAnswer.objects.filter(student=student)
-                        if know_quiz_answer.exists():
-                            answers = know_quiz_answer.first().answers.all()
-                            for answer in answers:
-                                if answer.isCorrect:
-                                    kwl_points['know_score'] += answer.know_quiz.score
+#                     if know_type == 'quiz':
+#                         know_quiz_answer = KnowQuizStudentAnswer.objects.filter(student=student)
+#                         if know_quiz_answer.exists():
+#                             answers = know_quiz_answer.first().answers.all()
+#                             for answer in answers:
+#                                 if answer.isCorrect:
+#                                     kwl_points['know_score'] += answer.know_quiz.score
                 
-                if learned.exists():
-                    learned_type = learned.first().type
+#                 if learned.exists():
+#                     learned_type = learned.first().type
              
-                    if learned_type == 'reflection':
-                        learned_answer = LearnedReflectionStudentAnswer.objects.filter(student=student)
-                        if learned_answer.exists():
-                            kwl_points['learned_score'] = learned_answer.first().learned_ref.score
+#                     if learned_type == 'reflection':
+#                         learned_answer = LearnedReflectionStudentAnswer.objects.filter(student=student)
+#                         if learned_answer.exists():
+#                             kwl_points['learned_score'] = learned_answer.first().learned_ref.score
 
-                    if learned_type == 'quiz':
-                        learned_quiz_answer = LearnedQuizStudentAnswer.objects.filter(student=student)
-                        if learned_quiz_answer.exists():
-                            answers = learned_quiz_answer.first().answers.all()
-                            for answer in answers:
-                                if answer.isCorrect:
-                                    kwl_points['learned_score'] += answer.learned_quiz.score
+#                     if learned_type == 'quiz':
+#                         learned_quiz_answer = LearnedQuizStudentAnswer.objects.filter(student=student)
+#                         if learned_quiz_answer.exists():
+#                             answers = learned_quiz_answer.first().answers.all()
+#                             for answer in answers:
+#                                 if answer.isCorrect:
+#                                     kwl_points['learned_score'] += answer.learned_quiz.score
 
-                if wtk.exists():
-                    wtk_type = wtk.first().type
-                    if wtk_type == 'reflection':
-                        wtk_ref = WtkReflectionStudentAnswer.objects.filter(student=student)
-                        if wtk_ref.exists():
-                            kwl_points['wtk_score'] = wtk_ref.first().wtk_ref.score
+#                 if wtk.exists():
+#                     wtk_type = wtk.first().type
+#                     if wtk_type == 'reflection':
+#                         wtk_ref = WtkReflectionStudentAnswer.objects.filter(student=student)
+#                         if wtk_ref.exists():
+#                             kwl_points['wtk_score'] = wtk_ref.first().wtk_ref.score
 
-                    if wtk_type == 'checkbox':
-                        print('hello')
-                        wtk_poll = WtkPollStudentAnswer.objects.filter(student=student)
-                        if wtk_poll.exists():
-                            kwl_points['wtk_score'] = wtk_poll.first().wtk_poll.score
+#                     if wtk_type == 'checkbox':
+#                         print('hello')
+#                         wtk_poll = WtkPollStudentAnswer.objects.filter(student=student)
+#                         if wtk_poll.exists():
+#                             kwl_points['wtk_score'] = wtk_poll.first().wtk_poll.score
                 
-                return Response(kwl_points, status=status.HTTP_200_OK)
+#                 return Response(kwl_points, status=status.HTTP_200_OK)
             
-            except Student.DoesNotExist:
-                raise StudentNotFoundException()
-            except Topic.DoesNotExist:
-                raise CourseNotFoundException()
+#             except Student.DoesNotExist:
+#                 raise StudentNotFoundException()
+#             except Topic.DoesNotExist:
+#                 raise CourseNotFoundException()
         
-            except Exception as e:
-                return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#             except Exception as e:
+#                 return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+
+class PinnedLecturerListView(APIView):
+    permission_classes = [IsAuthenticated,]
+
+    @swagger_auto_schema(operation_summary="Get all pinned courses by lecturer id")
+    def get(self, request, format=None):
+        try:
+            user_id = request.user.id
+            lecturer = Lecturer.objects.get(user_id=user_id)
+            courses = LecturerPinnedCourse.objects.filter(lecturer)
+            serializer = PinnedCourseSerializer(courses, many=True)
+            return Response(serializer.data)
+        except LecturerNotFoundException:
+            raise LecturerNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+    @swagger_auto_schema(operation_summary="Pin a course to lecturer")
+    def post(self, request, format=None):
+        try:
+            user_id = request.user.id
+            lecturer = Lecturer.objects.get(user_id=user_id)
+            course = Course.objects.get(pk=request.data['course_id'])
+            pin_student, created = LecturerPinnedCourse.objects.get_or_create(student=lecturer)
+            pin_student.pinned_course.add(course)
+
+            return Response(status=status.HTTP_201_CREATED)
+        except LecturerNotFoundException:
+            raise LecturerNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    

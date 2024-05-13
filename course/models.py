@@ -21,6 +21,7 @@ class Course(models.Model):
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
     students = models.ManyToManyField(Student, blank=True, related_name='students')
     created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
   
     def __str__(self):
         return self.short_name
@@ -31,6 +32,7 @@ class Topic(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True,
     null=True)
     created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -45,9 +47,9 @@ class LastAccessedStudentCourse(models.Model):
 
 class KwlPoint(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    # know_score = models.IntegerField(default=0)
-    # wtk_score = models.IntegerField(default=0)
-    # learned_score = models.IntegerField(default=0)
+    know_score = models.IntegerField(default=0)
+    wtk_score = models.IntegerField(default=0)
+    learned_score = models.IntegerField(default=0)
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     kwl_status = models.CharField(max_length=10, choices=KWL_STATUS, default='know')
@@ -55,8 +57,8 @@ class KwlPoint(models.Model):
     def __str__(self):
         return self.topic.name
     
-    # def get_total_point(self):
-    #     return self.know_score + self.wtk_score + self.learned_score
+    def get_total_point(self):
+        return self.know_score + self.wtk_score + self.learned_score
 
 
 class RewardStudentPoint(models.Model):
@@ -100,3 +102,11 @@ class RedeemHistory(models.Model):
     
     def __str__(self):
         return self.student.user.username
+    
+class LecturerPinnedCourse(models.Model):
+    lecturer = models.ForeignKey(Lecturer, on_delete=models.CASCADE)
+    pinned_course = models.ManyToManyField(Course, blank=True, related_name='lecturer_pinned_course')
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.lecturer.user.username

@@ -74,6 +74,7 @@ class EditPollingQuestionSerializer(serializers.Serializer):
                     choice = WtkChoices.objects.get(id=validated_data['options_ids'][i])
                     choice.option_answer = validated_data['options'][i]
                     choice.save()
+            instance.save()
         return instance
 
 class WtkPollingAnswerSerializer(serializers.ModelSerializer):

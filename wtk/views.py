@@ -182,6 +182,7 @@ class PollingDetailView(APIView):
     def put(self, request, topic_id):
         try:
             question = WtkPollQuestion.objects.get(wtk__topic_id=topic_id)
+            print(request.data)
             serializer = EditPollingQuestionSerializer(question, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -189,6 +190,7 @@ class PollingDetailView(APIView):
         except WtkPollQuestion.DoesNotExist:
             raise WtkDoesNotExistException()
         except Exception as e:
+            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     @swagger_auto_schema(operation_summary="Delete Polling question")
@@ -220,20 +222,24 @@ class WtkMultipleVoteView(APIView):
 
                 kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_poll_question.wtk.topic)
                 reward_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_poll_question.wtk.topic.course)
-
+                
                 student_answer.choices.clear()
                 for choice in choices:
                     choice = WtkChoices.objects.get(id=choice)
                     student_answer.choices.add(choice)
-                    choice.total_votes += 1
-                    choice.save()
+
+                    if answer_created:
+                        choice.total_vote += 1
+                        choice.save()
 
                 kwl_point.kwl_status = 'wtk'
+                kwl_point.wtk_score = wtk_poll_question.score
 
                 if answer_created:
                     reward_point.total_point = wtk_poll_question.score
                     wtk_poll_question.wtk.total_participants += 1  
                     reward_point.total_point += wtk_poll_question.score
+
 
                 wtk_poll_question.save() 
                 reward_point.save()
@@ -269,6 +275,7 @@ class WtkEssayAnswerView(APIView):
                 kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_reflection.wtk.topic)
                 
                 kwl_point.kwl_status = 'wtk'
+                kwl_point.wtk_score = wtk_reflection.score
                 
                 if answer_created:
                     wtk_reflection.wtk.total_participants += 1

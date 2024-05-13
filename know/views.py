@@ -44,20 +44,33 @@ class KnowQuizListView(APIView):
         try:
             serializer = BulkEditQuizSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
+            know_quiz = KnowQuizQuestion.objects.get(pk=question['id'])
+
             with transaction.atomic():
                 for question in serializer.validated_data['questions']:
-                    know_quiz = KnowQuizQuestion.objects.get(pk=question['id'])
                     know_quiz.question = question['question']
-                    know_quiz.score = question['score']
-                    know_quiz.save()
                     options = know_quiz.get_answers()
                     options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
+
                     for option in options_tuple:
                         if option[0] in question:
                             answer = options.get(alias=option[0])
                             answer.option_answer = question[option[0]]
                             answer.isCorrect = question['correct_option'] == option[1]
                             answer.save()
+
+                    # if know_quiz.score != question['score']:
+                    #     course = know_quiz.know.topic.course
+                    #     students = course.students.all()
+                    #     for student in students:
+                    #         kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=know_quiz.know.topic)
+                    #         kwl_point.know_score += question['score'] - know_quiz.score
+                    #         kwl_point.save()
+
+                    know_quiz.score = question['score']
+                    know_quiz.save()
+                    
+                
 
             return Response({"message": "Quizzes updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -202,6 +215,7 @@ class KnowEssayAnswerView(APIView):
             student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=know_reflection.know.topic.course)
             kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=know_reflection.know.topic)
             kwl_point.kwl_status = 'know'
+            kwl_point.know_score += know_reflection.score
 
             if answer_created:
                 know_reflection.know.total_participants += 1
@@ -238,12 +252,15 @@ class KnowQuizAnswerView(APIView):
                 student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=know.topic.course)
                 kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=know.topic)
                 
+                
                 if answer_created:
                     know.total_participants += 1
                     know.save()
 
                 kwl_point.kwl_status = 'know'
                 quiz_answers.answers.clear()
+
+                kwl_point.know_score = 0
  
                 for answer_pk in answers:
                     quiz_option = KnowQuizOption.objects.get(id=answer_pk)
@@ -252,6 +269,9 @@ class KnowQuizAnswerView(APIView):
                     if answer_created:
                         if quiz_option.isCorrect:
                             student_point.total_point += quiz_option.know_quiz.score
+                    else:
+                        if quiz_option.isCorrect:
+                            kwl_point.know_score += quiz_option.know_quiz.score
 
                 quiz_answers.save()     
                 kwl_point.save()

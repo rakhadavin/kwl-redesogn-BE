@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 from django.http import Http404
 from analysis import models
 from course.api_exceptions import TopicNotFoundException
-from course.models import Topic
+from course.models import KwlPoint, Topic
 from know.models import Know, KnowReflectionStudentAnswer, KnowQuizStudentAnswer, KnowQuizQuestion
 from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedQuizQuestion
 from wtk.models import WantToKnow, WtkPollStudentAnswer, WtkReflectionStudentAnswer, WtkPollQuestion
@@ -32,6 +32,7 @@ def get_topic(topic_id):
         raise TopicNotFoundException()
     
 class WordCloudAPIView(APIView):
+    @swagger_auto_schema(operation_description="Get the word cloud image of the reflections", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, type, topic):
 
         reflections = []
@@ -99,116 +100,116 @@ class KwlParticipantCountView(APIView):
             print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-# class KwlPointLadderView(APIView):
-#     permission_classes = [IsAuthenticated]
-#     @swagger_auto_schema(operation_description="Get 4 highest and 4 lowest kwl scores", responses={200: "OK", 400: "Bad Request"})
-#     def get(self, request, topic):
-#         try:
-#             topic = Topic.objects.get(id=topic)
-#             kwl_points = KwlPoint.objects.filter(topic=topic).order_by('-kwl_score')
-#             highest_kwl_points = kwl_points[:4]
-#             lowest_kwl_points = kwl_points[-4:]
-#             return Response({'highest': highest_kwl_points, 'lowest': lowest_kwl_points}, status=status.HTTP_200_OK)
-#         except Topic.DoesNotExist:
-#             raise TopicNotFoundException()
-#         except Exception as e:
-#             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 class KwlPointLadderView(APIView):
     permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(operation_description="Get 4 highest and 4 lowest total kwl scores of each student", responses={200: "OK", 400: "Bad Request"})
+    @swagger_auto_schema(operation_description="Get 4 highest and 4 lowest kwl scores", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, topic):
         try:
             topic = Topic.objects.get(id=topic)
-            know = Know.objects.filter(topic=topic)
-            learned = Learned.objects.filter(topic=topic)
-            wtk = WantToKnow.objects.filter(topic=topic)
-           
-            students_score = {
-                [
-                    {'student': 'John Doe', 'know_score': 100, 'learned_score': 50, 'wtk_score': 75, 'total_score': 225}, 
-                ],
-            }
-         
-            if know.exists():
-                know_type = know.first().type
-                if know_type == 'reflection':
-                    
-                    for student in topic.course.students.all():
-                        try:
-                            student_know_reflection = KnowReflectionStudentAnswer.objects.get(know_ref__know=know, student=student)
-                            student_know_score = student_know_reflection.know_ref.score
-                        except KnowReflectionStudentAnswer.DoesNotExist:
-                            student_know_score = 0
-
-                        students_score.append({'student': student.user.username, 'know_score': student_know_score, 'total_score': student_know_score})
-
-                elif know_type == 'quiz':
-                    for student in topic.course.students.all():
-                        try:
-                            student_know_quiz = KnowQuizStudentAnswer.objects.get(answers__know_quiz__know=know, student=student)
-                            student_know_score = 0
-                            for answer in student_know_quiz.answers.all():
-                                student_know_score += answer.know_quiz.score
-                            students_score.append({'student': student.user.username, 'know_score': student_know_score, 'total_score': student_know_score})
-                        except KnowQuizStudentAnswer.DoesNotExist:
-                            students_score.append({'student': student.user.username, 'know_score': 0, 'total_score': 0})
-                        
-            if learned.exists():
-                learned_type = learned.first().type
-                if learned_type == 'reflection':
-                    for student in topic.course.students.all():
-                        try:
-                            student_learned_reflection = LearnedReflectionStudentAnswer.objects.get(learned_ref__learned=learned, student=student)
-                            student_learned_score = student_learned_reflection.learned_ref.score
-                        except LearnedReflectionStudentAnswer.DoesNotExist:
-                            student_learned_score = 0
-                        students_score.append({'student': student.user.username, 'learned_score': student_learned_score})
-                elif learned_type == 'quiz':
-                    for student in topic.course.students.all():
-                        try:
-                            student_learned_quiz = LearnedQuizStudentAnswer.objects.get(answers__learned_quiz__learned=learned, student=student)
-                            student_learned_score = 0
-                            for answer in student_learned_quiz.answers.all():
-                                student_learned_score += answer.learned_quiz.score
-                            students_score.append({'student': student.user.username, 'learned_score': student_learned_score})
-                        except LearnedQuizStudentAnswer.DoesNotExist:
-                            students_score.append({'student': student.user.username, 'learned_score': 0})
-
-            if wtk.exists():
-                wtk_type = wtk.first().type
-                if wtk_type == 'reflection':   
-                    for student in topic.course.students.all():
-                        try:
-                            student_wtk_reflection = WtkReflectionStudentAnswer.objects.get(wtk_ref__wtk=wtk, student=student)
-                            student_wtk_score = student_wtk_reflection.wtk_ref.score
-                        except WtkReflectionStudentAnswer.DoesNotExist:
-                            student_wtk_score = 0
-                        students_score.append({'student': student.user.username, 'wtk_score': student_wtk_score})
-                elif wtk_type == 'poll':
-                    for student in topic.course.students.all():
-                        try:
-                            student_wtk_poll = WtkPollStudentAnswer.objects.get(answers__wtk_poll__wtk=wtk, student=student)
-                            student_wtk_score = 0
-                            for answer in student_wtk_poll.answers.all():
-                                student_wtk_score += answer.wtk_poll.score
-                            students_score.append({'student': student.user.username, 'wtk_score': student_wtk_score})
-                        except WtkPollStudentAnswer.DoesNotExist:
-                            students_score.append({'student': student.user.username, 'wtk_score': 0})
-
-                
-            students_score.sort(key=lambda x: x['total_score'])
-
-            lowest_scores = students_score[:4]
-
-            highest_scores = students_score[-4:]
-
-
-            return Response({'lowest_scores': lowest_scores, 'highest_scores': highest_scores}, status=status.HTTP_200_OK)
+            kwl_points = KwlPoint.objects.filter(topic=topic).order_by('-kwl_score')
+            highest_kwl_points = kwl_points[:4]
+            lowest_kwl_points = kwl_points[-4:]
+            return Response({'highest': highest_kwl_points, 'lowest': lowest_kwl_points}, status=status.HTTP_200_OK)
         except Topic.DoesNotExist:
             raise TopicNotFoundException()
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+# class KwlPointLadderView(APIView):
+#     permission_classes = [IsAuthenticated]
+#     @swagger_auto_schema(operation_description="Get 4 highest and 4 lowest total kwl scores of each student", responses={200: "OK", 400: "Bad Request"})
+#     def get(self, request, topic):
+#         try:
+#             topic = Topic.objects.get(id=topic)
+#             know = Know.objects.filter(topic=topic)
+#             learned = Learned.objects.filter(topic=topic)
+#             wtk = WantToKnow.objects.filter(topic=topic)
+           
+#             students_score = {
+#                 [
+#                     {'student': 'John Doe', 'know_score': 100, 'learned_score': 50, 'wtk_score': 75, 'total_score': 225}, 
+#                 ],
+#             }
+         
+#             if know.exists():
+#                 know_type = know.first().type
+#                 if know_type == 'reflection':
+                    
+#                     for student in topic.course.students.all():
+#                         try:
+#                             student_know_reflection = KnowReflectionStudentAnswer.objects.get(know_ref__know=know, student=student)
+#                             student_know_score = student_know_reflection.know_ref.score
+#                         except KnowReflectionStudentAnswer.DoesNotExist:
+#                             student_know_score = 0
+
+#                         students_score.append({'student': student.user.username, 'know_score': student_know_score, 'total_score': student_know_score})
+
+#                 elif know_type == 'quiz':
+#                     for student in topic.course.students.all():
+#                         try:
+#                             student_know_quiz = KnowQuizStudentAnswer.objects.get(answers__know_quiz__know=know, student=student)
+#                             student_know_score = 0
+#                             for answer in student_know_quiz.answers.all():
+#                                 student_know_score += answer.know_quiz.score
+#                             students_score.append({'student': student.user.username, 'know_score': student_know_score, 'total_score': student_know_score})
+#                         except KnowQuizStudentAnswer.DoesNotExist:
+#                             students_score.append({'student': student.user.username, 'know_score': 0, 'total_score': 0})
+                        
+#             if learned.exists():
+#                 learned_type = learned.first().type
+#                 if learned_type == 'reflection':
+#                     for student in topic.course.students.all():
+#                         try:
+#                             student_learned_reflection = LearnedReflectionStudentAnswer.objects.get(learned_ref__learned=learned, student=student)
+#                             student_learned_score = student_learned_reflection.learned_ref.score
+#                         except LearnedReflectionStudentAnswer.DoesNotExist:
+#                             student_learned_score = 0
+#                         students_score.append({'student': student.user.username, 'learned_score': student_learned_score})
+#                 elif learned_type == 'quiz':
+#                     for student in topic.course.students.all():
+#                         try:
+#                             student_learned_quiz = LearnedQuizStudentAnswer.objects.get(answers__learned_quiz__learned=learned, student=student)
+#                             student_learned_score = 0
+#                             for answer in student_learned_quiz.answers.all():
+#                                 student_learned_score += answer.learned_quiz.score
+#                             students_score.append({'student': student.user.username, 'learned_score': student_learned_score})
+#                         except LearnedQuizStudentAnswer.DoesNotExist:
+#                             students_score.append({'student': student.user.username, 'learned_score': 0})
+
+#             if wtk.exists():
+#                 wtk_type = wtk.first().type
+#                 if wtk_type == 'reflection':   
+#                     for student in topic.course.students.all():
+#                         try:
+#                             student_wtk_reflection = WtkReflectionStudentAnswer.objects.get(wtk_ref__wtk=wtk, student=student)
+#                             student_wtk_score = student_wtk_reflection.wtk_ref.score
+#                         except WtkReflectionStudentAnswer.DoesNotExist:
+#                             student_wtk_score = 0
+#                         students_score.append({'student': student.user.username, 'wtk_score': student_wtk_score})
+#                 elif wtk_type == 'poll':
+#                     for student in topic.course.students.all():
+#                         try:
+#                             student_wtk_poll = WtkPollStudentAnswer.objects.get(answers__wtk_poll__wtk=wtk, student=student)
+#                             student_wtk_score = 0
+#                             for answer in student_wtk_poll.answers.all():
+#                                 student_wtk_score += answer.wtk_poll.score
+#                             students_score.append({'student': student.user.username, 'wtk_score': student_wtk_score})
+#                         except WtkPollStudentAnswer.DoesNotExist:
+#                             students_score.append({'student': student.user.username, 'wtk_score': 0})
+
+                
+#             students_score.sort(key=lambda x: x['total_score'])
+
+#             lowest_scores = students_score[:4]
+
+#             highest_scores = students_score[-4:]
+
+
+#             return Response({'lowest_scores': lowest_scores, 'highest_scores': highest_scores}, status=status.HTTP_200_OK)
+#         except Topic.DoesNotExist:
+#             raise TopicNotFoundException()
+#         except Exception as e:
+#             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
             
             
 
@@ -216,6 +217,7 @@ class KwlPointLadderView(APIView):
 class TopicPollingAnalysisView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(operation_description="Get the polling data for the topic", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, topic):
         poll_data = []
         topic = Topic.objects.get(id=topic)
@@ -228,10 +230,16 @@ class TopicPollingAnalysisView(APIView):
             }
             poll_data.append(choice_data)
 
+        course_short_name = topic.course.short_name
+        course_full_name = topic.course.full_name
+        topic_name = topic.name
+        poll_data.append({'course_full_name':course_full_name,'course_short_name': course_short_name, 'topic_name': topic_name})
+
 
         return Response(poll_data, status=status.HTTP_200_OK)
     
 class QuizAccuracyAnalysisView(APIView):
+
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(operation_description="Get the number of correct answers for each quiz question", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, type, topic):
@@ -265,6 +273,7 @@ class QuizAccuracyAnalysisView(APIView):
        
 
 class QuizBarchartImageView(APIView):
+    
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(operation_description="Get the image of the barchart for the quiz questions", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, type, topic):

@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from authentication.models import Lecturer, Student
 from know.serializers import KnowSerializer
-from .models import Course, LastAccessedStudentCourse, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory, KwlPoint
+from .models import Course, LastAccessedStudentCourse, LecturerPinnedCourse, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory, KwlPoint, PinnedCourse
 from know.models import Know
 from learned.models import Learned
 from wtk.models import WantToKnow
@@ -15,14 +15,14 @@ from authentication.api_exceptions import LecturerNotFoundException, StudentNotF
 class CourseSerializer(serializers.ModelSerializer):
     lecturer = serializers.IntegerField(write_only=True)
     
-    def validate(self, attrs):
-        if Lecturer.objects.filter(pk=attrs['lecturer']).exists():
-            return super().validate(attrs)
-        raise LecturerNotFoundException()
+    # def validate(self, attrs):
+    #     if Lecturer.objects.filter(pk=attrs['lecturer']).exists():
+    #         return super().validate(attrs)
+    #     raise LecturerNotFoundException()
 
     class Meta:
         model = Course
-        fields = ['short_name','full_name','color_theme','lecturer_team','students','id','lecturer']
+        fields = ['short_name','full_name','color_theme','lecturer_team','students','id','lecturer','created','updated']
 
     def create(self, validated_data):
         today_year = datetime.datetime.now().year
@@ -41,6 +41,12 @@ class CourseSerializer(serializers.ModelSerializer):
         
 
         return course
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['created'] = instance.created.strftime("%Y-%m-%d")
+        ret['updated'] = instance.updated.strftime("%Y-%m-%d")
+        return ret
   
 
 class TopicSerializer(serializers.ModelSerializer):
@@ -84,6 +90,12 @@ class TopicSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
     
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['created'] = instance.created.strftime("%Y-%m-%d")
+        ret['updated'] = instance.updated.strftime("%Y-%m-%d")
+        return ret
+    
 class RewardPointSerializer(serializers.ModelSerializer):
     class Meta:
         model = RewardStudentPoint
@@ -97,11 +109,11 @@ class RewardItemSerializer(serializers.ModelSerializer):
         model = RewardItem
         fields = ['name','stock','point','expired_date','detail_instruction','id','course','course_data']
     
-    def validate(self, attrs):
-        if 'course' in attrs:
-            if not Course.objects.filter(pk=attrs['course']).exists():
-                raise CourseNotFoundException()
-        return super().validate(attrs)
+    # def validate(self, attrs):
+    #     if 'course' in attrs:
+    #         if not Course.objects.filter(pk=attrs['course']).exists():
+    #             raise CourseNotFoundException()
+    #     return super().validate(attrs)
     
     def create(self, validated_data):
         course_id = validated_data.pop('course')
@@ -177,6 +189,11 @@ class LastAccessedStudentCourseSerializer(serializers.ModelSerializer):
         model = LastAccessedStudentCourse
         fields = ['student','course','last_accessed','id','course_name']
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['last_accessed'] = instance.created.strftime("%Y-%m-%d")
+        return ret
+
     # def get_last_accessed(self, obj):
     #     jakarta_tz = timezone('Asia/Jakarta')
     #     return obj.last_accessed.astimezone(jakarta_tz).strftime('%d-%m-%Y %H:%M:%S')
@@ -191,19 +208,19 @@ class FeedbackSerializer(serializers.ModelSerializer):
     topic_name = serializers.CharField(source='topic.name', read_only=True)
     class Meta:
         model = Feedback
-        fields = ['student','topic','feedback','id','lecturer', 'student_name','lecturer_name', 'topic_name']
+        fields = ['student','topic','feedback','id','lecturer', 'student_name','lecturer_name', 'topic_name','created']
     
-    def validate(self, attrs):
-        if 'student' in attrs:
-            if not Student.objects.filter(pk=attrs['student']).exists():
-                raise StudentNotFoundException()
-        if 'topic' in attrs:
-            if not Topic.objects.filter(pk=attrs['topic']).exists():
-                raise TopicNotFoundException()
-        if 'lecturer' in attrs:
-            if not Lecturer.objects.filter(pk=attrs['lecturer']).exists():
-                raise LecturerNotFoundException()
-        return super().validate(attrs)
+    # def validate(self, attrs):
+    #     if 'student' in attrs:
+    #         if not Student.objects.filter(pk=attrs['student']).exists():
+    #             raise StudentNotFoundException()
+    #     if 'topic' in attrs:
+    #         if not Topic.objects.filter(pk=attrs['topic']).exists():
+    #             raise TopicNotFoundException()
+    #     if 'lecturer' in attrs:
+    #         if not Lecturer.objects.filter(pk=attrs['lecturer']).exists():
+    #             raise LecturerNotFoundException()
+    #     return super().validate(attrs)
     
     def create(self, validated_data):
         student_id = validated_data.pop('student')
@@ -223,6 +240,11 @@ class FeedbackSerializer(serializers.ModelSerializer):
         instance.feedback = validated_data.get('feedback', instance.feedback)
         instance.save()
         return instance
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['created'] = instance.created.strftime("%Y-%m-%d")
+        return ret
     
     
 class RedeemHistorySerializer(serializers.ModelSerializer):
@@ -247,3 +269,12 @@ class KwlPointSerializer(serializers.ModelSerializer):
     class Meta:
         model = KwlPoint
         fields = '__all__'
+
+class PinnedCourseSerializer(serializers.ModelSerializer):
+    pinned_course = CourseSerializer(read_only=True, many=True)
+    class Meta:
+        model = LecturerPinnedCourse
+        fields = '__all__'
+
+class AddPinCourseSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
