@@ -104,16 +104,29 @@ class KwlPointLadderView(APIView):
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(operation_description="Get 4 highest and 4 lowest kwl scores", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, topic):
-        try:
-            topic = Topic.objects.get(id=topic)
-            kwl_points = KwlPoint.objects.filter(topic=topic).order_by('-kwl_score')
-            highest_kwl_points = kwl_points[:4]
-            lowest_kwl_points = kwl_points[-4:]
-            return Response({'highest': highest_kwl_points, 'lowest': lowest_kwl_points}, status=status.HTTP_200_OK)
-        except Topic.DoesNotExist:
-            raise TopicNotFoundException()
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        kwl_points = KwlPoint.objects.annotate(total_point=F('know_score') + F('wtk_score') + F('learned_score'))
+        four_highest_student_points = kwl_points.filter(topic=topic).order_by('-total_point')[:4]
+        four_lowest_student_points = kwl_points.filter(topic=topic).order_by('total_point')[:4]
+
+        four_highest_student_points_data = []
+        four_lowest_student_points_data = []
+
+        for student_point in four_highest_student_points:
+            student_data = {
+                'student': student_point.student.user.username,
+                'total_point': student_point.get_total_point()
+            }
+            four_highest_student_points_data.append(student_data)
+
+        for student_point in four_lowest_student_points:
+            student_data = {
+                'student': student_point.student.user.username,
+                'total_point': student_point.get_total_point()
+            }
+            four_lowest_student_points_data.append(student_data)
+        
+        return Response({'highest': four_highest_student_points_data, 'lowest': four_lowest_student_points_data})
+
 
 # class KwlPointLadderView(APIView):
 #     permission_classes = [IsAuthenticated]
@@ -273,7 +286,7 @@ class QuizAccuracyAnalysisView(APIView):
        
 
 class QuizBarchartImageView(APIView):
-    
+
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(operation_description="Get the image of the barchart for the quiz questions", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, type, topic):
