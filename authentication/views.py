@@ -19,7 +19,7 @@ from .api_exceptions import ChangePasswordException
 class LoginView(APIView):
     permission_classes = (AllowAny,)
 
-    @swagger_auto_schema(request_body=LoginSerializer, responses={200: "Login Success", 401: "Unauthorized"})
+    @swagger_auto_schema(request_body=LoginSerializer, responses={200: "Login Success", 401: "Unauthorized"}, operation_summary="Login using username and password")
     def post(self, request):
         try:
             serializer = LoginSerializer(data=request.data)
@@ -27,28 +27,30 @@ class LoginView(APIView):
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
 
-            user = KwlUser.objects.filter(username=username).first()
-            if user is None:
-                sso_response = sso_login(username, password)
-                if sso_response.status_code == 200 and sso_response.json()['state'] != 0:
-                    nama_lengkap = sso_response.json().get("nama")
-                    nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]
-                    first_name = nama_lengkap.split()[0]
-                    last_name = ' '.join(nama_lengkap.split()[1:]) if len(nama_lengkap) > 1 else ''
-                    user = KwlUser.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name)
-                    Student.objects.create(user=user)
-            
-                    return Response(data = {"message":'Login Success',"data":get_tokens_for_user(user)}, status=status.HTTP_200_OK)
-                else:
-                    return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-            else:
-                
-                user = authenticate(request, username=username, password=password)
+            # user = KwlUser.objects.filter(username=username).first()
 
-                if user is not None:
-                    return Response(data = {"message":'Login Success',"data":get_tokens_for_user(user)}, status=status.HTTP_200_OK)
-                else:
-                    return Response(data = {'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+            # # SSO ONLY 
+            # if user is None:
+            #     sso_response = sso_login(username, password)
+            #     if sso_response.status_code == 200 and sso_response.json()['state'] != 0:
+            #         nama_lengkap = sso_response.json().get("nama")
+            #         nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]
+            #         first_name = nama_lengkap.split()[0]
+            #         last_name = ' '.join(nama_lengkap.split()[1:]) if len(nama_lengkap) > 1 else ''
+            #         user = KwlUser.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name)
+            #         Student.objects.create(user=user)
+            
+            #         return Response(data = {"message":'Login Success',"data":get_tokens_for_user(user)}, status=status.HTTP_200_OK)
+            #     else:
+            #         return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+            # else:
+                
+            user = authenticate(request, username=username, password=password)
+
+            if user is not None:
+                return Response(data = {"message":'Login Success',"data":get_tokens_for_user(user)}, status=status.HTTP_200_OK)
+            else:
+                return Response(data = {'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
             return Response(data = {'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -56,7 +58,7 @@ class LoginView(APIView):
 class RegisterStudentView(APIView):
     permission_classes = (AllowAny,)
 
-    @swagger_auto_schema(request_body=StudentSerializer, responses={201: "Student registered successfully"})
+    @swagger_auto_schema(request_body=StudentSerializer, responses={201: "Student registered successfully"}, operation_summary="Register student")
     def post(self, request): 
         try:
             print(request.data)

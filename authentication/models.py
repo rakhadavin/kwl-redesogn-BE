@@ -16,18 +16,18 @@ class KwlUser(AbstractUser):
 
 class Lecturer(models.Model):
     user = models.OneToOneField(KwlUser, on_delete=models.CASCADE, related_name='lecturer_profile', null=True)
-    department = models.CharField(max_length=100)
-    lecturer_id =  models.CharField(max_length=10)
+    department = models.CharField(max_length=100, null=True, blank=True)
+    lecturer_id =  models.CharField(max_length=10, null=True, blank=True)
 
     def __str__(self):
         return self.user.username
 
 class Student(models.Model):
     user = models.OneToOneField(KwlUser, on_delete=models.CASCADE, null=True)
-    student_id = models.CharField(max_length=10)
-    major = models.CharField(max_length=100)
-    term = models.CharField(max_length=100)
-    faculty = models.CharField(max_length=100)
+    student_id = models.CharField(max_length=10, null=True, blank=True)
+    major = models.CharField(max_length=100, null=True, blank=True)
+    term = models.CharField(max_length=100, null=True, blank=True)
+    faculty = models.CharField(max_length=100, null=True, blank=True)
     def __str__(self):
         return self.user.username
     

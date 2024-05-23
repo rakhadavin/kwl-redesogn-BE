@@ -64,167 +64,273 @@ class WordCloudAPIView(APIView):
 
         return Response({'image_url': image_url, 'reflections': reflections})
 
-
 class KwlParticipantCountView(APIView):
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(operation_description="Get the number of participants for each KWL stage", responses={200: "OK", 400: "Bad Request"})
-    def get(self, request,topic):
 
+    def get(self, request, topic):
         try:
-            topic_id = topic
-
-            topic = Topic.objects.get(id=topic_id)
-            course = topic.course
-            total_enrolled_students = course.students.all().count()
-            if total_enrolled_students == 0:
-                return Response({'error': 'No students enrolled in this course.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+            wtk = WantToKnow.objects.get(topic=topic)
             know = Know.objects.get(topic=topic)
             learned = Learned.objects.get(topic=topic)
-            wtk = WantToKnow.objects.get(topic=topic)
+            topic = Topic.objects.get(id=topic)
+            total_students_enrolled = topic.course.students.all().count()
+            print(total_students_enrolled)
+            wtk_total_participants = 0
 
-            know_count = know.total_participants
-            know_percentage = (know_count / total_enrolled_students) * 100
-            learned_count = learned.total_participants
-            learned_percentage = (learned_count / total_enrolled_students) * 100
-            wtk_count = wtk.total_participants
-            wtk_percentage = (wtk_count / total_enrolled_students) * 100
+            if wtk.type == 'checkbox':
+                wtk_total_participants = WtkPollStudentAnswer.objects.filter(wtk_poll__wtk=wtk).count()
+            elif wtk.type == 'reflection':
+                wtk_total_participants = WtkReflectionStudentAnswer.objects.filter(wtk_ref__wtk=wtk).count()
 
-        
+            know_total_participants = 0
 
-            return Response({'know': {'count': know_count, 'percentage': know_percentage}, 'learned': {'count': learned_count, 'percentage': learned_percentage}, 'wtk': {'count': wtk_count, 'percentage': wtk_percentage}})   
-        except Topic.DoesNotExist:
+            if know.type == 'quiz':
+                know_total_participants = KnowQuizStudentAnswer.objects.filter(answers__know_quiz__know=know).distinct().count()
+            elif know.type == 'reflection':
+                know_total_participants = KnowReflectionStudentAnswer.objects.filter(know_ref__know=know).count()
+
+            learned_total_participants = 0
+
+            if learned.type == 'quiz':
+                learned_total_participants = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz__learned=learned).distinct().count()
+            elif learned.type == 'reflection':
+                learned_total_participants = LearnedReflectionStudentAnswer.objects.filter(learned_ref__learned=learned).count()
             
-            raise TopicNotFoundException()
+
+            res_data = {
+            }
+            res_data['wtk'] = {
+                'total_participants': wtk_total_participants,
+                'percentage': "{:,.2f}".format((wtk_total_participants / total_students_enrolled) * 100)
+            }
+
+            res_data['know'] = {
+                'total_participants': know_total_participants,
+                'percentage': "{:,.2f}".format((know_total_participants / total_students_enrolled) * 100)
+            }
+
+            res_data['learned'] = {
+                'total_participants': learned_total_participants,
+                'percentage': "{:,.2f}".format((learned_total_participants / total_students_enrolled) * 100)
+            }
+
+            res_data['total_students_enrolled'] = total_students_enrolled
+            
+            return Response(res_data, status=status.HTTP_200_OK)
         except Exception as e:
             print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 class KwlPointLadderView(APIView):
+        permission_classes = [IsAuthenticated]
+        @swagger_auto_schema(operation_description="Get 5 highest and 5 lowest kwl scores", responses={200: "OK", 400: "Bad Request"})
+        def get(self, request, topic, filter_number=5):
+            kwl_points = KwlPoint.objects.annotate(total_point=F('know_score') + F('wtk_score') + F('learned_score'))
+            four_highest_student_points = kwl_points.filter(topic=topic).order_by('-total_point')[:filter_number]
+            four_lowest_student_points = kwl_points.filter(topic=topic).order_by('total_point')[:filter_number]
+
+            four_highest_student_points_data = []
+            four_lowest_student_points_data = []
+
+            for student_point in four_highest_student_points:
+                student_data = {
+                    'student': student_point.student.user.username,
+                    'total_point': student_point.get_total_point()
+                }
+                four_highest_student_points_data.append(student_data)
+
+            for student_point in four_lowest_student_points:
+                student_data = {
+                    'student': student_point.student.user.first_name + ' ' + student_point.student.user.last_name,
+                    'total_point': student_point.get_total_point()
+                }
+                four_lowest_student_points_data.append(student_data)
+            
+            return Response({'highest': four_highest_student_points_data, 'lowest': four_lowest_student_points_data})
+
+class StudentKWLRecapView(APIView):
     permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(operation_description="Get 4 highest and 4 lowest kwl scores", responses={200: "OK", 400: "Bad Request"})
-    def get(self, request, topic):
-        kwl_points = KwlPoint.objects.annotate(total_point=F('know_score') + F('wtk_score') + F('learned_score'))
-        four_highest_student_points = kwl_points.filter(topic=topic).order_by('-total_point')[:4]
-        four_lowest_student_points = kwl_points.filter(topic=topic).order_by('total_point')[:4]
+    @swagger_auto_schema(operation_description="Get the student's KWL recap", responses={200: "OK", 400: "Bad Request"})
+    def get(self, request, topic, student_id):
+        try:
+            topic = get_topic(topic)
+            student = topic.course.students.get(pk=student_id)
+            know = Know.objects.get(topic=topic)
+            learned = Learned.objects.get(topic=topic)
+            wtk = WantToKnow.objects.get(topic=topic)
+            
+            know_type = know.type
+            learned_type = learned.type
+            wtk_type = wtk.type
 
-        four_highest_student_points_data = []
-        four_lowest_student_points_data = []
+            know_answered = False
+            learned_answered = False
+            wtk_answered = False
 
-        for student_point in four_highest_student_points:
-            student_data = {
-                'student': student_point.student.user.username,
-                'total_point': student_point.get_total_point()
+            if know_type == 'reflection':
+                know_answered = KnowReflectionStudentAnswer.objects.filter(know_ref__know=know, student=student).exists()
+            elif know_type == 'quiz':
+                know_answered = KnowQuizStudentAnswer.objects.filter(answers__know_quiz__know=know, student=student).exists()
+            
+            if learned_type == 'reflection':
+                learned_answered = LearnedReflectionStudentAnswer.objects.filter(learned_ref__learned=learned, student=student).exists()
+            elif learned_type == 'quiz':
+                learned_answered = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz__learned=learned, student=student).exists()
+            
+            if wtk_type == 'reflection':
+                wtk_answered = WtkReflectionStudentAnswer.objects.filter(wtk_ref__wtk=wtk, student=student).exists()
+            elif wtk_type == 'checkbox':
+                wtk_answered = WtkPollStudentAnswer.objects.filter(wtk_poll__wtk=wtk, student=student).exists()
+
+            participation_counter = 0
+            if know_answered:
+                participation_counter += 1
+            if learned_answered:
+                participation_counter += 1
+            if wtk_answered:
+                participation_counter += 1
+
+            participation_percentage = "{:,.2f}".format((participation_counter / 3) * 100)
+
+
+            res_data = {
+                'know': {
+                    'answered': know_answered,
+                    'type': know_type
+                },
+                'learned': {
+                    'answered': learned_answered,
+                    'type': learned_type
+                },
+                'wtk': {
+                    'answered': wtk_answered,
+                    'type': wtk_type
+                },
+                'participation_percentage': participation_percentage
+
             }
-            four_highest_student_points_data.append(student_data)
 
-        for student_point in four_lowest_student_points:
-            student_data = {
-                'student': student_point.student.user.username,
-                'total_point': student_point.get_total_point()
-            }
-            four_lowest_student_points_data.append(student_data)
+            return Response(res_data, status=status.HTTP_200_OK)
         
-        return Response({'highest': four_highest_student_points_data, 'lowest': four_lowest_student_points_data})
+
+        except Topic.DoesNotExist:
+            raise TopicNotFoundException()
+        
+class StudentAnswerDetailAnalysis(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(operation_description="Get the student's answer details for each KWL stage", responses={200: "OK", 400: "Bad Request"})
+    def get(self, request, type, topic, student_id):
+   
+
+        try:
+            topic = get_topic(topic)
+            student = topic.course.students.get(pk=student_id)
+            student_data = {}
+            if type == 'know':
+                know = Know.objects.get(topic=topic)
+                if know.type == 'reflection':
+                    student_answer = KnowReflectionStudentAnswer.objects.get(know_ref__know=know, student=student)
+                    student_data = {
+                        'student': student.user.username,
+                        'answer': student_answer.reflection
+                    }
+                elif know.type == 'quiz':
+                    student_answer = KnowQuizStudentAnswer.objects.get(answers__know_quiz__know=know, student=student)
+                    answers = [] 
+                    for answer in student_answer.answers.all():
+                        quiz_question = answer.know_quiz.question
+                        list_of_choices = []
+                        for choice in answer.know_quiz.get_answers():
+                            list_of_choices.append(choice.option_answer)
+                        answers.append({'question': quiz_question, 'answer': answer.answer, 'choices': list_of_choices})
+
+                    student_data = {
+                        'student': student.user.username,                   
+                        'answers': answers
+
+                    }
+            elif type == 'learned':
+                learned = Learned.objects.get(topic=topic)
+                if learned.type == 'reflection':
+                    student_answer = LearnedReflectionStudentAnswer.objects.get(learned_ref__learned=learned, student=student)
+                    student_data = {
+                        'student': student.user.username,
+                        'answer': student_answer.reflection
+                    }
+                elif learned.type == 'quiz':
+                    student_answer = LearnedQuizStudentAnswer.objects.get(answers__learned_quiz__learned=learned, student=student)
+                    answers = []
+                    for answer in student_answer.answers.all():
+                        quiz_question = answer.learned_quiz.question
+                        list_of_choices = []
+                        for choice in answer.learned_quiz.get_answers():
+                            list_of_choices.append(choice.option_answer)
+                        answers.append({'question': quiz_question, 'answer': answer.answer, 'choices': list_of_choices})
+                    student_data = {
+                        'student': student.user.username,
+                        'answers': answers
+                    }
+            elif type == 'wtk':
+                wtk = WantToKnow.objects.get(topic=topic)
+                if wtk.type == 'reflection':
+                    student_answer = WtkReflectionStudentAnswer.objects.get(wtk_ref__wtk=wtk, student=student)
+                    student_data = {
+                        'student': student.user.username,
+                        'answer': student_answer.reflection
+                    }
+                elif wtk.type == 'checkbox':
+                    student_answer = WtkPollStudentAnswer.objects.get(answers__wtk_poll__wtk=wtk, student=student)
+                    student_data = {
+                        'student': student.user.username,
+                        'answers': [{'question': answer.wtk_poll.question, 'answer': answer.answer} for answer in student_answer.answers.all()]
+                    }
+            else:
+                raise InvalidTypeException()
+        except Topic.DoesNotExist:
+            raise TopicNotFoundException()
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(student_data, status=status.HTTP_200_OK)
 
 
-# class KwlPointLadderView(APIView):
+# class KwlParticipantCountView(APIView):
 #     permission_classes = [IsAuthenticated]
-#     @swagger_auto_schema(operation_description="Get 4 highest and 4 lowest total kwl scores of each student", responses={200: "OK", 400: "Bad Request"})
-#     def get(self, request, topic):
+#     @swagger_auto_schema(operation_description="Get the number of participants for each KWL stage", responses={200: "OK", 400: "Bad Request"})
+#     def get(self, request,topic):
+
 #         try:
-#             topic = Topic.objects.get(id=topic)
-#             know = Know.objects.filter(topic=topic)
-#             learned = Learned.objects.filter(topic=topic)
-#             wtk = WantToKnow.objects.filter(topic=topic)
-           
-#             students_score = {
-#                 [
-#                     {'student': 'John Doe', 'know_score': 100, 'learned_score': 50, 'wtk_score': 75, 'total_score': 225}, 
-#                 ],
-#             }
-         
-#             if know.exists():
-#                 know_type = know.first().type
-#                 if know_type == 'reflection':
-                    
-#                     for student in topic.course.students.all():
-#                         try:
-#                             student_know_reflection = KnowReflectionStudentAnswer.objects.get(know_ref__know=know, student=student)
-#                             student_know_score = student_know_reflection.know_ref.score
-#                         except KnowReflectionStudentAnswer.DoesNotExist:
-#                             student_know_score = 0
+#             topic_id = topic
 
-#                         students_score.append({'student': student.user.username, 'know_score': student_know_score, 'total_score': student_know_score})
+#             topic = Topic.objects.get(id=topic_id)
+#             course = topic.course
+#             total_enrolled_students = course.students.all().count()
+#             if total_enrolled_students == 0:
+#                 return Response({'error': 'No students enrolled in this course.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+#             know = Know.objects.get(topic=topic)
+#             learned = Learned.objects.get(topic=topic)
+#             wtk = WantToKnow.objects.get(topic=topic)
 
-#                 elif know_type == 'quiz':
-#                     for student in topic.course.students.all():
-#                         try:
-#                             student_know_quiz = KnowQuizStudentAnswer.objects.get(answers__know_quiz__know=know, student=student)
-#                             student_know_score = 0
-#                             for answer in student_know_quiz.answers.all():
-#                                 student_know_score += answer.know_quiz.score
-#                             students_score.append({'student': student.user.username, 'know_score': student_know_score, 'total_score': student_know_score})
-#                         except KnowQuizStudentAnswer.DoesNotExist:
-#                             students_score.append({'student': student.user.username, 'know_score': 0, 'total_score': 0})
-                        
-#             if learned.exists():
-#                 learned_type = learned.first().type
-#                 if learned_type == 'reflection':
-#                     for student in topic.course.students.all():
-#                         try:
-#                             student_learned_reflection = LearnedReflectionStudentAnswer.objects.get(learned_ref__learned=learned, student=student)
-#                             student_learned_score = student_learned_reflection.learned_ref.score
-#                         except LearnedReflectionStudentAnswer.DoesNotExist:
-#                             student_learned_score = 0
-#                         students_score.append({'student': student.user.username, 'learned_score': student_learned_score})
-#                 elif learned_type == 'quiz':
-#                     for student in topic.course.students.all():
-#                         try:
-#                             student_learned_quiz = LearnedQuizStudentAnswer.objects.get(answers__learned_quiz__learned=learned, student=student)
-#                             student_learned_score = 0
-#                             for answer in student_learned_quiz.answers.all():
-#                                 student_learned_score += answer.learned_quiz.score
-#                             students_score.append({'student': student.user.username, 'learned_score': student_learned_score})
-#                         except LearnedQuizStudentAnswer.DoesNotExist:
-#                             students_score.append({'student': student.user.username, 'learned_score': 0})
+#             know_count = know.total_participants
+#             know_percentage = (know_count / total_enrolled_students) * 100
+#             learned_count = learned.total_participants
+#             learned_percentage = (learned_count / total_enrolled_students) * 100
+#             wtk_count = wtk.total_participants
+#             wtk_percentage = (wtk_count / total_enrolled_students) * 100
+            
+        
 
-#             if wtk.exists():
-#                 wtk_type = wtk.first().type
-#                 if wtk_type == 'reflection':   
-#                     for student in topic.course.students.all():
-#                         try:
-#                             student_wtk_reflection = WtkReflectionStudentAnswer.objects.get(wtk_ref__wtk=wtk, student=student)
-#                             student_wtk_score = student_wtk_reflection.wtk_ref.score
-#                         except WtkReflectionStudentAnswer.DoesNotExist:
-#                             student_wtk_score = 0
-#                         students_score.append({'student': student.user.username, 'wtk_score': student_wtk_score})
-#                 elif wtk_type == 'poll':
-#                     for student in topic.course.students.all():
-#                         try:
-#                             student_wtk_poll = WtkPollStudentAnswer.objects.get(answers__wtk_poll__wtk=wtk, student=student)
-#                             student_wtk_score = 0
-#                             for answer in student_wtk_poll.answers.all():
-#                                 student_wtk_score += answer.wtk_poll.score
-#                             students_score.append({'student': student.user.username, 'wtk_score': student_wtk_score})
-#                         except WtkPollStudentAnswer.DoesNotExist:
-#                             students_score.append({'student': student.user.username, 'wtk_score': 0})
-
-                
-#             students_score.sort(key=lambda x: x['total_score'])
-
-#             lowest_scores = students_score[:4]
-
-#             highest_scores = students_score[-4:]
-
-
-#             return Response({'lowest_scores': lowest_scores, 'highest_scores': highest_scores}, status=status.HTTP_200_OK)
+#             return Response({'know': {'count': know_count, 'percentage': know_percentage}, 'learned': {'count': learned_count, 'percentage': learned_percentage}, 'wtk': {'count': wtk_count, 'percentage': wtk_percentage}})   
 #         except Topic.DoesNotExist:
+            
 #             raise TopicNotFoundException()
 #         except Exception as e:
+#             print(str(e))
 #             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            
-            
+
 
         
 class TopicPollingAnalysisView(APIView):
