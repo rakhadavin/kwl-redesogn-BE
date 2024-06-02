@@ -407,6 +407,7 @@ class FeedbackList(APIView):
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
+            print(e)
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     @swagger_auto_schema(operation_summary="List all feedbacks")
