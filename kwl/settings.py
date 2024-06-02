@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django.contrib.sites', 
     'django.contrib.admin',
+    'django_extensions',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -145,6 +146,10 @@ SWAGGER_SETTINGS = {
 ROOT_URLCONF = 'kwl.urls'
 
 
+GRAPH_MODELS ={
+    'all_applications': True,
+    'graph_models': True,
+     }
 
 TEMPLATES = [
     {

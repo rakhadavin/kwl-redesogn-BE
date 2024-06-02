@@ -17,8 +17,8 @@ from django.http import Http404
 from analysis import models
 from course.api_exceptions import TopicNotFoundException
 from course.models import KwlPoint, Topic
-from know.models import Know, KnowReflectionStudentAnswer, KnowQuizStudentAnswer, KnowQuizQuestion
-from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedQuizQuestion
+from know.models import Know, KnowReflectionStudentAnswer, KnowQuizStudentAnswer, KnowQuizQuestion, KnowQuizOption
+from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedQuizQuestion, LearnedQuizOption
 from wtk.models import WantToKnow, WtkPollStudentAnswer, WtkReflectionStudentAnswer, WtkPollQuestion
 from drf_yasg.utils import swagger_auto_schema
 
@@ -50,7 +50,6 @@ class WordCloudAPIView(APIView):
             raise InvalidTypeException()
         if len(reflections) == 0:
             raise EmptyReflectionException()
-        print(reflections)
         all_reflections = ' '.join(reflection[1] for reflection in reflections)
        
 
@@ -75,7 +74,6 @@ class KwlParticipantCountView(APIView):
             learned = Learned.objects.get(topic=topic)
             topic = Topic.objects.get(id=topic)
             total_students_enrolled = topic.course.students.all().count()
-            print(total_students_enrolled)
             wtk_total_participants = 0
 
             if wtk.type == 'checkbox':
@@ -119,7 +117,6 @@ class KwlParticipantCountView(APIView):
             
             return Response(res_data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
@@ -234,23 +231,29 @@ class StudentAnswerDetailAnalysis(APIView):
                     student_answer = KnowReflectionStudentAnswer.objects.get(know_ref__know=know, student=student)
                     student_data = {
                         'student': student.user.username,
-                        'answer': student_answer.reflection
+                        'answer': student_answer.reflection,
+                        'question': student_answer.know_ref.question
                     }
+
                 elif know.type == 'quiz':
-                    student_answer = KnowQuizStudentAnswer.objects.get(answers__know_quiz__know=know, student=student)
-                    answers = [] 
-                    for answer in student_answer.answers.all():
-                        quiz_question = answer.know_quiz.question
-                        list_of_choices = []
-                        for choice in answer.know_quiz.get_answers():
-                            list_of_choices.append(choice.option_answer)
-                        answers.append({'question': quiz_question, 'answer': answer.answer, 'choices': list_of_choices})
-
+                    answers = []
+                    quiz_questions = KnowQuizQuestion.objects.filter(know__topic=topic)
+                    for question in quiz_questions:
+                        quiz_data = []
+                        all_quiz_options = KnowQuizOption.objects.filter(know_quiz=question)
+                        for option in all_quiz_options:
+                            student_answer = KnowQuizStudentAnswer.objects.filter(answers__know_quiz=question, student=student).first()
+                            student_answer_isSelected = student_answer.answers.filter(id=option.id).exists()
+                            correct_answer = option.isCorrect
+                            option_answer = option.option_answer
+                            quiz_data.append({'isSelected': student_answer_isSelected, 'isCorrect': correct_answer, 'option': option_answer})
+                        answers.append({'question': question.question, 'choices': quiz_data})
                     student_data = {
-                        'student': student.user.username,                   
+                        'student': student.user.username,
                         'answers': answers
-
                     }
+
+                    
             elif type == 'learned':
                 learned = Learned.objects.get(topic=topic)
                 if learned.type == 'reflection':
@@ -260,18 +263,25 @@ class StudentAnswerDetailAnalysis(APIView):
                         'answer': student_answer.reflection
                     }
                 elif learned.type == 'quiz':
-                    student_answer = LearnedQuizStudentAnswer.objects.get(answers__learned_quiz__learned=learned, student=student)
                     answers = []
-                    for answer in student_answer.answers.all():
-                        quiz_question = answer.learned_quiz.question
-                        list_of_choices = []
-                        for choice in answer.learned_quiz.get_answers():
-                            list_of_choices.append(choice.option_answer)
-                        answers.append({'question': quiz_question, 'answer': answer.answer, 'choices': list_of_choices})
+                    quiz_questions = LearnedQuizQuestion.objects.filter(learned__topic=topic)
+                    for question in quiz_questions:
+                        quiz_data = []
+                        all_quiz_options = LearnedQuizOption.objects.filter(learned_quiz=question)
+                        for option in all_quiz_options:
+                    
+                            student_answer = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz=question, student=student).first()
+                            student_answer_isSelected = student_answer.answers.filter(id=option.id).exists()
+                            correct_answer = option.isCorrect
+                            option_answer = option.option_answer
+                            
+                            quiz_data.append({'isSelected': student_answer_isSelected, 'isCorrect': correct_answer, 'option': option_answer})
+                        answers.append({'question': question.question, 'choices': quiz_data})
                     student_data = {
                         'student': student.user.username,
                         'answers': answers
                     }
+
             elif type == 'wtk':
                 wtk = WantToKnow.objects.get(topic=topic)
                 if wtk.type == 'reflection':
@@ -281,18 +291,27 @@ class StudentAnswerDetailAnalysis(APIView):
                         'answer': student_answer.reflection
                     }
                 elif wtk.type == 'checkbox':
-                    student_answer = WtkPollStudentAnswer.objects.get(answers__wtk_poll__wtk=wtk, student=student)
+                    student_answer = WtkPollStudentAnswer.objects.filter(wtk_poll__wtk=wtk, student=student)
+                    wtk_poll = student_answer.first().wtk_poll
+                    
+                    checkbox_choices = []
+                    for choice in wtk_poll.choices.all():
+                        checkbox_student = student_answer.filter(choices__in=[choice]).exists()
+                        checkbox_choices.append({'choice': choice.option_answer, 'selected': checkbox_student})
                     student_data = {
                         'student': student.user.username,
-                        'answers': [{'question': answer.wtk_poll.question, 'answer': answer.answer} for answer in student_answer.answers.all()]
+                        'choices': checkbox_choices,
+                        'question' : wtk_poll.question  
                     }
+                  
             else:
                 raise InvalidTypeException()
         except Topic.DoesNotExist:
             raise TopicNotFoundException()
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
+        student_data['topic'] = topic.name
+        student_data['course'] = topic.course.short_name    
         return Response(student_data, status=status.HTTP_200_OK)
 
 
@@ -338,117 +357,117 @@ class TopicPollingAnalysisView(APIView):
 
     @swagger_auto_schema(operation_description="Get the polling data for the topic", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, topic):
-        poll_data = []
-        topic = Topic.objects.get(id=topic)
-        question = WtkPollQuestion.objects.get(wtk__topic=topic)
-        choices = question.choices.all()
-        for choice in choices:
-            choice_data = {
-                'choice': choice.option_answer,
-                'total_votes': choice.total_votes
+        try:
+            poll_data = {}
+            topic = Topic.objects.get(id=topic)
+            question = WtkPollQuestion.objects.get(wtk__topic=topic)
+            choices = question.choices.all()
+            choices_data = []
+            wtk = WantToKnow.objects.get(topic=topic)
+            wtk_total_participants = WtkPollStudentAnswer.objects.filter(wtk_poll__wtk=wtk).count()
+            for choice in choices:
+                choice_data = {
+                    'choice': choice.option_answer,
+                    'total_votes': "{:.2f}".format((choice.total_votes/wtk_total_participants) * 100)+'%'
+                }
+                choices_data.append(choice_data)
+            poll_data['question'] = question.question
+            poll_data['choices'] = choices_data
+
+            course_short_name = topic.course.short_name
+            course_full_name = topic.course.full_name
+            topic_name = topic.name
+            poll_data['course'] = {
+                'short_name': course_short_name,
+                'full_name': course_full_name
             }
-            poll_data.append(choice_data)
-
-        course_short_name = topic.course.short_name
-        course_full_name = topic.course.full_name
-        topic_name = topic.name
-        poll_data.append({'course_full_name':course_full_name,'course_short_name': course_short_name, 'topic_name': topic_name})
+            poll_data['topic'] = topic_name
 
 
-        return Response(poll_data, status=status.HTTP_200_OK)
+            return Response(poll_data, status=status.HTTP_200_OK)
+        except Topic.DoesNotExist:
+            raise TopicNotFoundException()
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
+
 class QuizAccuracyAnalysisView(APIView):
 
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(operation_description="Get the number of correct answers for each quiz question", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, type, topic):
         topic = Topic.objects.get(id=topic)
+        accuracy_data = {}
+        accuracy_data['topic'] = topic.name
+        accuracy_data['course_short_name'] = topic.course.short_name
         quiz_data = []
         if type == 'know':
             quiz_question = KnowQuizQuestion.objects.filter(know__topic=topic)
             for question in quiz_question:
                 correct_answers = KnowQuizStudentAnswer.objects.filter(answers__know_quiz=question, answers__isCorrect=True).count()
-                accuracy = (correct_answers / question.know.total_participants) * 100
+                accuracy = "{:.2f}".format((correct_answers / question.know.total_participants) * 100)
                 question_data = {
                     'question': question.question,
                     'accuracy': accuracy
                 }
-                quiz_data.append(question_data)
+                accuracy_data.append(question_data)
+            accuracy_data['quiz_data'] = quiz_data
+
         elif type == 'learned':
             quiz_question = LearnedQuizQuestion.objects.filter(learned__topic=topic)
             for question in quiz_question:
                 correct_answers = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz=question, answers__isCorrect=True).count()
-                accuracy = (correct_answers / question.learned.total_participants) * 100
+                accuracy = "{:.2f}".format((correct_answers / question.learned.total_participants) * 100)
                 question_data = {
                     'question': question.question,
                     'accuracy': accuracy
                 }
                 quiz_data.append(question_data)
+            accuracy_data['quiz_data'] = quiz_data
         else:
             raise InvalidTypeException()
             
 
-        return Response({'questions': quiz_data}, status=status.HTTP_200_OK)
+        return Response(accuracy_data, status=status.HTTP_200_OK)
        
 
-class QuizBarchartImageView(APIView):
+class QuizBarchartView(APIView):
 
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(operation_description="Get the image of the barchart for the quiz questions", responses={200: "OK", 400: "Bad Request"})
     def get(self, request, type, topic):
-        topic = Topic.objects.get(id=topic)
-        quiz_data = []
-        if type == 'know':
-            quiz_question = KnowQuizQuestion.objects.filter(know__topic=topic)
-            for index, question in enumerate(quiz_question):
-                correct_answers = KnowQuizStudentAnswer.objects.filter(answers__know_quiz=question, answers__isCorrect=True).count()
-                incorrect_answers = question.know.total_participants - correct_answers
-                question_data = {
-                    'question': index+1,
-                    'correct_answers': correct_answers,
-                    'incorrect_answers': incorrect_answers
-                }
-                quiz_data.append(question_data)
-        elif type == 'learned':
-            quiz_question = LearnedQuizQuestion.objects.filter(learned__topic=topic)
-            for question in quiz_question:
-                correct_answers = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz=question, answers__isCorrect=True).count()
-                incorrect_answers = question.learned.total_participants - correct_answers
-                question_data = {
-                    'question': index+1,
-                    'correct_answers': correct_answers,
-                    'incorrect_answers': incorrect_answers
-                }
-                quiz_data.append(question_data)
-        else:
-            raise InvalidTypeException()
-
-        # Generate bar chart
-        fig, ax = plt.subplots()
-        questions = [data['question'] for data in quiz_data]
-        correct_answers = [data['correct_answers'] for data in quiz_data]
-        incorrect_answers = [data['incorrect_answers'] for data in quiz_data]
-        ax.bar(range(len(questions)), correct_answers, label='Correct Answers')
-        ax.bar(range(len(questions)), incorrect_answers, bottom=correct_answers, label='Incorrect Answers')
-
-        # Set x-ticks and x-ticklabels
-        ax.set_xticks(range(len(questions)))
-        ax.set_xticklabels(questions)
-
-        yticks = range(0, max(correct_answers + incorrect_answers) + 1)
-        ax.set_yticks(yticks)
-        ax.set_yticklabels([str(ytick) for ytick in yticks])
+        try:
+            topic = Topic.objects.get(id=topic)
+            quiz_data = []
+            if type == 'know':
+                quiz_question = KnowQuizQuestion.objects.filter(know__topic=topic)
+                for index, question in enumerate(quiz_question):
+                    correct_answers = KnowQuizStudentAnswer.objects.filter(answers__know_quiz=question, answers__isCorrect=True).count()
+                    incorrect_answers = question.know.total_participants - correct_answers
+                    question_data = {
+                        'index': index+1,
+                        'correct_answers': correct_answers,
+                        'incorrect_answers': incorrect_answers
+                    }
+                    quiz_data.append(question_data)
+            elif type == 'learned':
+                quiz_question = LearnedQuizQuestion.objects.filter(learned__topic=topic).all()
+                for index, question in enumerate(quiz_question):
+                    
+                    correct_answers = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz=question, answers__isCorrect=True).count()
+                    incorrect_answers = question.learned.total_participants - correct_answers
+                    question_data = {
+                        'index': index+1,
+                        'correct_answers': correct_answers,
+                        'incorrect_answers': incorrect_answers
+                    }
+                    quiz_data.append(question_data)
+            else:
+                raise InvalidTypeException()
 
 
-        ax.set_ylabel('Number of Answers')
-        ax.set_title('Quiz Answers Bar Chart')
-        ax.legend()
-
-        # Save the plot to a file in the media root directory
-        image_path = os.path.join(settings.MEDIA_ROOT, 'barchart.png')
-        plt.savefig(image_path)
-
-        # Create the URL to access the image
-        image_url = os.path.join(settings.MEDIA_URL, 'barchart.png')
-
-        return Response({'questions': quiz_data, 'barchart': image_url}, status=status.HTTP_200_OK)
+            return Response({'quiz_data': quiz_data}, status=status.HTTP_200_OK)
+        except Topic.DoesNotExist:
+            raise TopicNotFoundException()
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
