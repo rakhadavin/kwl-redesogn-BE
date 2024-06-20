@@ -133,7 +133,7 @@ class KwlPointLadderView(APIView):
 
             for student_point in four_highest_student_points:
                 student_data = {
-                    'student': student_point.student.user.username,
+                    'student': student_point.student.user.first_name + ' ' + student_point.student.user.last_name,
                     'total_point': student_point.get_total_point()
                 }
                 four_highest_student_points_data.append(student_data)
