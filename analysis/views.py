@@ -410,7 +410,7 @@ class QuizAccuracyAnalysisView(APIView):
                     'question': question.question,
                     'accuracy': accuracy
                 }
-                accuracy_data.append(question_data)
+                quiz_data.append(question_data)
             accuracy_data['quiz_data'] = quiz_data
 
         elif type == 'learned':
