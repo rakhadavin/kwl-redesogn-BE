@@ -53,7 +53,7 @@ class WordCloudAPIView(APIView):
         all_reflections = ' '.join(reflection[1] for reflection in reflections)
        
 
-        wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_reflections)
+        wordcloud = WordCloud(width=1600, height=800, background_color='white', max_font_size=200).generate(all_reflections)
 
         image_path = os.path.join(settings.MEDIA_ROOT, 'word_cloud.png')
 

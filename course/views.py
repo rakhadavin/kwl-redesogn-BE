@@ -14,11 +14,11 @@ from know.api_exceptions import KnowDoesNotExistException, KnowReflectionNotFoun
 from learned.api_exceptions import LearnedDoesNotExistException, LearnedQuizNotFoundException, LearnedReflectionNotFoundException
 from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedReflection, LearnedQuizQuestion
 from wtk.models import WantToKnow, WtkReflectionStudentAnswer, WtkPollStudentAnswer, WtkReflection, WtkPollQuestion
-from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPoint, Topic, LastAccessedStudentCourse, KwlPoint
+from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPoint, Topic, KwlPoint
 from authentication.models import Lecturer
 from rest_framework import status
 from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, WtkPollNotFoundException
-from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, RewardPointSerializer, TopicSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, LastAccessedStudentCourseSerializer, RedeemSerializer, KwlPointSerializer
+from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, RewardPointSerializer, TopicSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, RedeemSerializer, KwlPointSerializer
 from rest_framework import generics
 from know.models import KnowReflectionStudentAnswer, KnowQuizStudentAnswer, Know
 from rest_framework.decorators import api_view, permission_classes
@@ -459,41 +459,6 @@ class FeedbackTopicView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class LastAccessedCourseStudentView(APIView):
-    permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_summary="Get 4 last accessed courses by student id")
-    def get(self, request, student_id, format=None):
-        try:
-            student = Student.objects.get(pk=student_id)
-            last_accessed_courses = LastAccessedStudentCourse.objects.filter(student=student).order_by('-last_accessed')[:4]
-            serializer = LastAccessedStudentCourseSerializer(last_accessed_courses, many=True)
-            return Response(serializer.data)
-        except Student.DoesNotExist:
-            raise StudentNotFoundException()
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-class AddLastAccessedStudentCourseView(APIView):
-    @swagger_auto_schema(operation_summary="Add last accessed course to student", request_body=LastAccessedStudentCourseSerializer)
-    def post(self, request, format=None):
-        try:
-            serializer = LastAccessedStudentCourseSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            student = Student.objects.get(pk=serializer.validated_data['student'])
-            course = Course.objects.get(pk=serializer.validated_data['course'])
-            accessed, created = LastAccessedStudentCourse.objects.get_or_create(student=student, course=course)
-            if not created:
-                accessed.last_accessed = timezone.now()
-                accessed.save()
-            return Response({"message":"Last accessed updated"}, status=status.HTTP_201_CREATED)
-            
-        except Student.DoesNotExist:
-            raise StudentNotFoundException()
-        except Course.DoesNotExist:
-            raise CourseNotFoundException()
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class RedeemRewardView(APIView):
     permission_classes = [IsAuthenticated,]

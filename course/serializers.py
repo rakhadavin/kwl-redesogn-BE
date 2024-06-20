@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from authentication.models import Lecturer, Student
 from know.serializers import KnowSerializer
-from .models import Course, LastAccessedStudentCourse, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory, KwlPoint
+from .models import Course, RewardItem, RewardStudentPoint, Topic, Feedback, RedeemHistory, KwlPoint
 from know.models import Know
 from learned.models import Learned
 from wtk.models import WantToKnow
@@ -173,35 +173,6 @@ class RemoveLecturerFromCourseSerializer(serializers.Serializer):
     lecturer_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
-class LastAccessedStudentCourseSerializer(serializers.ModelSerializer):
-    student = serializers.IntegerField(write_only=True)
-    course = serializers.IntegerField(write_only=True)
-    course_name = serializers.CharField(source='course.full_name', read_only=True)
-    # last_accessed = serializers.SerializerMethodField(read_only=True)
-
-    def validate(self, attrs):
-        if 'student' in attrs:
-            if not Student.objects.filter(pk=attrs['student']).exists():
-                raise StudentNotFoundException()
-        if 'course' in attrs:
-            if not Course.objects.filter(pk=attrs['course']).exists():
-                raise CourseNotFoundException()
-        return super().validate(attrs)
-
-    class Meta:
-        model = LastAccessedStudentCourse
-        fields = ['student','course','last_accessed','id','course_name']
-
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['last_accessed'] = instance.created.strftime("%Y-%m-%d")
-        return ret
-
-    # def get_last_accessed(self, obj):
-    #     jakarta_tz = timezone('Asia/Jakarta')
-    #     return obj.last_accessed.astimezone(jakarta_tz).strftime('%d-%m-%Y %H:%M:%S')
-
-
 class FeedbackSerializer(serializers.ModelSerializer):
     student = serializers.IntegerField(write_only=True)
     topic = serializers.IntegerField(write_only=True)
@@ -212,18 +183,6 @@ class FeedbackSerializer(serializers.ModelSerializer):
     class Meta:
         model = Feedback
         fields = ['student','topic','feedback','id','lecturer', 'student_name','lecturer_name', 'topic_name','created']
-    
-    # def validate(self, attrs):
-    #     if 'student' in attrs:
-    #         if not Student.objects.filter(pk=attrs['student']).exists():
-    #             raise StudentNotFoundException()
-    #     if 'topic' in attrs:
-    #         if not Topic.objects.filter(pk=attrs['topic']).exists():
-    #             raise TopicNotFoundException()
-    #     if 'lecturer' in attrs:
-    #         if not Lecturer.objects.filter(pk=attrs['lecturer']).exists():
-    #             raise LecturerNotFoundException()
-    #     return super().validate(attrs)
     
     def create(self, validated_data):
         student_id = validated_data.pop('student')

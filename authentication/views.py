@@ -8,7 +8,7 @@ from kwl import settings
 from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer, EditLecturerSerializer, EditStudentSerializer, ResetPasswordRequestSerializer, ChangePasswordSerializer
 from .models import KwlUser, Student, Lecturer
 from rest_framework_simplejwt.tokens import RefreshToken
-from authentication.utils import sso_login, get_tokens_for_user
+from authentication.utils import get_tokens_for_user
 from rest_framework.response import Response
 from django.core.mail import send_mail
 import random
@@ -26,24 +26,6 @@ class LoginView(APIView):
             serializer.is_valid(raise_exception=True)
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
-
-            # user = KwlUser.objects.filter(username=username).first()
-
-            # # SSO ONLY 
-            # if user is None:
-            #     sso_response = sso_login(username, password)
-            #     if sso_response.status_code == 200 and sso_response.json()['state'] != 0:
-            #         nama_lengkap = sso_response.json().get("nama")
-            #         nama_lengkap = nama_lengkap[0].upper() + nama_lengkap[1:]
-            #         first_name = nama_lengkap.split()[0]
-            #         last_name = ' '.join(nama_lengkap.split()[1:]) if len(nama_lengkap) > 1 else ''
-            #         user = KwlUser.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name)
-            #         Student.objects.create(user=user)
-            
-            #         return Response(data = {"message":'Login Success',"data":get_tokens_for_user(user)}, status=status.HTTP_200_OK)
-            #     else:
-            #         return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-            # else:
                 
             user = authenticate(request, username=username, password=password)
 
@@ -101,7 +83,6 @@ class StudentDetailView(APIView):
         id = request.user.id
         student = self.get_student_by_kwluser_id(id)
         serializer = StudentSerializer(student)
-        print(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, format=None):
@@ -111,7 +92,6 @@ class StudentDetailView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        print(serializer.errors)
         return Response(str(serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -135,6 +115,8 @@ class LecturerDetailView(APIView):
     def put(self, request, format=None):
         id = request.user.id
         lecturer = self.get_lecturer_by_kwluser_id(id)
+        if lecturer is None:
+            return Response({"message": "Lecturer not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = EditLecturerSerializer(lecturer, data=request.data)
         if serializer.is_valid():
             serializer.save()

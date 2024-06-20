@@ -31,9 +31,6 @@ urlpatterns = [
     path('feedback/<int:topic_id>/all', views.FeedbackTopicView.as_view()),
     path('feedback/student/<int:course_id>/<int:student_id>', views.FeedbackStudentCourseView.as_view()),
 
-    path('accessed/<int:student_id>', views.LastAccessedCourseStudentView.as_view()),
-    path('accessed', views.AddLastAccessedStudentCourseView.as_view()),
-
     path('redeem', views.RedeemRewardView.as_view()),
     path('redeem/<int:pk>', views.RedeemHistoryDetailView.as_view()),
     path('redeem/history/<int:course_id>/<int:student_id>', views.RedeemHistoryListView.as_view()),

@@ -38,13 +38,6 @@ class Topic(models.Model):
     def __str__(self):
         return self.name
     
-class LastAccessedStudentCourse(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
-    last_accessed = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return self.student.user.username
 
 class KwlPoint(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -68,7 +61,6 @@ class RewardStudentPoint(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True)
 
-    
     def __str__(self):
         return self.student.user.username
     
