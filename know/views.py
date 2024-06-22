@@ -53,8 +53,6 @@ class KnowQuizListView(APIView):
             with transaction.atomic():
                 
                 for question in serializer.validated_data['questions']:
-                    print('hola')
-                    print(question)
                     know_quiz = KnowQuizQuestion.objects.get(pk=question['id'])
          
                     know_quiz.question = question['question']
@@ -263,10 +261,9 @@ class KnowQuizAnswerView(APIView):
                 student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=know.topic.course)
                 kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=know.topic)
                 
-                
-                if answer_created:
-                    know.total_participants += 1
-                    know.save()
+               
+                know.total_participants += 1
+                know.save()
 
                 kwl_point.kwl_status = 'know'
                 quiz_answers.answers.clear()

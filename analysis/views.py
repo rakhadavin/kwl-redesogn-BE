@@ -243,6 +243,8 @@ class StudentAnswerDetailAnalysis(APIView):
                         all_quiz_options = KnowQuizOption.objects.filter(know_quiz=question)
                         for option in all_quiz_options:
                             student_answer = KnowQuizStudentAnswer.objects.filter(answers__know_quiz=question, student=student).first()
+                            if student_answer is None:
+                                return Response({'message': 'Mahasiswa belum mengisi tahap know'}, status=status.HTTP_400_BAD_REQUEST)
                             student_answer_isSelected = student_answer.answers.filter(id=option.id).exists()
                             correct_answer = option.isCorrect
                             option_answer = option.option_answer
@@ -269,8 +271,10 @@ class StudentAnswerDetailAnalysis(APIView):
                         quiz_data = []
                         all_quiz_options = LearnedQuizOption.objects.filter(learned_quiz=question)
                         for option in all_quiz_options:
-                    
+        
                             student_answer = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz=question, student=student).first()
+                            if student_answer is None:
+                                return Response({'error': 'Mahasiswa belum mengisi tahap learned'}, status=status.HTTP_400_BAD_REQUEST)
                             student_answer_isSelected = student_answer.answers.filter(id=option.id).exists()
                             correct_answer = option.isCorrect
                             option_answer = option.option_answer
