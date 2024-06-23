@@ -82,7 +82,7 @@ class Feedback(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
     lecturer = models.ForeignKey(Lecturer, on_delete=models.CASCADE)
-    feedback = models.CharField(max_length=250)
+    feedback = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
