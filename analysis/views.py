@@ -386,13 +386,7 @@ class TopicPollingAnalysisView(APIView):
                 'full_name': course_full_name
             }
             poll_data['topic'] = topic_name
-
-        course_short_name = topic.course.short_name
-        course_full_name = topic.course.full_name
-        topic_name = topic.name
-        poll_data.append({'course_full_name':course_full_name,'course_short_name': course_short_name, 'topic_name': topic_name})
-
-
+            
             return Response(poll_data, status=status.HTTP_200_OK)
         except Topic.DoesNotExist:
             raise TopicNotFoundException()
