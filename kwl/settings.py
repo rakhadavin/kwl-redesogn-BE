@@ -84,6 +84,7 @@ EMAIL_HOST_USER = os.getenv('EMAIL_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
 AUTH_USER_MODEL = 'authentication.KwlUser'
 EMAIL_USE_SSL = False
+FRONTEND_URL = os.getenv('FRONTEND_URL')
 
 
 INSTALLED_APPS = [

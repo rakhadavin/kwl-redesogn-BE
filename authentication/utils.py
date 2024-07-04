@@ -30,7 +30,6 @@ def get_tokens_for_user(user):
                                 key=SINGING_KEY,
                                 algorithms="HS512"
                                 )
-    print(decoded_data)
     return {
         'refresh': str(refresh),
         'access': str(refresh.access_token),
