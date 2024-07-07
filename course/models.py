@@ -16,8 +16,8 @@ KWL_STATUS = [
 ]
 # Create your models here.
 class Course(models.Model):
-    short_name = models.CharField(max_length=30)
-    full_name = models.CharField(max_length=100)
+    short_name = models.CharField(max_length=100)
+    full_name = models.CharField(max_length=255)
     color_theme = models.CharField(max_length=11, choices=COLOR)
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
     students = models.ManyToManyField(Student, blank=True, related_name='students')
@@ -29,7 +29,7 @@ class Course(models.Model):
 
 class Topic(models.Model):
     name = models.CharField(max_length=100)
-    description = models.CharField(max_length=250)
+    description = models.TextField()
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True,
     null=True)
     created = models.DateTimeField(auto_now_add=True)
@@ -70,7 +70,7 @@ class RewardItem(models.Model):
     stock = models.IntegerField(default=0)
     point = models.IntegerField(default=0)
     expired_date = models.CharField(max_length=30)
-    detail_instruction = models.CharField(max_length=250)
+    detail_instruction = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True)
     

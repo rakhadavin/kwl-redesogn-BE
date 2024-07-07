@@ -15,7 +15,7 @@ class Learned(models.Model):
 class LearnedQuizQuestion(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    question = models.CharField(max_length=255)
+    question = models.TextField()
     learned = models.ForeignKey('Learned', on_delete=models.CASCADE, blank=True, null=True)
     score = models.IntegerField(default=0)
     def __str__(self):
@@ -29,7 +29,7 @@ class LearnedQuizOption(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     learned_quiz = models.ForeignKey('LearnedQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
-    option_answer = models.CharField(max_length=255)
+    option_answer = models.TextField()
     isCorrect = models.BooleanField(default=False)
     alias = models.CharField(max_length=255, blank=True, null=True)
     def __str__(self):
@@ -46,7 +46,7 @@ class LearnedQuizStudentAnswer(models.Model):
 class LearnedReflection(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    question = models.CharField(max_length=255)
+    question = models.TextField()
     learned = models.ForeignKey('Learned', on_delete=models.CASCADE, blank=True, null=True)
     score = models.IntegerField(default=0)
     def __str__(self):
@@ -57,7 +57,7 @@ class LearnedReflectionStudentAnswer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     learned_ref = models.ForeignKey('LearnedReflection', on_delete=models.CASCADE, blank=True, null=True)
     student = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
-    reflection = models.TextField(max_length=255)
+    reflection = models.TextField()
     def __str__(self):
         return self.reflection
 

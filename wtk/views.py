@@ -11,7 +11,6 @@ from rest_framework.response import Response
 from .serializers import AddPollingQuestionSerializer, EditWtkEssaySerializer, WtkPollingQuestionSerializer, WtkPollingAnswerSerializer, AddWtkEssaySerializer, WtkReflectionAnswerSerializer, WtkReflectionSerializer, AddPrereadingSerializer, EditPrereadingSerializer, PrereadingSerializer, EditPollingQuestionSerializer, WtkMultipleChoiceAnswerSerializer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from django.http import Http404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.views import APIView
 from django.db import transaction
@@ -88,7 +87,6 @@ class PrereadingListView(APIView):
             serializer.save()
             return Response({"message": "Prereading added successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
         except Exception as e:
-            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(operation_summary="Get all Prereading")
@@ -182,7 +180,6 @@ class PollingDetailView(APIView):
     def put(self, request, topic_id):
         try:
             question = WtkPollQuestion.objects.get(wtk__topic_id=topic_id)
-            print(request.data)
             serializer = EditPollingQuestionSerializer(question, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -190,7 +187,6 @@ class PollingDetailView(APIView):
         except WtkPollQuestion.DoesNotExist:
             raise WtkDoesNotExistException()
         except Exception as e:
-            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     @swagger_auto_schema(operation_summary="Delete Polling question")

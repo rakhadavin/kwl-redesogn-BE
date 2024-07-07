@@ -11,7 +11,7 @@ from wtk.models import WantToKnow
 from wtk.serializers import WtkSerializer
 from learned.serializers import LearnedSerializer
 from .api_exceptions import CourseNotFoundException, TopicNotFoundException
-from authentication.api_exceptions import LecturerNotFoundException, StudentNotFoundException
+
 class CourseSerializer(serializers.ModelSerializer):
     lecturer = serializers.IntegerField(write_only=True)
     
@@ -25,9 +25,9 @@ class CourseSerializer(serializers.ModelSerializer):
         fields = ['short_name','full_name','color_theme','lecturer_team','students','id','lecturer','created','updated']
 
     def create(self, validated_data):
+
         today_year = datetime.datetime.now().year
         today_month = datetime.datetime.now().month
-        
         term = ""
         if today_month <= 7 and today_month >= 1:
             term = "Genap" 
@@ -150,7 +150,7 @@ class AddStudentToCourseSerializer(serializers.Serializer):
     course_id = serializers.IntegerField()
     
     def update(self, instance, validated_data):
-        student = Student.objects.get(pk=validated_data['student_id'])  # Changed from Lecturer to Student
+        student = Student.objects.get(pk=validated_data['student_id'])
         instance.students.add(student)
         return instance
     
@@ -165,11 +165,11 @@ class RemoveStudentFromCourseSerializer(serializers.Serializer):
         return instance
     
     
-class AddLecturerToCourseSerializer(serializers.Serializer):
+class AddLecturerToCourseSerializer(serializers.Serializer): #Unused, currenly only one lecturer per course
     lecturer_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
-class RemoveLecturerFromCourseSerializer(serializers.Serializer):
+class RemoveLecturerFromCourseSerializer(serializers.Serializer): #Unused, currenly only one lecturer per course
     lecturer_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
     
@@ -188,11 +188,11 @@ class FeedbackSerializer(serializers.ModelSerializer):
         student_id = validated_data.pop('student')
         topic_id = validated_data.pop('topic')
         lecturer_id = validated_data.pop('lecturer')
-        feedback, created = Feedback.objects.get_or_create(student_id=student_id, topic_id=topic_id, lecturer_id=lecturer_id, **validated_data)
+        feedback = Feedback.objects.create(student_id=student_id, topic_id=topic_id, lecturer_id=lecturer_id, **validated_data)
 
         return feedback
     
-    def update(self, instance, validated_data):
+    def update(self, instance, validated_data): #Unused, feedback cannot be updated right now
         student_id = validated_data.get('student', instance.student.id)
         topic_id = validated_data.get('topic', instance.topic.id)
         lecturer_id = validated_data.get('lecturer', instance.lecturer.id)
@@ -201,39 +201,49 @@ class FeedbackSerializer(serializers.ModelSerializer):
         instance.lecturer_id = lecturer_id
         instance.feedback = validated_data.get('feedback', instance.feedback)
         instance.save()
+
         return instance
     
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         ret['created'] = instance.created.strftime("%Y-%m-%d")
+
         return ret
     
-    
-class RedeemHistorySerializer(serializers.ModelSerializer):
+
+
+#Serializer that is used to serialize a redeemed reward item by a student
+class RedeemHistorySerializer(serializers.ModelSerializer): 
     class Meta:
         model = RedeemHistory
         fields = ['student','reward','course','created','id']
-    
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['created'] = instance.created.strftime("%Y-%m-%d")
+        return ret
+    
+#Serializer that is used to redeem a reward item by a student
 class RedeemSerializer(serializers.Serializer):
     student_id = serializers.IntegerField()
     reward_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
-    
+
+
+#Serializer that is used to list all redeemed reward items by a student 
 class RedeemHistoryListSerializer(serializers.ModelSerializer):
     reward_item = RewardItemSerializer(read_only=True)
     class Meta:
         model = RedeemHistory
         fields = ['student','reward_item','created','id']
     
-
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['created'] = instance.created.strftime("%Y-%m-%d")
+        return ret
+    
 class KwlPointSerializer(serializers.ModelSerializer):
     class Meta:
         model = KwlPoint
         fields = '__all__'
 
-class TopicKwlPointSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Topic
-        fields = ['name','description','id','course']
-    

@@ -33,10 +33,10 @@ class LearnedSerializer(serializers.ModelSerializer):
 
 
 class AddLearnedQuizQuestionSerializer(serializers.ModelSerializer):
-    option_a = serializers.CharField(max_length=255, write_only=True)
-    option_b = serializers.CharField(max_length=255, write_only=True)
-    option_c = serializers.CharField(max_length=255, write_only=True)
-    option_d = serializers.CharField(max_length=255, write_only=True)
+    option_a = serializers.CharField(max_length=1000, write_only=True)
+    option_b = serializers.CharField(max_length=1000, write_only=True)
+    option_c = serializers.CharField(max_length=1000, write_only=True)
+    option_d = serializers.CharField(max_length=1000, write_only=True)
     correct_option = serializers.ChoiceField(choices=option_choices, required=True, write_only=True)
 
     class Meta:
@@ -73,22 +73,25 @@ class BulkAddLearnedQuizSerializer(serializers.Serializer):
 
         return learned
 
-class EditLearnedQuizQuestionSerializer(serializers.Serializer):
-    option_a = serializers.CharField(max_length=255, write_only=True)
-    option_b = serializers.CharField(max_length=255, write_only=True)
-    option_c = serializers.CharField(max_length=255, write_only=True)
-    option_d = serializers.CharField(max_length=255, write_only=True)
-    question = serializers.CharField(max_length=255)
+class EditLearnedQuizQuestionSerializer(serializers.ModelSerializer):
+    option_a = serializers.CharField(max_length=1000, write_only=True)
+    option_b = serializers.CharField(max_length=1000, write_only=True)
+    option_c = serializers.CharField(max_length=1000, write_only=True)
+    option_d = serializers.CharField(max_length=1000, write_only=True)
     correct_option = serializers.ChoiceField(choices=option_choices, required=False, write_only=True)
-    score = serializers.IntegerField(required=False)
+    score = serializers.IntegerField()
     id =  serializers.IntegerField(required=True, write_only=True)
+
+    class Meta:
+        model = LearnedQuizQuestion
+        fields = ['option_a', 'option_b', 'option_c', 'option_d', 'question', 'correct_option', 'score', 'learned','id']
+    
 
 class BulkEditQuizSerializer(serializers.Serializer):
     questions = EditLearnedQuizQuestionSerializer(many=True, write_only=True)
 
-
 class AddLearnedEssaySerializer(serializers.ModelSerializer):
-    question = serializers.CharField(max_length=255)
+    question = serializers.CharField(max_length=1000)
     type = serializers.ChoiceField(choices=learned_choices, write_only=True)
     score = serializers.IntegerField()
     topic = serializers.IntegerField(write_only=True)
@@ -112,7 +115,7 @@ class AddLearnedEssaySerializer(serializers.ModelSerializer):
         return learned_essay
     
 class EditLearnedEssaySerializer(serializers.Serializer):
-    question = serializers.CharField(max_length=255)
+    question = serializers.CharField(max_length=1000)
     score = serializers.IntegerField()
     
     def update(self, instance, validated_data):
@@ -129,7 +132,7 @@ class LearnedReflectionSerializer(serializers.ModelSerializer):
         fields = ('id', 'question', 'score', 'learned' )
 
 class LearnedReflectionAnswerSerializer(serializers.Serializer):
-    reflection = serializers.CharField(max_length=255)
+    reflection = serializers.CharField(max_length=5000)
     topic = serializers.IntegerField(write_only=True)
 
 class LearnedQuizAnswerSerializer(serializers.Serializer):

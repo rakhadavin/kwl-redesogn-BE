@@ -16,7 +16,7 @@ class WantToKnow(models.Model):
 class WtkPollQuestion(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    question = models.CharField(max_length=255)
+    question = models.TextField()
     wtk = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
     choices = models.ManyToManyField('WtkChoices', blank=True, related_name='poll_choices')
     score = models.IntegerField(default=0)
@@ -27,7 +27,7 @@ class WtkPollQuestion(models.Model):
 class WtkChoices(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    option_answer = models.CharField(max_length=255)   
+    option_answer = models.TextField()
     total_votes = models.IntegerField(default=0)
     
     def __str__(self):
@@ -41,7 +41,7 @@ class WtkPollStudentAnswer(models.Model):
 class WtkReflection(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    question = models.CharField(max_length=255)
+    question = models.TextField()
     wtk = models.ForeignKey('WantToKnow', on_delete=models.CASCADE, blank=True, null=True)
     score = models.IntegerField(default=0)
     def __str__(self):
@@ -52,7 +52,7 @@ class WtkReflectionStudentAnswer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     wtk_ref = models.ForeignKey('WtkReflection', on_delete=models.CASCADE, blank=True, null=True)
     student = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
-    reflection = models.TextField(max_length=255)
+    reflection = models.TextField()
     def __str__(self):
         return self.reflection
     
@@ -60,7 +60,7 @@ class Prereading(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
-    prereading = models.TextField(max_length=255)
+    prereading = models.TextField()
     file = models.FileField(upload_to='prereading_files/', blank=True, null=True)   
     def __str__(self):
         return self.prereading

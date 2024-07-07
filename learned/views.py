@@ -1,9 +1,7 @@
-from django.http import Http404
-from django.shortcuts import render
-
 from authentication.models import Student
+from authentication.permissions import isLecturerInCourse
 from learned.api_exceptions import LearnedDoesNotExistException, LearnedReflectionNotFoundException
-from .serializers import AddLearnedEssaySerializer, EditLearnedEssaySerializer, LearnedQuizAnswerSerializer, LearnedReflectionAnswerSerializer, LearnedReflectionSerializer, AddLearnedQuizQuestionSerializer, EditLearnedQuizQuestionSerializer, LearnedQuizQuestionSerializer, BulkEditQuizSerializer, BulkAddLearnedQuizSerializer 
+from .serializers import AddLearnedEssaySerializer, EditLearnedEssaySerializer, LearnedQuizAnswerSerializer, LearnedReflectionAnswerSerializer, LearnedReflectionSerializer, AddLearnedQuizQuestionSerializer, EditLearnedQuizQuestionSerializer, LearnedQuizQuestionSerializer, BulkEditQuizSerializer, BulkAddLearnedQuizSerializer, get_topic 
 from .models import Learned, LearnedQuizOption, LearnedReflection, LearnedReflectionStudentAnswer, LearnedQuizQuestion, LearnedQuizStudentAnswer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,11 +12,14 @@ from drf_yasg.utils import swagger_auto_schema
 from django.db import transaction
 
 class LearnedQuizListView(APIView):
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated,isLecturerInCourse]
 
     @swagger_auto_schema(operation_description="Add bulk of learned quiz", request_body=BulkAddLearnedQuizSerializer)
     def post(self, request):
         try:
+            topic = get_topic(request.data['topic'])
+            course = topic.course
+            self.check_object_permissions(request, course)
             serializer = BulkAddLearnedQuizSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -41,26 +42,58 @@ class LearnedQuizListView(APIView):
             serializer = BulkEditQuizSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             with transaction.atomic():
-                validated_data = serializer.validated_data
-                questions = validated_data.pop('questions')
-                for question in questions:
-                    question_instance = LearnedQuizQuestion.objects.get(pk=question['id'])
-                    question_instance.question = question['question']
-                    question_instance.score = question['score']
-                    question_instance.save()
-                    options = question_instance.get_answers()
-                    options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
-                    for option in options_tuple:
-                        if option[0] in question:
-                            answer = options.get(alias=option[0])
-                            answer.option_answer = question[option[0]]
-                            if 'correct_option' in question:
-                                answer.isCorrect = question['correct_option'] == option[1]
-                            answer.save()
+
+                first_question_validated = serializer.validated_data['questions'][0]
+                learned_quiz = LearnedQuizQuestion.objects.get(pk=first_question_validated['id'])
+                total_questions_before_update = LearnedQuizQuestion.objects.filter(learned=learned_quiz.learned).count()
+                total_questions_after_update = len(serializer.validated_data['questions'])
+
+                if total_questions_before_update != total_questions_after_update:
+                    for total_question in range(total_questions_before_update):
+                        question = serializer.validated_data['questions'][total_question]
+                        question_instance = LearnedQuizQuestion.objects.get(pk=question['id'])
+                        question_instance.question = question['question']
+                        question_instance.score = question['score']
+                        question_instance.save()
+                        options = question_instance.get_answers()
+                        options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
+                        for option in options_tuple:
+                            if option[0] in question:
+                                answer = options.get(alias=option[0])
+                                answer.option_answer = question[option[0]]
+                                if 'correct_option' in question:
+                                    answer.isCorrect = question['correct_option'] == option[1]
+                                answer.save()
+                    
+                    for question in range(total_questions_before_update, total_questions_after_update):
+                        question = serializer.validated_data['questions'][question]
+                        question_instance = LearnedQuizQuestion.objects.create(learned=learned_quiz.learned, question=question['question'], score=question['score'])
+                        options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
+                        for option in options_tuple:
+                            if option[0] in question:
+                                LearnedQuizOption.objects.create(learned_quiz=question_instance, option_answer=question[option[0]], isCorrect=question['correct_option'] == option[1], alias=option[0])
+
+                
+                else:
+                    validated_data = serializer.validated_data
+                    questions = validated_data.pop('questions')
+                    for question in questions:
+                        question_instance = LearnedQuizQuestion.objects.get(pk=question['id'])
+                        question_instance.question = question['question']
+                        question_instance.score = question['score']
+                        question_instance.save()
+                        options = question_instance.get_answers()
+                        options_tuple = [('option_a', 'Opsi A'), ('option_b', 'Opsi B'), ('option_c', 'Opsi C'), ('option_d', 'Opsi D')]
+                        for option in options_tuple:
+                            if option[0] in question:
+                                answer = options.get(alias=option[0])
+                                answer.option_answer = question[option[0]]
+                                if 'correct_option' in question:
+                                    answer.isCorrect = question['correct_option'] == option[1]
+                                answer.save()
       
             return Response({"message": "Quiz updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
-            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 class LearnedQuizzesByTopicView(APIView):   
@@ -234,7 +267,6 @@ class LearnedQuizAnswerView(APIView):
                 student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned.topic.course)
                 kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=learned.topic)
                 kwl_point.kwl_status = 'learned'
-                kwl_point.learned_score = 0
                 
                 for answer_pk in answers:
                     quiz_option = LearnedQuizOption.objects.get(id=answer_pk)
@@ -245,9 +277,9 @@ class LearnedQuizAnswerView(APIView):
                         if quiz_option.isCorrect:
                             total_score = quiz_option.learned_quiz.score + student_point.total_point
                             student_point.total_point = total_score
-                    else:
-                        if quiz_option.isCorrect:
-                            kwl_point.learned_score += quiz_option.learned_quiz.score
+                    
+                    if quiz_option.isCorrect:
+                        kwl_point.learned_score += quiz_option.learned_quiz.score
 
                            
                 kwl_point.save()

@@ -29,12 +29,11 @@ class KnowSerializer(serializers.ModelSerializer):
     
 
 class AddKnowQuizQuestionSerializer(serializers.ModelSerializer):
-    option_a = serializers.CharField(max_length=255, write_only=True)
-    option_b = serializers.CharField(max_length=255, write_only=True)
-    option_c = serializers.CharField(max_length=255, write_only=True)
-    option_d = serializers.CharField(max_length=255, write_only=True)
+    option_a = serializers.CharField(max_length=1000, write_only=True)
+    option_b = serializers.CharField(max_length=1000, write_only=True)
+    option_c = serializers.CharField(max_length=1000, write_only=True)
+    option_d = serializers.CharField(max_length=1000, write_only=True)
     correct_option = serializers.ChoiceField(choices=option_choices, required=True, write_only=True)
-    
     
     class Meta:
         model = KnowQuizQuestion
@@ -72,10 +71,10 @@ class BulkAddQuizSerializer(serializers.Serializer):
 
 
 class EditKnowQuizQuestionSerializer(serializers.ModelSerializer):
-    option_a = serializers.CharField(max_length=255, write_only=True)
-    option_b = serializers.CharField(max_length=255, write_only=True)
-    option_c = serializers.CharField(max_length=255, write_only=True)
-    option_d = serializers.CharField(max_length=255, write_only=True)
+    option_a = serializers.CharField(max_length=1000, write_only=True)
+    option_b = serializers.CharField(max_length=1000, write_only=True)
+    option_c = serializers.CharField(max_length=1000, write_only=True)
+    option_d = serializers.CharField(max_length=1000, write_only=True)
     id = serializers.IntegerField(write_only=True)
     correct_option = serializers.ChoiceField(choices=option_choices, write_only=True)
     score = serializers.IntegerField()
@@ -90,10 +89,9 @@ class EditKnowQuizQuestionSerializer(serializers.ModelSerializer):
     
 class BulkEditQuizSerializer(serializers.Serializer):
     questions = EditKnowQuizQuestionSerializer(many=True, write_only=True)
-
     
 class AddKnowEssaySerializer(serializers.ModelSerializer):
-    question = serializers.CharField(max_length=255)
+    question = serializers.CharField(max_length=1000)
     type = serializers.ChoiceField(choices=know_choices, write_only=True)
     score = serializers.IntegerField()
     topic = serializers.IntegerField(write_only=True)
@@ -118,7 +116,7 @@ class AddKnowEssaySerializer(serializers.ModelSerializer):
     
 
 class EditKnowEssaySerializer(serializers.Serializer):
-    question = serializers.CharField(max_length=255)
+    question = serializers.CharField(max_length=1000)
     score = serializers.IntegerField()
 
     def update(self, instance, validated_data):
@@ -137,7 +135,7 @@ class KnowReflectionSerializer(serializers.ModelSerializer):
 
 
 class KnowReflectionAnswerSerializer(serializers.Serializer):
-    reflection = serializers.CharField(max_length=255)
+    reflection = serializers.CharField(max_length=5000)
     topic = serializers.IntegerField()
 
 class KnowQuizAnswerSerializer(serializers.Serializer):

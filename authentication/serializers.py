@@ -153,6 +153,7 @@ class EditLecturerSerializer(serializers.Serializer):
         Update and return an existing `Lecturer` instance, given the validated data.
         """
         instance.department = validated_data.get('department', instance.department)
+        print(validated_data)
         instance.lecturer_id = validated_data.get('lecturer_id', instance.lecturer_id)
         user = instance.user
         user.email = validated_data.get('email', user.email)
@@ -171,6 +172,14 @@ class EditLecturerSerializer(serializers.Serializer):
         instance.save()
 
         return instance
+    
+    def validate_email(self, value):
+        user = self.context.get('user', None)
+
+        if user and KwlUser.objects.filter(email=value).exclude(id=user.id).exists():
+            raise ExistingEmailException
+        
+        return value
 
     
 class EditStudentSerializer(serializers.Serializer):
@@ -209,6 +218,14 @@ class EditStudentSerializer(serializers.Serializer):
         instance.save()
 
         return instance
+    
+    def validate_email(self, value):
+        user = self.context.get('user', None)
+        
+        if user and KwlUser.objects.filter(email=value).exclude(id=user.id).exists():
+            raise ExistingEmailException
+        
+        return value
 
 class ResetPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()

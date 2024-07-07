@@ -205,7 +205,10 @@ class StudentKWLRecapView(APIView):
                     'answered': wtk_answered,
                     'type': wtk_type
                 },
-                'participation_percentage': participation_percentage
+                'participation_percentage': participation_percentage,
+                'student': student.user.first_name + ' ' + student.user.last_name,
+                'course': topic.course.short_name,
+                'topic': topic.name,
 
             }
 
@@ -456,7 +459,6 @@ class QuizBarchartView(APIView):
             elif type == 'learned':
                 quiz_question = LearnedQuizQuestion.objects.filter(learned__topic=topic).all()
                 for index, question in enumerate(quiz_question):
-                    
                     correct_answers = LearnedQuizStudentAnswer.objects.filter(answers__learned_quiz=question, answers__isCorrect=True).count()
                     incorrect_answers = question.learned.total_participants - correct_answers
                     question_data = {

@@ -15,12 +15,12 @@ class WtkSerializer(serializers.ModelSerializer):
         fields = ['id', 'topic', 'type','prereading']
 
 class AddPollingQuestionSerializer(serializers.ModelSerializer):
-    question = serializers.CharField(max_length=255)
+    question = serializers.CharField()
     type = serializers.ChoiceField(choices=wtk_choices,write_only=True)
     score = serializers.IntegerField()
     options = serializers.ListField(
 
-    child=serializers.CharField(max_length=255, required=True),
+    child=serializers.CharField(max_length=1000, required=True),
     write_only=True
     )
 
@@ -47,10 +47,10 @@ class AddPollingQuestionSerializer(serializers.ModelSerializer):
         return poll_question
     
 class EditPollingQuestionSerializer(serializers.Serializer):
-    question = serializers.CharField(max_length=255, required=False)
+    question = serializers.CharField(max_length=1000, required=False)
     score = serializers.IntegerField(required=False)
     options = serializers.ListField(
-    child=serializers.CharField(max_length=255, required=False),
+    child=serializers.CharField(max_length=1000, required=False),
     required=False,
     write_only=True
     )
@@ -61,7 +61,7 @@ class EditPollingQuestionSerializer(serializers.Serializer):
     )
     topic = serializers.IntegerField(required=False, write_only=True)
 
-    def update(self, instance, validated_data):
+    def update(self, instance: WtkPollQuestion, validated_data):
         with transaction.atomic():
             if 'question' in validated_data:
                 instance.question = validated_data['question']
@@ -69,11 +69,38 @@ class EditPollingQuestionSerializer(serializers.Serializer):
                 instance.score = validated_data['score']
             if len(validated_data['options']) != len(validated_data['options_ids']):
                 raise serializers.ValidationError("Length of options and options ids must be equal")
-            for i in range(len(validated_data['options'])):
-                if validated_data['options'][i]:
+            
+            total_options_before_updated = instance.choices.count()
+            total_options_after_updated = len(validated_data['options'])
+
+            if total_options_before_updated > total_options_after_updated:
+                # update the existing options
+                for i in range(total_options_after_updated):
                     choice = WtkChoices.objects.get(id=validated_data['options_ids'][i])
                     choice.option_answer = validated_data['options'][i]
                     choice.save()
+                # remove the rest of the options
+                choices = instance.choices.all()
+                for i in range(total_options_before_updated - 1, total_options_after_updated - 1, -1):
+                    # delete that is not in the validated_data options_ids
+                    choice: WtkChoices = choices[i]
+                    choice.delete()
+                    
+
+            elif total_options_before_updated < total_options_after_updated:
+                for i in range(0, total_options_before_updated):
+                    choice = WtkChoices.objects.get(id=validated_data['options_ids'][i])
+                    choice.option_answer = validated_data['options'][i]
+                    choice.save()
+                for i in range(total_options_before_updated, total_options_after_updated):
+                    choice = WtkChoices.objects.create(option_answer=validated_data['options'][i])
+                    instance.choices.add(choice)
+            else:
+                for i in range(len(validated_data['options'])):
+                    if validated_data['options'][i]:
+                        choice = WtkChoices.objects.get(id=validated_data['options_ids'][i])
+                        choice.option_answer = validated_data['options'][i]
+                        choice.save()
             instance.save()
         return instance
 
@@ -97,7 +124,7 @@ class WtkPollingQuestionSerializer(serializers.ModelSerializer):
         fields = ['score', 'question', 'wtk', 'id', 'choices']
 
 class AddWtkEssaySerializer(serializers.ModelSerializer):
-    question = serializers.CharField(max_length=255, required=True)
+    question = serializers.CharField(max_length=1000, required=True)
     type = serializers.ChoiceField(choices=wtk_choices, write_only=True)
     score = serializers.IntegerField(required=True)
     topic = serializers.IntegerField(write_only=True)
@@ -127,7 +154,7 @@ class WtkReflectionSerializer(serializers.ModelSerializer):
         fields = ('id', 'question', 'score', 'wtk' )
 
 class EditWtkEssaySerializer(serializers.Serializer):
-    question = serializers.CharField(max_length=255, required=False)
+    question = serializers.CharField(max_length=1000, required=False)
     score = serializers.IntegerField(required=False)
 
     def update(self, instance, validated_data):
@@ -141,7 +168,7 @@ class EditWtkEssaySerializer(serializers.Serializer):
 class AddPrereadingSerializer(serializers.ModelSerializer):
     file = serializers.FileField(max_length=None, use_url=True, required=False)
     topic = serializers.IntegerField(write_only=True)
-
+    prereading = serializers.CharField(max_length=5000, required=False, allow_blank=True)
     class Meta:
         model = Prereading
         fields = ('id', 'prereading','file', 'topic')
@@ -149,7 +176,12 @@ class AddPrereadingSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         with transaction.atomic():
             topic = get_topic(validated_data['topic'])
-            prereading, created = Prereading.objects.get_or_create(prereading=validated_data['prereading'], topic=topic)
+            
+
+            prereading, created = Prereading.objects.get_or_create(topic=topic)
+            if validated_data['prereading']:
+                prereading.prereading = validated_data['prereading']
+            
             try:
                 wtk = WantToKnow.objects.get(topic=topic)
             except WantToKnow.DoesNotExist:
@@ -165,7 +197,7 @@ class AddPrereadingSerializer(serializers.ModelSerializer):
         return prereading
 
 class EditPrereadingSerializer(serializers.Serializer):
-    prereading = serializers.CharField(max_length=255)
+    prereading = serializers.CharField(max_length=5000, required=False, allow_blank=True)
     file = serializers.FileField(max_length=None, use_url=True, required=False)
 
     def update(self, instance, validated_data):
@@ -177,13 +209,13 @@ class EditPrereadingSerializer(serializers.Serializer):
         instance.save()
         return instance
 
-class PrereadingSerializer(serializers.ModelSerializer):
+class PrereadingSerializer(serializers.ModelSerializer): #Create, retrieval, and delete only
     class Meta:
         model = Prereading
         fields = ('id', 'prereading', 'file', 'topic')
     
 class WtkReflectionAnswerSerializer(serializers.Serializer):
-    reflection = serializers.CharField(max_length=255)
+    reflection = serializers.CharField(max_length=5000)
     topic = serializers.IntegerField(write_only=True)
 
 

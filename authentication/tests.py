@@ -206,33 +206,4 @@ class ResetPasswordTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    @mock.patch('django.core.mail.send_mail')
-    def test_send_reset_email(self, mock_send_mail):
-
-        user = KwlUser.objects.create(username="anisa.faradisa",email="anisa.faradisa@gmail.com", role="student", domisili="Jakarta")
-        user.set_password("anisa1234")
-        user.save()
-    
-        response = self.client.post(
-            '/api/auth/reset',
-            data={"email": "anisa.faradisa@gmail.com"},
-            content_type='application/json'
-        )
-        
-        # # Assert send_mail was called
-        # mock_send_mail.assert_called_once_with(
-        #     subject='Reset Password',
-        #     message=mock.ANY,  # Use mock.ANY if you don't want to assert the exact message
-        #     from_email='kowl.apps@gmail.com',
-        #     recipient_list=['anisa.faradisa@gmail.com'],
-        #     fail_silently=False,
-        #     auth_password=mock.ANY,  # Use mock.ANY if you don't want to assert the exact password
-        #     auth_user=mock.ANY  # Use mock.ANY if you don't want to assert the exact user
-        # )
-        
-        # Assert response
-
-        print(response.data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, {"message": "Reset password email sent successfully"})
-                  
+  

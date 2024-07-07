@@ -17,7 +17,7 @@ class Know(models.Model):
 class KnowQuizQuestion(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    question = models.CharField(max_length=255)
+    question = models.TextField()
     know = models.ForeignKey('Know', on_delete=models.CASCADE, blank=True, null=True)
     score = models.IntegerField(default=0)
     def __str__(self):
@@ -30,9 +30,10 @@ class KnowQuizOption(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     know_quiz = models.ForeignKey('KnowQuizQuestion', on_delete=models.CASCADE, blank=True, null=True)
-    option_answer = models.CharField(max_length=255)
+    option_answer = models.TextField()
     isCorrect = models.BooleanField(default=False)
     alias = models.CharField(choices=alias_choices, max_length=255, blank=True, null=True)
+
     def __str__(self):
         return self.option_answer
 
@@ -42,15 +43,17 @@ class KnowQuizStudentAnswer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     student = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
     answers = models.ManyToManyField(KnowQuizOption, blank=True, related_name='student_answers')
+
     def __str__(self):
         return self.student.user.username
     
 class KnowReflection(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    question = models.CharField(max_length=255)
+    question = models.TextField()
     know = models.ForeignKey('Know', on_delete=models.CASCADE, blank=True, null=True)
     score = models.IntegerField(default=0)
+
     def __str__(self):
         return self.question
  
@@ -60,7 +63,8 @@ class KnowReflectionStudentAnswer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     know_ref = models.ForeignKey('KnowReflection', on_delete=models.CASCADE, blank=True, null=True)
     student = models.ForeignKey('authentication.Student', blank=True, null=True, on_delete=models.CASCADE)
-    reflection = models.TextField(max_length=255)
+    reflection = models.TextField()
+
     def __str__(self):
         return self.reflection
     

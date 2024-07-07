@@ -12,7 +12,6 @@ from authentication.utils import get_tokens_for_user
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from drf_yasg.utils import swagger_auto_schema
-from .api_exceptions import ChangePasswordException
 
 class LoginView(APIView):
     permission_classes = (AllowAny,)
@@ -20,6 +19,7 @@ class LoginView(APIView):
     @swagger_auto_schema(request_body=LoginSerializer, responses={200: "Login Success", 401: "Unauthorized"}, operation_summary="Login using username and password")
     def post(self, request):
         try:
+            
             serializer = LoginSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             username = serializer.validated_data['username']
@@ -89,7 +89,7 @@ class StudentDetailView(APIView):
     def put(self, request, format=None):
         id = request.user.id
         student = self.get_student_by_kwluser_id(id)
-        serializer = EditStudentSerializer(student, data=request.data)
+        serializer = EditStudentSerializer(student, data=request.data, context={'user': request.user})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -118,7 +118,7 @@ class LecturerDetailView(APIView):
         lecturer = self.get_lecturer_by_kwluser_id(id)
         if lecturer is None:
             return Response({"message": "Lecturer not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = EditLecturerSerializer(lecturer, data=request.data)
+        serializer = EditLecturerSerializer(lecturer, data=request.data, context={'user': request.user})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -178,7 +178,6 @@ class RequestPasswordResetEmailView(APIView):
                 auth_user=settings.EMAIL_HOST_USER
             )
         except SMTPException as e:
-            print(e)
             return Response({"message": f"Email could not be sent. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({"message": "Reset password email sent successfully"}, status=status.HTTP_200_OK)
 

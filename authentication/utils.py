@@ -45,3 +45,5 @@ def custom_exception_handler(exc, context):
             response.data['message'] = response.data['detail']
             del response.data['detail']
     return response
+
+

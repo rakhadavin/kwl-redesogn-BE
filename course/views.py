@@ -1,31 +1,23 @@
 from datetime import datetime
 
 from django.utils import timezone
-
-from django.http import Http404
-from django.shortcuts import render
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from authentication.permissions import isEnrolledInCourse
 from authentication.models import Student
 from authentication.serializers import LecturerSerializer, StudentSerializer
-from know.api_exceptions import KnowDoesNotExistException, KnowReflectionNotFoundException, KnowQuizNotFoundException
-from learned.api_exceptions import LearnedDoesNotExistException, LearnedQuizNotFoundException, LearnedReflectionNotFoundException
-from learned.models import Learned, LearnedReflectionStudentAnswer, LearnedQuizStudentAnswer, LearnedReflection, LearnedQuizQuestion
-from wtk.models import WantToKnow, WtkReflectionStudentAnswer, WtkPollStudentAnswer, WtkReflection, WtkPollQuestion
 from .models import Course, Feedback, RedeemHistory, RewardItem, RewardStudentPoint, Topic, KwlPoint
 from authentication.models import Lecturer
 from rest_framework import status
-from wtk.api_exceptions import WtkDoesNotExistException, WtkReflectionNotFoundException, WtkPollNotFoundException
 from .serializers import CourseSerializer, RedeemHistoryListSerializer, RewardItemSerializer, RewardPointSerializer, TopicSerializer, AddLecturerToCourseSerializer, AddStudentToCourseSerializer, RemoveStudentFromCourseSerializer, RemoveLecturerFromCourseSerializer, FeedbackSerializer, RedeemSerializer, KwlPointSerializer
 from rest_framework import generics
-from know.models import KnowReflectionStudentAnswer, KnowQuizStudentAnswer, Know
 from rest_framework.decorators import api_view, permission_classes
 from drf_yasg.utils import swagger_auto_schema
 from .api_exceptions import CourseNotFoundException, StudentPointNotFoundException
 from authentication.api_exceptions import LecturerNotFoundException, StudentNotFoundException
 from django.db import transaction
+from rest_framework import exceptions
 
 class CourseEnrolledView():
 
@@ -46,7 +38,7 @@ class CourseEnrolledView():
     @permission_classes([IsAuthenticated,])
     @api_view(['GET'])
     @swagger_auto_schema(operation_summary="Get all teachers by course id")
-    def get_all_lecturers_by_course_id(request,course_id):
+    def get_all_lecturers_by_course_id(request, course_id):
         try:
             course = Course.objects.get(pk=course_id)
             teachers = course.lecturer_team.all()
@@ -59,7 +51,6 @@ class CourseEnrolledView():
 
 class EnrollStudentToCourseView(APIView):
     permission_classes = [IsAuthenticated,]
-
     @swagger_auto_schema(operation_summary="Enroll student to course", request_body=AddStudentToCourseSerializer)
     def post(self, request):
         try:
@@ -92,10 +83,9 @@ class EnrollStudentToCourseView(APIView):
         except Student.DoesNotExist:
             raise StudentNotFoundException()
         except Exception as e:
-            print(e)
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class EnrollLecturerToCourseView(APIView):
+class EnrollLecturerToCourseView(APIView): #Unused for now, lecturer is automatically enrolled when creating a course and the lecturer is the creator
     permission_classes = [IsAuthenticated,]
 
     @swagger_auto_schema(operation_summary="Enroll lecturer to course", request_body=AddLecturerToCourseSerializer)
@@ -159,7 +149,6 @@ class CourseTopicView(APIView):
         except Course.DoesNotExist:
             raise CourseNotFoundException()
         except Exception as e:
-            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class CourseStudentView(APIView):
@@ -178,7 +167,6 @@ class CourseStudentView(APIView):
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
-
 class CourseList(APIView):
     permission_classes = [IsAuthenticated,]
     @swagger_auto_schema(operation_summary="List all courses")
@@ -188,7 +176,6 @@ class CourseList(APIView):
             serializer = CourseSerializer(courses, many=True)
             return Response(serializer.data)
         except Exception as e:
-            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     @swagger_auto_schema(operation_summary="Create a course",request_body=CourseSerializer, responses={201: 'Created'})
@@ -206,15 +193,15 @@ class CourseList(APIView):
         except Lecturer.DoesNotExist:
             raise LecturerNotFoundException()
         except Exception as e:
-            print(str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CourseDetailView(APIView):
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated, isEnrolledInCourse]
     def get_object(self, pk):
         try:
-            return Course.objects.get(pk=pk)
+            course = Course.objects.get(pk=pk)
+            return course
         except Course.DoesNotExist:
             raise CourseNotFoundException()
         except Exception as e:
@@ -224,10 +211,11 @@ class CourseDetailView(APIView):
     def get(self, request, pk, format=None):
         try:
             course = self.get_object(pk)
+            self.check_object_permissions(self.request, course)
             serializer = CourseSerializer(course)
             return Response(serializer.data)
-        except Course.DoesNotExist:
-            raise CourseNotFoundException()
+        except exceptions.PermissionDenied:
+            raise exceptions.PermissionDenied()
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
