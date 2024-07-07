@@ -183,6 +183,29 @@ class RequestPasswordResetEmailView(APIView):
 
 
 
+# class ResetPasswordConfirmByTokenView(APIView):
+#     permission_classes = (AllowAny,)
+#     @swagger_auto_schema(request_body=ChangePasswordSerializer)
+#     def post(self, request, token):
+#         try:     
+#             new_password_serializer = ChangePasswordSerializer(data=request.data)
+#             new_password_serializer.is_valid(raise_exception=True)
+              
+#             user = KwlUser.objects.get(reset_password_token__token=token)
+#             old_password = new_password_serializer.data['old_password']
+#             new_password = new_password_serializer.data['new_password']
+#             if user.check_password(old_password) == False:
+#                 return Response({"message": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+#             user.set_password(new_password)
+#             user.reset_password_token = None
+#             user.save()
+
+#             return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)
+#         except KwlUser.DoesNotExist:
+#             return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+#         except Exception as e:
+#             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 class ResetPasswordConfirmByTokenView(APIView):
     permission_classes = (AllowAny,)
     @swagger_auto_schema(request_body=ChangePasswordSerializer)
@@ -192,10 +215,7 @@ class ResetPasswordConfirmByTokenView(APIView):
             new_password_serializer.is_valid(raise_exception=True)
               
             user = KwlUser.objects.get(reset_password_token__token=token)
-            old_password = new_password_serializer.data['old_password']
             new_password = new_password_serializer.data['new_password']
-            if user.check_password(old_password) == False:
-                return Response({"message": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
             user.set_password(new_password)
             user.reset_password_token = None
             user.save()

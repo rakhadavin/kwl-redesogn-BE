@@ -235,13 +235,24 @@ class ResetPasswordRequestSerializer(serializers.Serializer):
             raise ChangePasswordException(_("Email does not exist"))
         return data
 
+# class ChangePasswordSerializer(serializers.Serializer):
+#     old_password = serializers.CharField()
+#     new_password = serializers.CharField()
+  
+#     def validate(self, data):
+#         if data['old_password'] == data['new_password']:
+#             raise ChangePasswordException(_("New password must be different from old password"))
+#         if len(data['new_password']) < 8:
+#             raise ChangePasswordException(_("Password must be at least 8 characters long"))
+        
+#         return data
+
 class ChangePasswordSerializer(serializers.Serializer):
-    old_password = serializers.CharField()
     new_password = serializers.CharField()
   
     def validate(self, data):
-        if data['old_password'] == data['new_password']:
-            raise ChangePasswordException(_("New password must be different from old password"))
+        # if data['old_password'] == data['new_password']:
+        #     raise ChangePasswordException(_("New password must be different from old password"))
         if len(data['new_password']) < 8:
             raise ChangePasswordException(_("Password must be at least 8 characters long"))
         
