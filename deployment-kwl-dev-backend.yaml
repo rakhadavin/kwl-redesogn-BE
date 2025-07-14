@@ -1,0 +1,68 @@
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: kwl-dev-backend 
+  namespace: itfasilkom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kwl-dev-backend 
+  template:
+    metadata:
+      labels:
+        app: kwl-dev-backend 
+    spec:
+      hostNetwork: true	
+      hostAliases:
+        - ip: "10.119.105.133"
+          hostnames:
+            - "minio-itf.cs.ui.ac.id"
+      containers:
+      - name: kwl-dev-backend 
+        image: registry.cs.ui.ac.id/itf/kwl-dev-backend:latest
+        envFrom:
+          - secretRef:
+              name: kwl-dev-backend
+        ports:
+        - containerPort: 8042
+      imagePullSecrets:
+        - name: itf-registry
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kwl-dev-backend
+  namespace: itfasilkom
+spec:
+  type: ClusterIP
+  ports:
+  - port: 40044
+    targetPort: 8042
+  selector:
+    app: kwl-dev-backend
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: be-kwl-dev.cs.ui.ac.id
+  namespace: itfasilkom
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  tls:
+    - hosts: 
+      - be-kwl-dev.cs.ui.ac.id
+      secretName: cs12-tls
+  rules:
+  - host: be-kwl-dev.cs.ui.ac.id
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kwl-dev-backend
+            port:
+              number: 40044

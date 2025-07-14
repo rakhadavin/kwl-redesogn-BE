@@ -1,0 +1,63 @@
+stages:
+  - build
+  - deploy
+
+build:
+  image: alpine:latest
+
+  only:
+    - dev
+
+  services:
+    - name: alpine:latest
+      alias: alpine
+
+  stage: build
+
+  before_script:
+    - echo "🔧 Configuring Docker..."
+    - apk update --no-cache && apk add docker
+    - dockerd &
+    - echo "$IP_ADDRESS_REGISTRY $DOCKER_REGISTRY" >> /etc/hosts
+    - echo "$DOCKER_PASSWORD" | docker login -u $DOCKER_USERNAME --password-stdin $DOCKER_REGISTRY
+    - cp "$ENV_FILE_BE" .env
+
+  script:
+    - echo "🚀 Building Docker image..."
+    - echo "Branch $CI_COMMIT_REF_NAME"
+    - echo "Building Image $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME_BE:$DOCKER_TAG"
+    - docker build --no-cache -t $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME_BE:$DOCKER_TAG -f Dockerfile .
+    - echo "🔗 Pushing Docker image to registry..."
+    - docker push $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME_BE:$DOCKER_TAG
+
+deploy:
+  image: alpine:latest
+
+  only:
+    - dev
+
+  services:
+    - name: alpine:latest
+      alias: alpine
+
+  stage: deploy
+
+  before_script:
+    - echo "🔧 Configuring Docker..."
+    - apk update --no-cache && apk add --no-cache curl gettext
+    - curl -LO $KUBECTL_URL
+    - chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
+    - mkdir -p .kube
+    - touch .kube/config
+    - touch .env
+    - cp "$KUBE_CONFIG" .kube/config
+    - cp "$ENV_FILE_BE" .env
+
+  script:
+    - echo "🚀 Deploying to Kubernetes..."
+    - kubectl --kubeconfig .kube/config create secret generic $APP_NAME_BE --from-env-file .env --dry-run=client -o yaml | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
+    - which envsubst
+    - envsubst < "deployment-$APP_NAME_BE.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
+
+  dependencies:
+    - build
