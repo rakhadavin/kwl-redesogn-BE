@@ -236,3 +236,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# minIO Config
+AWS_S3_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT")
+AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY")
+AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_KEY")
+AWS_STORAGE_BUCKET_NAME = os.getenv("MINIO_STORAGE_BUCKET_NAME")
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = 'public-read'
+AWS_QUERYSTRING_AUTH = False
+AWS_S3_VERIFY = False
+AWS_S3_ADDRESSING_STYLE = 'path'
+AWS_S3_USE_SSL = os.getenv("MINIO_SECURE")
