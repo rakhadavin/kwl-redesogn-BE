@@ -5,6 +5,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 import uuid
 from django.utils import timezone
+from utils.custom_storage import MinioMediaStorage
+
 ROLE_CHOICES = (
     ("lecturer", "Lecturer"),
     ("student", "Student"),
@@ -35,7 +37,7 @@ class KwlUser(AbstractUser):
     domisili = models.CharField(max_length=100, help_text="User's domicile", null=True, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student', help_text="User's role")
     reset_password_token = models.OneToOneField(ResetPasswordToken, on_delete=models.CASCADE, null=True, blank=True)
-    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True, help_text="User's profile photo")
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True, help_text="User's profile photo", storage=MinioMediaStorage())
     def __str__(self):
         return self.username
 

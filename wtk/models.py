@@ -1,4 +1,5 @@
 from django.db import models
+from utils.custom_storage import MinioMediaStorage
 
 # Create your models here.
 wtk_choices = (("checkbox", "Checkbox"), ("reflection", "Reflection"))
@@ -61,7 +62,7 @@ class Prereading(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     topic = models.ForeignKey('course.Topic', on_delete=models.CASCADE, blank=True, null=True)
     prereading = models.TextField()
-    file = models.FileField(upload_to='prereading_files/', blank=True, null=True)   
+    file = models.FileField(upload_to='prereading_files/', blank=True, null=True, storage=MinioMediaStorage())   
     def __str__(self):
         return self.prereading
     
