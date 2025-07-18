@@ -139,6 +139,30 @@ class StudentSerializer(serializers.ModelSerializer):
         
         return student
 
+class CreateStudentSerializer(serializers.ModelSerializer):
+    user = serializers.DictField(write_only=True, required=False)
+    nama_lengkap = serializers.CharField(write_only=True, required=False)
+    
+    class Meta:
+        model = Student
+        fields = ['student_id', 'major', 'faculty', 'term', 'user', 'nama_lengkap']
+        
+    def create(self, validated_data):
+        """
+        Create and return a new Student instance for an existing user.
+        """
+        user = validated_data.pop('user', None)
+        nama_lengkap = validated_data.pop('nama_lengkap', None)
+
+        if not user:
+            raise serializers.ValidationError("User is required")
+            
+        if Student.objects.filter(user=user).exists():
+            raise serializers.ValidationError("Student profile already exists for this user")
+        
+        student = Student.objects.create(user=user, **validated_data)
+        return student
+
 class EditLecturerSerializer(serializers.Serializer):
     nama_lengkap = serializers.CharField(write_only=True, required=False)
     email = serializers.EmailField(write_only=True, required=False)

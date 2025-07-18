@@ -1,12 +1,13 @@
-from rest_framework import status
+from rest_framework import status, serializers
 
 from django.contrib.auth import authenticate, logout
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from smtplib import SMTPException     
 from kwl import settings
-from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer, EditLecturerSerializer, EditStudentSerializer, ResetPasswordRequestSerializer, ChangePasswordSerializer
+from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer, EditLecturerSerializer, EditStudentSerializer, ResetPasswordRequestSerializer, ChangePasswordSerializer, CreateStudentSerializer
 from .models import KwlUser, Student, Lecturer, ResetPasswordToken
+from .api_exceptions import ExistingEmailException, ExistingUsernameException
 from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.utils import get_tokens_for_user
 from rest_framework.response import Response
@@ -84,6 +85,35 @@ class StudentDetailView(APIView):
         student = self.get_student_by_kwluser_id(id)
         serializer = StudentSerializer(student)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(request_body=CreateStudentSerializer, responses={200: "Student assigned successfully", 400: "Bad Request"}, operation_summary="Assign student role to existing user", operation_description="Assign student role to existing user if user exists and doesn't have student role", tags=["Student"])
+    def post(self, request, format=None):
+        try:
+            user = request.user
+            user.role = 'student'
+            user_data = request.data.get('user', {})
+            domisili = user_data.get('domisili')
+            user.domisili = domisili
+
+            nama_lengkap = request.data.get('nama_lengkap', '')
+            if nama_lengkap:
+                nama_parts = nama_lengkap.strip().split(' ', 1)
+                user.first_name = nama_parts[0] if nama_parts else ''
+                user.last_name = nama_parts[1] if len(nama_parts) > 1 else ''
+            user.save()
+
+            if Student.objects.filter(user=user).exists():
+                return Response({"message": "User already has student role"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer = CreateStudentSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(user=user)
+
+            return Response({"message": "Student assigned successfully", "data": get_tokens_for_user(request.user)}, status=status.HTTP_200_OK)
+        except serializers.ValidationError as e:
+            return Response({"message": "Validation failed", "errors": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"message": f"Failed to assign student role: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(request_body=EditStudentSerializer, responses={200: StudentSerializer, 400: "Bad Request"}, operation_summary="Edit student", operation_description="Edit student", tags=["Student"])
     def put(self, request, format=None):
@@ -240,3 +270,21 @@ class ResetPasswordConfirmByTokenView(APIView):
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class KeycloakLoginView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @swagger_auto_schema(responses={200: "Login Success", 401: "Unauthorized"}, operation_summary="Login using username and password")
+    def post(self, request):
+        try:
+            try:
+                user = KwlUser.objects.get(email=request.user.email)
+                if not user:
+                    return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+            except KwlUser.DoesNotExist:
+                return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            hasil = get_tokens_for_user(user)
+            return Response({"message": "Login Success", "data": hasil}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

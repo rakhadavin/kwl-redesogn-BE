@@ -3,13 +3,14 @@ from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenRefreshView
 )
-from .views import LoginView, RegisterStudentView, StudentDetailView, LogoutView, RegisterTeacherView, LecturerDetailView, ResetPasswordConfirmByTokenView, RequestPasswordResetEmailView
+from .views import LoginView, RegisterStudentView, StudentDetailView, LogoutView, RegisterTeacherView, LecturerDetailView, ResetPasswordConfirmByTokenView, RequestPasswordResetEmailView, KeycloakLoginView
 
 
 urlpatterns = [
     path("register/student", RegisterStudentView.as_view(), name="student_register"),
     path("register/lecturer", RegisterTeacherView.as_view(), name="teacher_register"),
     path("login", LoginView.as_view(), name="login"),
+    path("login/keycloak", KeycloakLoginView.as_view(), name="keycloak_login"),
     path('refresh', TokenRefreshView.as_view(), name='token_refresh'),
     path("student", StudentDetailView.as_view(), name="student_detail"),
     path("logout", LogoutView.as_view(), name="logout"),
