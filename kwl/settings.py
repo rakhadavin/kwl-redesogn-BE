@@ -127,15 +127,12 @@ MIDDLEWARE = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        'authentication.kccs.authentication.KeycloakJWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
         "rest_framework_simplejwt.authentication.JWTAuthentication"
     ],
      'EXCEPTION_HANDLER': 'authentication.utils.custom_exception_handler'
 }
 
 AUTHENTICATION_BACKENDS = [
-    'authentication.kccs.KeycloakJWTBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
@@ -262,3 +259,8 @@ KEYCLOAK_CERTS_URL = os.getenv('KEYCLOAK_CERTS_URL')
 KEYCLOAK_ISSUER_URL = os.getenv('KEYCLOAK_ISSUER_URL')
 KEYCLOAK_AUDIENCE = os.getenv('KEYCLOAK_AUDIENCE', 'account')
 KEYCLOAK_KEYS_CACHE_TIMEOUT = int(os.getenv('KEYCLOAK_KEYS_CACHE_TIMEOUT', '3600')) 
+
+BASE_APP_URL = os.getenv("BASE_APP_URL")
+BASE_API_URL = os.getenv("BASE_API_URL")
+GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_OAUTH2_CLIENT_ID")
+GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET")

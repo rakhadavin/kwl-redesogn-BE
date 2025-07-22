@@ -39,15 +39,9 @@ class KwlUser(AbstractUser):
     reset_password_token = models.OneToOneField(ResetPasswordToken, on_delete=models.CASCADE, null=True, blank=True)
     profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True, help_text="User's profile photo", storage=MinioMediaStorage())
     keycloak_id = models.CharField(max_length=100, null=True, blank=True, help_text="Keycloak ID for the user", unique=True)
+    google_id = models.CharField(max_length=100, null=True, blank=True, help_text="Google ID for the user", unique=True)
     def __str__(self):
         return self.username
-    
-    def update_from_keycloak(self, payload):
-        self.keycloak_id = payload.get('sub')
-        self.first_name = payload.get('given_name', '')
-        self.last_name = payload.get('family_name', '')
-        self.email = payload.get('email', '')
-        self.save()
 
 class Lecturer(models.Model):
     user = models.OneToOneField(KwlUser, on_delete=models.CASCADE, related_name='lecturer_profile', null=True)

@@ -163,6 +163,30 @@ class CreateStudentSerializer(serializers.ModelSerializer):
         student = Student.objects.create(user=user, **validated_data)
         return student
 
+class CreateLecturerSerializer(serializers.ModelSerializer):
+    user = serializers.DictField(write_only=True, required=False)
+    # nama_lengkap = serializers.CharField(write_only=True, required=False)
+    
+    class Meta:
+        model = Lecturer
+        fields = ['lecturer_id', 'department', 'user']
+        
+    def create(self, validated_data):
+        """
+        Create and return a new Student instance for an existing user.
+        """
+        user = validated_data.pop('user', None)
+        # nama_lengkap = validated_data.pop('nama_lengkap', None)
+
+        if not user:
+            raise serializers.ValidationError("User is required")
+            
+        if Lecturer.objects.filter(user=user).exists():
+            raise serializers.ValidationError("Lecturer profile already exists for this user")
+        
+        student = Lecturer.objects.create(user=user, **validated_data)
+        return student
+
 class EditLecturerSerializer(serializers.Serializer):
     nama_lengkap = serializers.CharField(write_only=True, required=False)
     email = serializers.EmailField(write_only=True, required=False)
@@ -280,4 +304,11 @@ class ChangePasswordSerializer(serializers.Serializer):
         if len(data['new_password']) < 8:
             raise ChangePasswordException(_("Password must be at least 8 characters long"))
         
+        return data    
+
+class ProviderAuthSerializer(serializers.Serializer):
+    access_token = serializers.CharField()
+    provider = serializers.CharField()
+
+    def validate(self, data):
         return data

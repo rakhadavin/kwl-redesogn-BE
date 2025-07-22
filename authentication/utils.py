@@ -15,6 +15,7 @@ def sso_login(username, password):
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
+    refresh['email'] = user.email
     refresh['username'] = user.username
     refresh['role'] = user.role
     refresh['name'] = user.first_name + ' ' + user.last_name
@@ -25,7 +26,10 @@ def get_tokens_for_user(user):
     elif user.role == 'student':
         student = Student.objects.get(user=user)
         refresh['student_pk'] = student.pk
- 
+    else:
+        refresh['student_pk'] = None
+        refresh['lecturer_pk'] = None
+
     decoded_data = jwt.decode(jwt=str(refresh.access_token),
                                 key=SINGING_KEY,
                                 algorithms="HS512"
