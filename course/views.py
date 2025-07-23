@@ -382,6 +382,27 @@ class TopicDetail(generics.RetrieveUpdateDestroyAPIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+    @swagger_auto_schema(operation_summary="Hide/Show a topic")
+    def patch(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            is_hidden = request.data.get('is_hidden')
+            
+            if is_hidden is None:
+                return Response(
+                    {"message": "is_hidden field is required"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            instance.is_hidden = is_hidden
+            instance.save()
+            
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
 class FeedbackList(APIView):
     permission_classes = [IsAuthenticated,]
@@ -608,7 +629,7 @@ class KwlStatusView(APIView):
             topics_data = []
             student = Student.objects.get(pk=student_id)
             course = Course.objects.get(pk=course_id)
-            topics = Topic.objects.filter(course=course)
+            topics = Topic.objects.filter(course=course, is_hidden=False)
             for topic in topics:
                 topic_data = {}
                 topic_data['topic_data'] = TopicSerializer(topic).data

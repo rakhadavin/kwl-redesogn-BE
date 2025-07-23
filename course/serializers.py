@@ -64,7 +64,7 @@ class TopicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Topic
-        fields = ['name','description','id','course','course_data','know', 'learned', 'wtk']
+        fields = ['name','description','id','course','course_data','know', 'learned', 'wtk', 'is_hidden']
 
     def get_know(self, obj):
         return KnowSerializer(Know.objects.filter(topic=obj), many=True).data
