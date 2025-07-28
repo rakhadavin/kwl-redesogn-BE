@@ -22,7 +22,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = ['short_name','full_name','color_theme','lecturer_team','students','id','lecturer','created','updated']
+        fields = ['short_name','full_name','color_theme','lecturer_team','students','id','lecturer', 'enrollment_key', 'created','updated']
 
     def create(self, validated_data):
 
@@ -148,6 +148,24 @@ class RewardPointSerializer(serializers.ModelSerializer):
 class AddStudentToCourseSerializer(serializers.Serializer):
     student_id = serializers.IntegerField()
     course_id = serializers.IntegerField()
+    enrollment_key = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    
+    def validate(self, attrs):
+        course_id = attrs['course_id']
+        enrollment_key = attrs.get('enrollment_key', '')
+        
+        try:
+            course = Course.objects.get(pk=course_id)
+        except Course.DoesNotExist:
+            raise serializers.ValidationError("Course not found")
+        
+        if course.enrollment_key:
+            if not enrollment_key:
+                raise serializers.ValidationError("Enrollment key is required for this course")
+            if enrollment_key != course.enrollment_key:
+                raise serializers.ValidationError("Invalid enrollment key")
+        
+        return attrs
     
     def update(self, instance, validated_data):
         student = Student.objects.get(pk=validated_data['student_id'])

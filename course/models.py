@@ -21,6 +21,7 @@ class Course(models.Model):
     color_theme = models.CharField(max_length=11, choices=COLOR)
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
     students = models.ManyToManyField(Student, blank=True, related_name='students')
+    enrollment_key = models.CharField(max_length=100, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
   

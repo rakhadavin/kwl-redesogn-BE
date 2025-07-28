@@ -539,6 +539,8 @@ class CourseEnrollmentStatusView(APIView):
             for course in courses:
                 course_data = CourseSerializer(course).data
                 course_data['enrolled'] = course.students.filter(pk=student_id).exists()
+                course_data['has_enrollment_key'] = bool(course_data.get('enrollment_key'))
+                course_data.pop('enrollment_key', None)
                 courses_data.append(course_data)
             return Response(courses_data, status=status.HTTP_200_OK)
         except Student.DoesNotExist:
