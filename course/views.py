@@ -248,6 +248,28 @@ class CourseDetailView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+class CourseTopicDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(operation_summary="Get course and topic details")
+    def get(self, request, course_id, topic_id, format=None):
+        try:
+            topics_data = []
+            course = Course.objects.get(pk=course_id)
+            topic = Topic.objects.get(pk=topic_id, course=course)
+            students = course.students.all()
+            for student in students:
+                kwl_point = KwlPoint.objects.get(student=student, topic=topic)
+                kwl_data = KwlPointSerializer(kwl_point).data
+                topics_data.append(kwl_data)
+            return Response(topics_data, status=status.HTTP_200_OK)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Topic.DoesNotExist:
+            raise exceptions.NotFound("Topic not found")
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class RewardCourseView(APIView):
     permission_classes = [IsAuthenticated,]
     @swagger_auto_schema(operation_summary="Get all rewards by course id")

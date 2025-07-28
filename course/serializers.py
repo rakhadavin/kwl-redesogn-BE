@@ -11,6 +11,7 @@ from wtk.models import WantToKnow
 from wtk.serializers import WtkSerializer
 from learned.serializers import LearnedSerializer
 from .api_exceptions import CourseNotFoundException, TopicNotFoundException
+from django.contrib.auth import get_user_model
 
 class CourseSerializer(serializers.ModelSerializer):
     lecturer = serializers.IntegerField(write_only=True)
@@ -260,8 +261,28 @@ class RedeemHistoryListSerializer(serializers.ModelSerializer):
         ret['created'] = instance.created.strftime("%Y-%m-%d")
         return ret
     
+class KwlUserSerializer(serializers.ModelSerializer):
+    nama_lengkap = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'domisili', 'role', 'profile_photo', 'nama_lengkap']
+    
+    def get_nama_lengkap(self, obj):
+        return obj.first_name + ' ' + obj.last_name
+
+class StudentSerializer(serializers.ModelSerializer):
+    user = KwlUserSerializer(read_only=True)
+    
+    class Meta:
+        model = Student
+        fields = ['id', 'student_id', 'major', 'term', 'faculty', 'user']    
+    
 class KwlPointSerializer(serializers.ModelSerializer):
+    student = StudentSerializer(read_only=True)
+    
     class Meta:
         model = KwlPoint
-        fields = '__all__'
-
+        fields = ['id', 'student', 'know_score', 'wtk_score', 'learned_score', 
+                 'topic', 'created', 'kwl_status']
+    

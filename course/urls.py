@@ -6,6 +6,7 @@ from course import views
 urlpatterns = [
     path('', views.CourseList.as_view()),
     path('<int:pk>', views.CourseDetailView.as_view()),
+    path('<int:course_id>/<int:topic_id>', views.CourseTopicDetailView.as_view()),
     path('all/<int:student_id>', views.CourseEnrollmentStatusView.as_view()),
     
     path('topic', views.TopicList.as_view()),
