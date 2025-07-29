@@ -55,6 +55,8 @@ deploy:
 
   script:
     - echo "🚀 Deploying to Kubernetes..."
+    - kubectl --kubeconfig .kube/config delete deployment --ignore-not-found $APP_NAME_BE -n itfasilkom 
+    - kubectl --kubeconfig .kube/config delete secret --ignore-not-found $APP_NAME_BE -n itfasilkom
     - kubectl --kubeconfig .kube/config create secret generic $APP_NAME_BE --from-env-file .env --dry-run=client -o yaml | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
     - which envsubst
     - envsubst < "deployment-$APP_NAME_BE.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
