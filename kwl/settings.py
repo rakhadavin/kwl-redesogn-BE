@@ -54,7 +54,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 #     'https://kowl.cs.ui.ac.id'
 # ]
 
-CSRF_TRUSTED_ORIGINS = ['https://be-kowl.cs.ui.ac.id','http://localhost:3000','http://localhost:8000','https://kowl.cs.ui.ac.id','http://192.168.106.100:8000', 'http://10.119.106.223:8000']
+CSRF_TRUSTED_ORIGINS = ['https://be-kowl.cs.ui.ac.id','http://localhost:3000','http://localhost:8000','https://kowl.cs.ui.ac.id','http://192.168.106.100:8000', 'http://10.119.106.223:8000', 'https://be-kwl-dev.cs.ui.ac.id']
 
 
 # Application definition
