@@ -6,6 +6,7 @@ COPY . /app
 RUN apt-get update && apt-get install -y \
     nano \
     dos2unix \
+    curl \
     tzdata && \
     pip install --no-cache-dir -r requirements.txt
 
