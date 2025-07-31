@@ -54,18 +54,36 @@ class TopicSerializer(serializers.ModelSerializer):
     course = serializers.IntegerField(write_only=True)
     course_data = CourseSerializer(read_only=True, source='course')
     know = serializers.SerializerMethodField(read_only=True)
-    learned = serializers.SerializerMethodField(read_only=True )
+    learned = serializers.SerializerMethodField(read_only=True)
     wtk = serializers.SerializerMethodField(read_only=True)
-
+    
     def validate(self, attrs):
         if 'course' in attrs:
             if not Course.objects.filter(pk=attrs['course']).exists():
                 raise CourseNotFoundException()
+        
+        enable_open_time = attrs.get('enable_open_time', False)
+        enable_close_time = attrs.get('enable_close_time', False)
+        open_time = attrs.get('open_time')
+        close_time = attrs.get('close_time')
+        
+        if enable_open_time and not open_time:
+            raise serializers.ValidationError("Open time harus diisi jika enable_open_time diaktifkan")
+        
+        if enable_close_time and not close_time:
+            raise serializers.ValidationError("Close time harus diisi jika enable_close_time diaktifkan")
+        
+        if enable_open_time and enable_close_time and open_time and close_time:
+            if open_time >= close_time:
+                raise serializers.ValidationError("Waktu buka harus lebih awal dari waktu tutup")
+        
         return super().validate(attrs)
 
     class Meta:
         model = Topic
-        fields = ['name','description','id','course','course_data','know', 'learned', 'wtk', 'is_hidden']
+        fields = ['name', 'description', 'id', 'course', 'course_data', 'know', 'learned', 'wtk', 
+                 'is_hidden', 'enable_open_time', 'enable_close_time', 'open_time', 'close_time', 
+                'created', 'updated']
 
     def get_know(self, obj):
         return KnowSerializer(Know.objects.filter(topic=obj), many=True).data
@@ -88,13 +106,23 @@ class TopicSerializer(serializers.ModelSerializer):
         instance.course = course
         instance.name = validated_data.get('name', instance.name)
         instance.description = validated_data.get('description', instance.description)
+        instance.enable_open_time = validated_data.get('enable_open_time', instance.enable_open_time)
+        instance.enable_close_time = validated_data.get('enable_close_time', instance.enable_close_time)
+        instance.open_time = validated_data.get('open_time', instance.open_time)
+        instance.close_time = validated_data.get('close_time', instance.close_time)
         instance.save()
         return instance
     
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['created'] = instance.created.strftime("%Y-%m-%d")
-        ret['updated'] = instance.updated.strftime("%Y-%m-%d")
+        ret['created'] = instance.created.strftime("%Y-%m-%d %H:%M:%S")
+        ret['updated'] = instance.updated.strftime("%Y-%m-%d %H:%M:%S")
+        
+        if instance.open_time:
+            ret['open_time'] = instance.open_time.strftime("%Y-%m-%d %H:%M:%S")
+        if instance.close_time:
+            ret['close_time'] = instance.close_time.strftime("%Y-%m-%d %H:%M:%S")
+            
         return ret
     
 class RewardPointSerializer(serializers.ModelSerializer):
