@@ -56,6 +56,7 @@ class WordCloudAPIView(APIView):
         wordcloud = WordCloud(width=1600, height=800, background_color='white', max_font_size=200).generate(all_reflections)
 
         image_path = os.path.join(settings.MEDIA_ROOT, 'word_cloud.png')
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
 
         wordcloud.to_file(image_path)
 
