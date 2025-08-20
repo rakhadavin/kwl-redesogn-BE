@@ -441,7 +441,12 @@ class ProviderLoginView(APIView):
                     return Response({'error': 'Invalid Keycloak token'}, status=status.HTTP_401_UNAUTHORIZED)
                 
             try:
-                user = KwlUser.objects.get(email=user_info['email'])
+                if data['provider'] == 'google':
+                    user = KwlUser.objects.get(google_id=user_info.get('id'))
+                elif data['provider'] == 'keycloak':
+                    user = KwlUser.objects.get(keycloak_id=user_info.get('sub'))
+                else:
+                    user = KwlUser.objects.get(email=user_info['email'])
             except KwlUser.DoesNotExist:
                 first_name = user_info.get('given_name', '')
                 last_name = user_info.get('family_name', '')
