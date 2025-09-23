@@ -100,3 +100,18 @@ class RedeemHistory(models.Model):
     def __str__(self):
         return self.student.user.username
     
+# Tambahkan ini ke models.py di course app
+
+class StudentActivity(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, null=True, blank=True)
+    activity_type = models.CharField(max_length=50)  # 'viewing_topic', 'left_topic', etc
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)  # Track if student is currently active
+    
+    class Meta:
+        ordering = ['-timestamp']
+        
+    def __str__(self):
+        return f"{self.student.user.username} - {self.activity_type} - {self.topic.name if self.topic else 'Course'}"
