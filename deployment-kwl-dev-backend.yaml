@@ -21,6 +21,7 @@ spec:
         - ip: "10.119.105.133"
           hostnames:
             - "minio-itf.cs.ui.ac.id"
+      dnsPolicy: ClusterFirst
       containers:
       # - name: kwl-dev-backend
       - name: ${APP_NAME}
