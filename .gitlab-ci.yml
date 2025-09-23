@@ -2,64 +2,86 @@ stages:
   - build
   - deploy
 
+variables:
+  APP_NAME: $APP_NAME
+
 build:
-  image: alpine:latest
-
-  only:
-    - dev
-
-  services:
-    - name: alpine:latest
-      alias: alpine
-
+  image: docker:latest
   stage: build
 
+  only:
+    - dev
+
   before_script:
     - echo "🔧 Configuring Docker..."
-    - apk update --no-cache && apk add docker
-    - dockerd &
-    - echo "$IP_ADDRESS_REGISTRY $DOCKER_REGISTRY" >> /etc/hosts
+    - |
+      if [ -n "$IP_ADDRESS_REGISTRY" ]; then
+        echo "$IP_ADDRESS_REGISTRY $DOCKER_REGISTRY" >> /etc/hosts
+      fi
     - echo "$DOCKER_PASSWORD" | docker login -u $DOCKER_USERNAME --password-stdin $DOCKER_REGISTRY
-    - cp "$ENV_FILE_BE" .env
+    - touch .env
 
   script:
-    - echo "🚀 Building Docker image..."
-    - echo "Branch $CI_COMMIT_REF_NAME"
-    - echo "Building Image $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME_BE:$DOCKER_TAG"
-    - docker build --no-cache -t $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME_BE:$DOCKER_TAG -f Dockerfile .
-    - echo "🔗 Pushing Docker image to registry..."
-    - docker push $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME_BE:$DOCKER_TAG
+    - echo "🚀 Deploying to Docker..."
+    - |
+      if [ "$CI_COMMIT_REF_NAME" == "main" ]; then
+       export APP_NAME="${APP_NAME_PROD}"
+       export DOMAIN_NAME="${DOMAIN_NAME_PROD}"
+       cp $PROD_ENV .env
+      else
+       export APP_NAME="${APP_NAME_STAGING}"
+       export DOMAIN_NAME="${DOMAIN_NAME_STAGING}"
+       cp $STAGING_ENV .env
+      fi 
+    - export $(grep -v '^\s*#' .env | sed '/^\s*$/d' | sed 's/ *= */=/' | xargs)
+    - docker info
+    - docker build -t $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME:$DOCKER_TAG .
+    - echo "📤 Pushing Docker images..."
+    - docker push $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME:$DOCKER_TAG
 
 deploy:
-  image: alpine:latest
+
+  image: docker:latest
+  stage: deploy
 
   only:
     - dev
 
-  services:
-    - name: alpine:latest
-      alias: alpine
-
-  stage: deploy
-
   before_script:
-    - echo "🔧 Configuring Docker..."
-    - apk update --no-cache && apk add --no-cache curl gettext
+    - echo "🔧 Configuring Kubernetes..."
+    - apk update && apk add --no-cache curl gettext
     - curl -LO $KUBECTL_URL
-    - chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
+    - chmod +x kubectl && mv ./kubectl /usr/local/bin/kubectl
     - mkdir -p .kube
     - touch .kube/config
     - touch .env
-    - cp "$KUBE_CONFIG" .kube/config
-    - cp "$ENV_FILE_BE" .env
+    - cp "$KUBECTL_CONFIG" .kube/config
 
   script:
     - echo "🚀 Deploying to Kubernetes..."
-    - kubectl --kubeconfig .kube/config delete deployment --ignore-not-found $APP_NAME_BE -n itfasilkom 
-    - kubectl --kubeconfig .kube/config delete secret --ignore-not-found $APP_NAME_BE -n itfasilkom
-    - kubectl --kubeconfig .kube/config create secret generic $APP_NAME_BE --from-env-file .env --dry-run=client -o yaml | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
-    - which envsubst
-    - envsubst < "deployment-$APP_NAME_BE.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
+    - |
+      if [ "$CI_COMMIT_REF_NAME" == "main" ]; then
+       export APP_NAME="${APP_NAME_PROD}"
+       export DOMAIN_NAME="${DOMAIN_NAME_PROD}"
+       cp $PROD_ENV .env
+      else
+       export APP_NAME="${APP_NAME_STAGING}"
+       export DOMAIN_NAME="${DOMAIN_NAME_STAGING}"
+       cp $STAGING_ENV .env
+      fi
+    - export $(grep -v '^\s*#' .env | sed '/^\s*$/d' | sed 's/ *= */=/' | xargs)
+    - kubectl --kubeconfig .kube/config delete deployment --ignore-not-found $APP_NAME -n itfasilkom 
+    - kubectl --kubeconfig .kube/config delete secret --ignore-not-found $APP_NAME-secret -n itfasilkom
+    - kubectl --kubeconfig .kube/config create secret generic $APP_NAME-secret --from-env-file=.env --dry-run=client -o yaml > $APP_NAME-secret.yaml
+    - kubectl --kubeconfig .kube/config apply -f $APP_NAME-secret.yaml -n itfasilkom
+    
+    # Deploy Redis into pods
+    - echo "🚀 Deploying Redis..."
+    - envsubst < "deployment-redis.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
+    
+    # Deploy App into Pods
+    - echo "🚀 Deploying App..."
+    - envsubst < "deployment-${APP_NAME}.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
 
   dependencies:
     - build
