@@ -26,10 +26,12 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     liblcms2-dev \
     libxcb1-dev \
+    libpq-dev \
+    postgresql-client \
     pkg-config \
     && pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && SETUPTOOLS_USE_DISTUTILS=stdlib pip install --no-cache-dir -r requirements.txt \
-    && apt-get remove -y build-essential gcc g++ python3-dev libffi-dev libssl-dev pkg-config \
+    && pip install --no-cache-dir -r requirements.txt \
+    && apt-get remove -y build-essential gcc g++ python3-dev libffi-dev libssl-dev libpq-dev pkg-config \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
