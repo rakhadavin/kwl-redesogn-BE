@@ -27,11 +27,11 @@ build:
       if [ "$CI_COMMIT_REF_NAME" == "main" ]; then
        export APP_NAME="${APP_NAME_PROD}"
        export DOMAIN_NAME="${DOMAIN_NAME_PROD}"
-       cp "$PROD_ENV" .env
+       cp $PROD_ENV .env
       else
        export APP_NAME="${APP_NAME_STAGING}"
        export DOMAIN_NAME="${DOMAIN_NAME_STAGING}"
-       cp "$STAGING_ENV" .env
+       cp $STAGING_ENV .env
       fi 
     - export $(grep -v '^\s*#' .env | sed '/^\s*$/d' | sed 's/ *= */=/' | xargs)
     - docker info
@@ -63,11 +63,11 @@ deploy:
       if [ "$CI_COMMIT_REF_NAME" == "main" ]; then
        export APP_NAME="${APP_NAME_PROD}"
        export DOMAIN_NAME="${DOMAIN_NAME_PROD}"
-       cp "$PROD_ENV" .env
+       cp $PROD_ENV .env
       else
        export APP_NAME="${APP_NAME_STAGING}"
        export DOMAIN_NAME="${DOMAIN_NAME_STAGING}"
-       cp "$STAGING_ENV" .env
+       cp $STAGING_ENV .env
       fi
     - export $(grep -v '^\s*#' .env | sed '/^\s*$/d' | sed 's/ *= */=/' | xargs)
     - kubectl --kubeconfig .kube/config delete deployment --ignore-not-found $APP_NAME -n itfasilkom 
