@@ -51,10 +51,11 @@ deploy:
     - apk update && apk add --no-cache curl gettext
     - curl -LO $KUBECTL_URL
     - chmod +x kubectl && mv ./kubectl /usr/local/bin/kubectl
-    - mkdir -p .kube
-    - touch .kube/config
+    - mkdir -p ~/.kube
+    - touch ~/.kube/config
     - touch .env
-    - printf "%s\n" "$KUBECTL_CONFIG" > .kube/config
+    - printf "%s\n" "$KUBECTL_CONFIG" > ~/.kube/config
+    - chmod 600 ~/.kube/config
 
   script:
     - echo "🚀 Deploying to Kubernetes..."
@@ -69,18 +70,22 @@ deploy:
        printf "%s\n" "$STAGING_ENV" > .env
       fi
     - export $(grep -v '^\s*#' .env | sed '/^\s*$/d' | sed 's/ *= */=/' | xargs)
-    - kubectl --kubeconfig .kube/config delete deployment --ignore-not-found $APP_NAME -n itfasilkom
-    - kubectl --kubeconfig .kube/config delete secret --ignore-not-found $APP_NAME-secret -n itfasilkom
-    - kubectl --kubeconfig .kube/config create secret generic $APP_NAME-secret --from-env-file=.env --dry-run=client -o yaml > $APP_NAME-secret.yaml
-    - kubectl --kubeconfig .kube/config apply -f $APP_NAME-secret.yaml -n itfasilkom
+    - export KUBECONFIG=~/.kube/config
+    - echo "Verifying kubectl configuration..."
+    - kubectl version --client
+    - kubectl cluster-info || echo "Warning: Cannot connect to cluster"
+    - kubectl delete deployment --ignore-not-found $APP_NAME -n itfasilkom
+    - kubectl delete secret --ignore-not-found $APP_NAME-secret -n itfasilkom
+    - kubectl create secret generic $APP_NAME-secret --from-env-file=.env --dry-run=client -o yaml > $APP_NAME-secret.yaml
+    - kubectl apply -f $APP_NAME-secret.yaml -n itfasilkom
 
     # Deploy Redis into pods
     - echo "🚀 Deploying Redis..."
-    - envsubst < "deployment-redis.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
+    - envsubst < "deployment-redis.yaml" | kubectl apply -n itfasilkom -f -
 
     # Deploy App into Pods
     - echo "🚀 Deploying App..."
-    - envsubst < "deployment-${APP_NAME}.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
+    - envsubst < "deployment-${APP_NAME}.yaml" | kubectl apply -n itfasilkom -f -
 
   dependencies:
     - build
