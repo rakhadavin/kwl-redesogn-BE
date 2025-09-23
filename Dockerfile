@@ -10,8 +10,23 @@ RUN apt-get update && apt-get install -y \
     nano \
     dos2unix \
     curl \
-    tzdata && \
-    pip install --no-cache-dir -r requirements.txt
+    tzdata \
+    build-essential \
+    gcc \
+    g++ \
+    python3-dev \
+    libffi-dev \
+    libssl-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libfreetype6-dev \
+    pkg-config \
+    && pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    && apt-get remove -y build-essential gcc g++ python3-dev libffi-dev libssl-dev pkg-config \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV TZ=Asia/Jakarta
 RUN ln -sf /usr/share/zoneinfo/Asia/Jakarta /etc/localtime && \
