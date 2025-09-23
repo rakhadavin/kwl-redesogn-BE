@@ -1,4 +1,4 @@
-FROM python:3.13-slim-bookworm
+FROM python:3.11-slim-bookworm
 
 WORKDIR /usr/src/app
 COPY . .
@@ -20,9 +20,15 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libpng-dev \
     libfreetype6-dev \
+    libtiff-dev \
+    libwebp-dev \
+    libopenjp2-7-dev \
+    zlib1g-dev \
+    liblcms2-dev \
+    libxcb1-dev \
     pkg-config \
-    && pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && SETUPTOOLS_USE_DISTUTILS=stdlib pip install --no-cache-dir -r requirements.txt \
     && apt-get remove -y build-essential gcc g++ python3-dev libffi-dev libssl-dev pkg-config \
     && apt-get autoremove -y \
     && apt-get clean \
