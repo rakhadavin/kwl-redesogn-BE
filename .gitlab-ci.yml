@@ -27,12 +27,12 @@ build:
       if [ "$CI_COMMIT_REF_NAME" == "main" ]; then
        export APP_NAME="${APP_NAME_PROD}"
        export DOMAIN_NAME="${DOMAIN_NAME_PROD}"
-       cp $PROD_ENV .env
+       printf "%s\n" "$PROD_ENV" > .env
       else
        export APP_NAME="${APP_NAME_STAGING}"
        export DOMAIN_NAME="${DOMAIN_NAME_STAGING}"
-       cp $STAGING_ENV .env
-      fi 
+       printf "%s\n" "$STAGING_ENV" > .env
+      fi
     - export $(grep -v '^\s*#' .env | sed '/^\s*$/d' | sed 's/ *= */=/' | xargs)
     - docker info
     - docker build -t $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME:$DOCKER_TAG .
@@ -40,7 +40,6 @@ build:
     - docker push $DOCKER_REGISTRY/$REGISTRY_PROJECT/$APP_NAME:$DOCKER_TAG
 
 deploy:
-
   image: docker:latest
   stage: deploy
 
@@ -55,7 +54,7 @@ deploy:
     - mkdir -p .kube
     - touch .kube/config
     - touch .env
-    - cp "$KUBECTL_CONFIG" .kube/config
+    - printf "%s\n" "$KUBECTL_CONFIG" > .kube/config
 
   script:
     - echo "🚀 Deploying to Kubernetes..."
@@ -63,22 +62,22 @@ deploy:
       if [ "$CI_COMMIT_REF_NAME" == "main" ]; then
        export APP_NAME="${APP_NAME_PROD}"
        export DOMAIN_NAME="${DOMAIN_NAME_PROD}"
-       cp $PROD_ENV .env
+       printf "%s\n" "$PROD_ENV" > .env
       else
        export APP_NAME="${APP_NAME_STAGING}"
        export DOMAIN_NAME="${DOMAIN_NAME_STAGING}"
-       cp $STAGING_ENV .env
+       printf "%s\n" "$STAGING_ENV" > .env
       fi
     - export $(grep -v '^\s*#' .env | sed '/^\s*$/d' | sed 's/ *= */=/' | xargs)
-    - kubectl --kubeconfig .kube/config delete deployment --ignore-not-found $APP_NAME -n itfasilkom 
+    - kubectl --kubeconfig .kube/config delete deployment --ignore-not-found $APP_NAME -n itfasilkom
     - kubectl --kubeconfig .kube/config delete secret --ignore-not-found $APP_NAME-secret -n itfasilkom
     - kubectl --kubeconfig .kube/config create secret generic $APP_NAME-secret --from-env-file=.env --dry-run=client -o yaml > $APP_NAME-secret.yaml
     - kubectl --kubeconfig .kube/config apply -f $APP_NAME-secret.yaml -n itfasilkom
-    
+
     # Deploy Redis into pods
     - echo "🚀 Deploying Redis..."
     - envsubst < "deployment-redis.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
-    
+
     # Deploy App into Pods
     - echo "🚀 Deploying App..."
     - envsubst < "deployment-${APP_NAME}.yaml" | kubectl --kubeconfig .kube/config apply -n itfasilkom -f -
