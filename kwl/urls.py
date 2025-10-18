@@ -44,6 +44,7 @@ urlpatterns = [
     path('api/wtk/', include('wtk.urls')),
     path('api/analysis/', include('analysis.urls')),
     path('api/learned/', include('learned.urls')),
+    path('api/quiz/', include('quiz.urls')),
     path('monitoring/', include('django_prometheus.urls')),
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

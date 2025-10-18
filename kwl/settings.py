@@ -39,23 +39,31 @@ else:
     DEBUG = False
 
 
+ALLOWED_HOSTS = [
+    host for host in [
+        os.getenv("FRONTEND_URL"),
+        os.getenv("BACKEND_URL"),
+    ] if host is not None
+] + ['localhost', '127.0.0.1']
 
-# ALLOWED_HOSTS = []
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{url.lstrip('https://').lstrip('http://')}" for url in [
+        os.getenv("BACKEND_URL"),
+        os.getenv("FRONTEND_URL"),
+    ] if url is not None
+]
 
-
-
-ALLOWED_HOSTS=['*']
-
-CORS_ORIGIN_ALLOW_ALL = True
-# CORS_ALLOWED_ORIGINS = [
-#     'http://localhost:3000',
-#     'http://localhost:8000',
-#     'https://be-kowl.cs.ui.ac.id',
-#     'https://kowl.cs.ui.ac.id'
-# ]
-
-CSRF_TRUSTED_ORIGINS = ['https://be-kowl.cs.ui.ac.id','http://localhost:3000','http://localhost:8000','https://kowl.cs.ui.ac.id','http://192.168.106.100:8000', 'http://10.119.106.223:8000', 'https://be-kwl-dev.cs.ui.ac.id', 'https://kwl-dev.cs.ui.ac.id']
-
+CORS_ALLOWED_ORIGINS = [
+    f"https://{url.lstrip('https://').lstrip('http://')}" for url in [
+        os.getenv("FRONTEND_URL"),
+        os.getenv("BACKEND_URL"),
+    ] if url is not None
+] + [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
 
 # Application definition
 
@@ -95,6 +103,7 @@ INSTALLED_APPS = [
     'wtk',
     'learned',
     'analysis',
+    'quiz',
     'corsheaders',
     'drf_yasg',
     'rest_framework',
@@ -190,14 +199,6 @@ CHANNEL_LAYERS = {
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
-        # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': os.getenv('DATABASE_NAME', 'test_db'),
@@ -262,6 +263,7 @@ AWS_S3_VERIFY = False
 AWS_S3_ADDRESSING_STYLE = 'path'
 AWS_S3_USE_SSL = os.getenv("MINIO_SECURE")
 
+# Keycloak Config
 KEYCLOAK_REALM = os.getenv('KEYCLOAK_REALM')
 KEYCLOAK_SERVER_URL = os.getenv('KEYCLOAK_SERVER_URL')
 KEYCLOAK_CERTS_URL = os.getenv('KEYCLOAK_CERTS_URL')
@@ -269,7 +271,29 @@ KEYCLOAK_ISSUER_URL = os.getenv('KEYCLOAK_ISSUER_URL')
 KEYCLOAK_AUDIENCE = os.getenv('KEYCLOAK_AUDIENCE', 'account')
 KEYCLOAK_KEYS_CACHE_TIMEOUT = int(os.getenv('KEYCLOAK_KEYS_CACHE_TIMEOUT', '3600')) 
 
+# Google OAuth2 Config
 BASE_APP_URL = os.getenv("BASE_APP_URL")
 BASE_API_URL = os.getenv("BASE_API_URL")
 GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_OAUTH2_CLIENT_ID")
 GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET")
+
+# Celery Config
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# Serialization
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+# Timezone
+CELERY_TIMEZONE = 'Asia/Jakarta'
+# Task settings
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 menit max
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # Soft limit 25 menit
+# Retry settings
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+# Broker connection settings
+CELERY_BROKER_CONNECTION_RETRY = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
