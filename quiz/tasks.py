@@ -16,6 +16,7 @@ def start_quiz_sequence(self, quiz_id):
 
         channel_layer = get_channel_layer()
         room_group_name = f'quiz_{quiz_id}'
+        room_group_name_teacher = f'quiz_{quiz_id}_teacher'
         total_questions = questions.count()
 
         for index, question in enumerate(questions, start=1):
@@ -28,6 +29,22 @@ def start_quiz_sequence(self, quiz_id):
                 for choice in question.choices.all()
             ]
 
+            async_to_sync(channel_layer.group_send)(
+                room_group_name_teacher,
+                {
+                    'type': 'question_start',
+                    'question_number': question_number,
+                    'total_questions': total_questions,
+                    'question': {
+                        'id': str(question.id),
+                        'question_text': question.question_text,
+                        'score': question.score,
+                        'choices': choices_data,
+                    },
+                    # 'duration': question.time_limit,
+                    'duration': 30,
+                }
+            )
             async_to_sync(channel_layer.group_send)(
                 room_group_name,
                 {
@@ -52,6 +69,15 @@ def start_quiz_sequence(self, quiz_id):
                 question.choices.filter(is_correct=True).values_list('id', flat=True)
             )
 
+            async_to_sync(channel_layer.group_send)(
+                room_group_name_teacher,
+                {
+                    'type': 'question_end',
+                    'question_id': str(question.id),
+                    'question_number': question_number,
+                    'correct_choice_ids': [str(choice_id) for choice_id in correct_choices],
+                }
+            )
             async_to_sync(channel_layer.group_send)(
                 room_group_name,
                 {

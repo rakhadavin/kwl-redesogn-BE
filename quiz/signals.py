@@ -2,9 +2,9 @@ from django.db.models.signals import post_save, post_delete, pre_save
 from channels.layers import get_channel_layer
 from django.dispatch import receiver
 from asgiref.sync import async_to_sync
-from .models import GuestQuizAttempt, Quiz
+from .models import GuestQuizAttempt, Quiz, StudentQuizAnswer, Question, Choice
 from threading import Timer
-# from .tasks import start_quiz_sequence
+from .tasks import start_quiz_sequence
 
 channel_layer = get_channel_layer()
 
@@ -13,6 +13,8 @@ _quiz_original_state = {}
 
 def send_participants_update(quiz_id):
     """Send participants update dengan delay untuk debouncing"""
+    print(f"🔄 send_participants_update called for quiz {quiz_id}")
+    
     try:
         quiz = Quiz.objects.get(id=quiz_id)
         all_guests = GuestQuizAttempt.objects.filter(
@@ -36,9 +38,24 @@ def send_participants_update(quiz_id):
             'is_lobby': quiz.is_lobby,
         }
 
+        print(f"🔄 Found {len(participants_data)} participants")
+        print(f"🔄 Quiz status: {quiz_status}")
+
         if channel_layer:
+            # Send to guest group
+            # async_to_sync(channel_layer.group_send)(
+            #     f'quiz_{quiz.id}',  
+            #     {
+            #         'type': 'participant',
+            #         'participants': participants_data,
+            #         'quiz_status': quiz_status,
+            #         'total_participants': len(participants_data)
+            #     }
+            # )
+            
+            # Send to teacher group  
             async_to_sync(channel_layer.group_send)(
-                f'quiz_{quiz.id}',  
+                f'quiz_{quiz.id}_teacher',  
                 {
                     'type': 'participant',
                     'participants': participants_data,
@@ -46,6 +63,10 @@ def send_participants_update(quiz_id):
                     'total_participants': len(participants_data)
                 }
             )
+            print(f"✅ Message sent to teacher group: quiz_{quiz.id}_teacher")
+
+        else:
+            print(f"❌ Channel layer is None")
 
     except Quiz.DoesNotExist:
         print(f"⚠️ Quiz {quiz_id} not found")
@@ -54,8 +75,79 @@ def send_participants_update(quiz_id):
         if quiz_id in _update_timers:
             del _update_timers[quiz_id]
 
+def calculate_participants_scores(quiz):
+    """Calculate scores for all participants in the quiz"""
+    participants_scores = []
+    
+    # Get all guests who participated
+    guest_attempts = GuestQuizAttempt.objects.filter(
+        quiz=quiz,
+        guest_name__isnull=False
+    ).select_related('quiz')
+    
+    # Get all students who participated
+    student_answers = StudentQuizAnswer.objects.filter(
+        question__quiz=quiz,
+        student__isnull=False
+    ).select_related('student__user', 'question').prefetch_related('selected_choices')
+    
+    # Process guest participants
+    for guest in guest_attempts:
+        guest_answers = StudentQuizAnswer.objects.filter(
+            question__quiz=quiz,
+            student__isnull=True  # Guest answers have student=None
+        ).prefetch_related('selected_choices', 'question__choices')
+        
+        total_score = 0
+        total_questions = quiz.questions.count()
+        
+        for answer in guest_answers:
+            if answer.question:
+                correct_choices = set(answer.question.choices.filter(is_correct=True).values_list('id', flat=True))
+                selected_choices = set(answer.selected_choices.values_list('id', flat=True))
+                
+                # Award points if selected choices match correct choices exactly
+                if correct_choices == selected_choices and correct_choices:
+                    total_score += answer.question.score
+        
+        participants_scores.append({
+            'id': str(guest.id),
+            'name': guest.guest_name,
+            'type': 'guest',
+            'score': total_score,
+            'total_questions': total_questions,
+            'completed_at': guest.completed_at.isoformat() if guest.completed_at else None
+        })
+    
+    # Process student participants
+    student_scores = {}
+    for answer in student_answers:
+        student_id = answer.student.id
+        if student_id not in student_scores:
+            student_scores[student_id] = {
+                'id': str(student_id),
+                'name': answer.student.user.username,
+                'type': 'student',
+                'score': 0,
+                'total_questions': quiz.questions.count(),
+                'completed_at': None
+            }
+        
+        if answer.question:
+            correct_choices = set(answer.question.choices.filter(is_correct=True).values_list('id', flat=True))
+            selected_choices = set(answer.selected_choices.values_list('id', flat=True))
+            
+            # Award points if selected choices match correct choices exactly
+            if correct_choices == selected_choices and correct_choices:
+                student_scores[student_id]['score'] += answer.question.score
+    
+    participants_scores.extend(student_scores.values())
+    
+    return participants_scores
+
 @receiver(post_save, sender=GuestQuizAttempt)
-def handle_participant_joined(sender, instance, **kwargs):
+def handle_participant_joined(sender, instance, created, **kwargs):
+    
     quiz_id = str(instance.quiz.id)
     if quiz_id in _update_timers:
         _update_timers[quiz_id].cancel()
@@ -108,10 +200,47 @@ def handle_quiz_state_changes(sender, instance, created, **kwargs):
                     }
                 }
             )
-            # start_quiz_sequence.delay(quiz_id)
+            async_to_sync(channel_layer.group_send)(
+                f'quiz_{instance.id}_teacher',
+                {
+                    'type': 'quiz_started',
+                    'quiz_id': quiz_id,
+                    'message': 'Quiz telah dimulai!',
+                    'quiz_status': {
+                        'is_started': True,
+                        'is_lobby': False,
+                        'if_finished': False,
+                    }
+                }
+            )
+            start_quiz_sequence.delay(quiz_id)
 
     if instance.if_finished and not was_finished:
+        print(f"🏁 Quiz {quiz_id} finished, calculating final scores...")
+        
+        # Calculate participants scores
+        participants_scores = calculate_participants_scores(instance)
+        print(f"📊 Calculated scores for {len(participants_scores)} participants")
+        
         if channel_layer:
+            # Send detailed results to teacher
+            async_to_sync(channel_layer.group_send)(
+                f'quiz_{instance.id}_teacher',
+                {
+                    'type': 'quiz_finished',
+                    'quiz_id': quiz_id,
+                    'message': 'Quiz telah selesai!',
+                    'quiz_status': {
+                        'is_started': False,
+                        'is_lobby': False,
+                        'if_finished': True,
+                    },
+                    'participants_scores': participants_scores,
+                    'total_participants': len(participants_scores)
+                }
+            )
+            
+            # Send basic finish message to participants
             async_to_sync(channel_layer.group_send)(
                 f'quiz_{instance.id}',
                 {

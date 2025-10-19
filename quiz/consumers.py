@@ -14,11 +14,13 @@ class QuizTeacherConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
     
         if self.user.is_anonymous:
+            print("Anonymous user tried to connect to QuizTeacherConsumer")
             await self.close()
             return
 
         is_lecturer = await self.check_if_lecturer_owner()
         if not is_lecturer:
+            print("User is not the lecturer owner of this quiz")
             await self.close()
             return
         
@@ -30,7 +32,6 @@ class QuizTeacherConsumer(AsyncWebsocketConsumer):
 
         quiz_pin = await self.activate_lobby()
         quiz_status = await self.get_quiz_status()
-
         await self.send(text_data=json.dumps({
             'type': 'lobby_activated',
             'quiz_pin': quiz_pin,
@@ -47,9 +48,9 @@ class QuizTeacherConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if hasattr(self, 'quiz_id') and self.quiz_id:
             pin = await self.deactivate_lobby()
-        if hasattr(self, 'quiz_lobby_group_name'):
+        if hasattr(self, 'quiz_group_name'):
             await self.channel_layer.group_discard(
-                self.quiz_lobby_group_name,
+                self.quiz_group_name,
                 self.channel_name
             )
 
@@ -69,22 +70,66 @@ class QuizTeacherConsumer(AsyncWebsocketConsumer):
             }))
 
     async def participant(self, event):
+        print(f"📤 QuizTeacherConsumer received participant event: {len(event.get('participants', []))} participants")
         await self.send(text_data=json.dumps({
             'type': 'participant',
             'participants': event['participants'],
             'quiz_status': event.get('quiz_status', {})
+        }))
+
+    async def quiz_started(self, event):
+        """Handle notifikasi quiz started dari signals"""
+        await self.send(text_data=json.dumps({
+            'type': 'quiz_started',
+            'quiz_id': event['quiz_id'],
+            'message': event['message'],
+            'quiz_status': event['quiz_status']
+        }))
+
+    async def question_start(self, event):
+        """Handle ketika question baru dimulai dari Celery task"""
+        await self.send(text_data=json.dumps({
+            'type': 'question_start',
+            'question_number': event['question_number'],
+            'total_questions': event['total_questions'],
+            'question': event['question'],
+            'duration': event['duration']
+        }))
+    
+    async def question_end(self, event):
+        """Handle ketika waktu question habis dari Celery task"""
+        await self.send(text_data=json.dumps({
+            'type': 'question_end',
+            'question_id': event['question_id'],
+            'question_number': event['question_number'],
+            'correct_choice_ids': event['correct_choice_ids']
+        }))
+
+    async def quiz_finished(self, event):
+        """Handle ketika quiz selesai dengan data participants dan scores"""
+        print(f"🏁 QuizTeacherConsumer received quiz_finished event with {len(event.get('participants_scores', []))} participants")
+        await self.send(text_data=json.dumps({
+            'type': 'quiz_finished',
+            'quiz_id': event['quiz_id'],
+            'message': event['message'],
+            'quiz_status': event['quiz_status'],
+            'participants_scores': event.get('participants_scores', []),
+            'total_participants': event.get('total_participants', 0)
         }))
     
     @database_sync_to_async
     def check_if_lecturer_owner(self):
         """Check if user is lecturer who owns this quiz"""
         try:
+            print(f"Checking lecturer ownership for user: {self.user.username} (ID: {self.user.id})")
+            
             if not hasattr(self.user, 'lecturer_profile'):
                 print(f"User {self.user.username} has no lecturer_profile")
                 return False
             
             quiz = Quiz.objects.get(id=self.quiz_id)
-            is_owner = quiz.lecturer_team.filter(id=self.user.id).exists()
+            lecturer_profile = self.user.lecturer_profile
+            is_owner = quiz.lecturer_team.filter(id=lecturer_profile.id).exists()
             return is_owner
         except Quiz.DoesNotExist:
             print(f"Quiz {self.quiz_id} does not exist")
@@ -141,8 +186,8 @@ class QuizTeacherConsumer(AsyncWebsocketConsumer):
         try:
             quiz = Quiz.objects.get(id=self.quiz_id)
             quiz.is_started = True
-            quiz.is_lobby = False  # Tutup lobby
-            quiz.save()  # Ini akan trigger signal!
+            quiz.is_lobby = False
+            quiz.save()
             return True
         except Exception as e:
             print(f"Error starting quiz: {e}")
@@ -222,6 +267,43 @@ class QuizGuestConsumer(AsyncWebsocketConsumer):
             'quiz_status': event.get('quiz_status', {})
         }))
 
+    async def quiz_started(self, event):
+        """Handle notifikasi quiz started dari signals"""
+        await self.send(text_data=json.dumps({
+            'type': 'quiz_started',
+            'quiz_id': event['quiz_id'],
+            'message': event['message'],
+            'quiz_status': event['quiz_status']
+        }))
+
+    async def question_start(self, event):
+        """Handle ketika question baru dimulai dari Celery task"""
+        await self.send(text_data=json.dumps({
+            'type': 'question_start',
+            'question_number': event['question_number'],
+            'total_questions': event['total_questions'],
+            'question': event['question'],
+            'duration': event['duration']
+        }))
+    
+    async def question_end(self, event):
+        """Handle ketika waktu question habis dari Celery task"""
+        await self.send(text_data=json.dumps({
+            'type': 'question_end',
+            'question_id': event['question_id'],
+            'question_number': event['question_number'],
+            'correct_choice_ids': event['correct_choice_ids']
+        }))
+
+    async def quiz_finished(self, event):
+        """Handle ketika quiz selesai"""
+        await self.send(text_data=json.dumps({
+            'type': 'quiz_finished',
+            'quiz_id': event['quiz_id'],
+            'message': event['message'],
+            'quiz_status': event['quiz_status']
+        }))
+
     @database_sync_to_async
     def check_if_valid_guest(self):
         """Check if guest_id corresponds to a valid GuestQuizAttempt"""
@@ -267,10 +349,12 @@ class QuizGuestConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def remove_guest_from_active_list(self):
         """Remove guest from active participants list when they disconnect"""
+        print(f"🗑️ Attempting to remove guest {self.guest_id}")
         try:
             if hasattr(self, 'guest_id') and self.guest_id:
                 guest_attempt = GuestQuizAttempt.objects.get(id=self.guest_id)
                 quiz = guest_attempt.quiz
+                print(f"🗑️ Found guest: {guest_attempt.guest_name} in quiz {quiz.id}")
                 
                 if quiz.is_lobby and not quiz.is_started:
                     orphaned_answers = StudentQuizAnswer.objects.filter(
@@ -279,7 +363,11 @@ class QuizGuestConsumer(AsyncWebsocketConsumer):
                     )
                     if orphaned_answers.exists():
                         orphaned_answers.delete()
-                guest_attempt.delete()
+                        print(f"🗑️ Deleted {orphaned_answers.count()} orphaned answers")
+                
+                print(f"🗑️ Deleting guest attempt: {guest_attempt.id}")
+                guest_attempt.delete()  # This will trigger post_delete signal
+                print(f"✅ Guest {self.guest_id} removed successfully")
                 return True
             return False
         except GuestQuizAttempt.DoesNotExist:
