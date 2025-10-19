@@ -27,13 +27,6 @@ else
   echo ">> no data fixture, skipping loaddata"
 fi
 
+echo "✅ Django setup complete. Starting Supervisor..." | tee -a $LOGFILE
 
-# Start Cron
-# service cron start
-
-# Start Django server
-# python3 manage.py runserver 0.0.0.0:8042 >> /app/be-kowl.log 2>&1
-
-echo "✅ Django setup complete. Starting Uvicorn..." | tee -a $LOGFILE
-
-exec uvicorn kwl.asgi:application --host 0.0.0.0 --port 8042
+exec supervisord -c /usr/src/app/supervisord.conf
