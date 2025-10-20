@@ -27,10 +27,10 @@ else
   echo ">> no data fixture, skipping loaddata"
 fi
 
-echo "✅ Django setup complete. Starting Uvicorn..." | tee -a $LOGFILE
+# echo "✅ Django setup complete. Starting Uvicorn..." | tee -a $LOGFILE
 
-exec uvicorn kwl.asgi:application --host 0.0.0.0 --port 8042
+# exec uvicorn kwl.asgi:application --host 0.0.0.0 --port 8042
 
-# echo "✅ Django setup complete. Starting Supervisor..." | tee -a $LOGFILE
+echo "✅ Django setup complete. Starting Supervisor..." | tee -a $LOGFILE
 
-# exec supervisord -c /usr/src/app/supervisord.conf
+exec supervisord -c /usr/src/app/supervisord.conf
