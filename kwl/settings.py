@@ -51,7 +51,7 @@ CSRF_TRUSTED_ORIGINS = [
         os.getenv("BACKEND_URL"),
         os.getenv("FRONTEND_URL"),
     ] if url is not None
-]
+] + ['https://be-kwl-dev.cs.ui.ac.id', 'https://kwl-dev.cs.ui.ac.id']
 
 CORS_ALLOWED_ORIGINS = [
     f"https://{url.lstrip('https://').lstrip('http://').rstrip('/')}" for url in [
@@ -63,6 +63,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://kwl-dev.cs.ui.ac.id",
+    "https://be-kwl-dev.cs.ui.ac.id",
 ]
 
 # Application definition
