@@ -302,6 +302,20 @@ REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")
 CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
 CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
+
+# Windows compatibility settings
+import platform
+if platform.system() == 'Windows':
+    # Use solo pool for Windows (single process)
+    CELERY_WORKER_POOL = 'solo'
+    # Alternative: use threads instead of processes
+    # CELERY_WORKER_POOL = 'threads'
+    CELERY_WORKER_CONCURRENCY = 1
+else:
+    # Use default prefork pool for Unix/Linux
+    CELERY_WORKER_POOL = 'prefork'
+    CELERY_WORKER_CONCURRENCY = 4
+
 # Serialization
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -319,3 +333,13 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_BROKER_CONNECTION_RETRY = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
+
+# Windows-specific optimizations
+if platform.system() == 'Windows':
+    # Disable result backend for Windows if not needed
+    # CELERY_RESULT_BACKEND = None
+    # Reduce broker connection pool
+    CELERY_BROKER_POOL_LIMIT = 1
+    # Optimize for Windows
+    CELERY_TASK_ALWAYS_EAGER = False
+    CELERY_TASK_EAGER_PROPAGATES = True
