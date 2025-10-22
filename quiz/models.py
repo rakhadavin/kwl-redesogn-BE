@@ -44,6 +44,9 @@ class GuestQuizAttempt(models.Model):
 class StudentQuizAnswer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    student = models.ForeignKey('authentication.Student', on_delete=models.CASCADE, blank=True, null=True)
+    student = models.ForeignKey('GuestQuizAttempt', on_delete=models.CASCADE, blank=True, null=True, related_name='answers')
     question = models.ForeignKey('Question', on_delete=models.CASCADE, blank=True, null=True)
     selected_choices = models.ManyToManyField('Choice', blank=True)
+    
+    class Meta:
+        unique_together = ('student', 'question')  # Satu jawaban per student per question

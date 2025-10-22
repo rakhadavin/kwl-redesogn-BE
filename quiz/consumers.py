@@ -384,12 +384,11 @@ class QuizGuestConsumer(AsyncWebsocketConsumer):
             guest_attempt = GuestQuizAttempt.objects.get(id=self.guest_id)
             question = Question.objects.get(id=question_id)
             
-            # Buat atau update answer
-            # Karena model Anda belum support guest_attempt, kita simpan dengan student=None
+            # Buat atau update answer dengan guest_attempt
             answer, created = StudentQuizAnswer.objects.get_or_create(
                 question=question,
-                student=None,  # Guest answer
-                defaults={'created_at': question.quiz.created_at}
+                student=guest_attempt,  # Sekarang menggunakan guest_attempt
+                defaults={}
             )
             
             # Clear dan set choices
@@ -400,11 +399,11 @@ class QuizGuestConsumer(AsyncWebsocketConsumer):
                     choice = Choice.objects.get(id=choice_id, question=question)
                     answer.selected_choices.add(choice)
                 except Choice.DoesNotExist:
-                    print(f"Choice {choice_id} not found")
+                    print(f"Choice {choice_id} not found for question {question_id}")
             
-            print(f"Answer saved for guest {self.guest_id}, question {question_id}")
+            print(f"✅ Answer saved for guest {guest_attempt.guest_name} ({self.guest_id}), question {question_id}")
             return True
             
         except Exception as e:
-            print(f"Error saving answer: {e}")
+            print(f"❌ Error saving answer: {e}")
             return False

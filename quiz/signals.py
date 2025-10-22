@@ -79,27 +79,19 @@ def calculate_participants_scores(quiz):
     """Calculate scores for all participants in the quiz"""
     participants_scores = []
     
-    # Get all guests who participated
+    # Get all guest attempts (sekarang semua participants menggunakan GuestQuizAttempt)
     guest_attempts = GuestQuizAttempt.objects.filter(
         quiz=quiz,
         guest_name__isnull=False
-    ).select_related('quiz')
+    ).select_related('quiz').prefetch_related('answers__selected_choices', 'answers__question__choices')
     
-    # Get all students who participated
-    student_answers = StudentQuizAnswer.objects.filter(
-        question__quiz=quiz,
-        student__isnull=False
-    ).select_related('student__user', 'question').prefetch_related('selected_choices')
-    
-    # Process guest participants
+    # Process all participants
     for guest in guest_attempts:
-        guest_answers = StudentQuizAnswer.objects.filter(
-            question__quiz=quiz,
-            student__isnull=True  # Guest answers have student=None
-        ).prefetch_related('selected_choices', 'question__choices')
-        
         total_score = 0
         total_questions = quiz.questions.count()
+        
+        # Get all answers for this guest
+        guest_answers = guest.answers.all()
         
         for answer in guest_answers:
             if answer.question:
@@ -113,35 +105,12 @@ def calculate_participants_scores(quiz):
         participants_scores.append({
             'id': str(guest.id),
             'name': guest.guest_name,
-            'type': 'guest',
+            'type': 'guest',  # Sekarang semua adalah 'guest' type
             'score': total_score,
             'total_questions': total_questions,
+            'answers_count': guest_answers.count(),
             'completed_at': guest.completed_at.isoformat() if guest.completed_at else None
         })
-    
-    # Process student participants
-    student_scores = {}
-    for answer in student_answers:
-        student_id = answer.student.id
-        if student_id not in student_scores:
-            student_scores[student_id] = {
-                'id': str(student_id),
-                'name': answer.student.user.username,
-                'type': 'student',
-                'score': 0,
-                'total_questions': quiz.questions.count(),
-                'completed_at': None
-            }
-        
-        if answer.question:
-            correct_choices = set(answer.question.choices.filter(is_correct=True).values_list('id', flat=True))
-            selected_choices = set(answer.selected_choices.values_list('id', flat=True))
-            
-            # Award points if selected choices match correct choices exactly
-            if correct_choices == selected_choices and correct_choices:
-                student_scores[student_id]['score'] += answer.question.score
-    
-    participants_scores.extend(student_scores.values())
     
     return participants_scores
 

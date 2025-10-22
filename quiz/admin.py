@@ -12,13 +12,39 @@ class QuestionInline(admin.TabularInline):
     fields = ('question_text', 'score')
     show_change_link = True  # Menampilkan link untuk edit detail
 
+class StudentQuizAnswerInline(admin.TabularInline):
+    model = StudentQuizAnswer
+    extra = 0
+    fields = ('question', 'selected_choices_display', 'is_correct_display')
+    readonly_fields = ('question', 'selected_choices_display', 'is_correct_display')
+    
+    def selected_choices_display(self, obj):
+        choices = obj.selected_choices.all()
+        return ", ".join([choice.choice_text[:20] for choice in choices]) if choices else "No answer"
+    selected_choices_display.short_description = "Selected Choices"
+    
+    def is_correct_display(self, obj):
+        selected_choices = obj.selected_choices.all()
+        if not selected_choices:
+            return "❌ No Answer"
+        
+        correct_choices = obj.question.choices.filter(is_correct=True)
+        selected_correct = selected_choices.filter(is_correct=True)
+        
+        if selected_correct.count() == correct_choices.count() and selected_choices.count() == correct_choices.count():
+            return "✅ Correct"
+        else:
+            return "❌ Incorrect"
+    is_correct_display.short_description = "Result"
+
 @admin.register(Quiz)
 class QuizAdmin(admin.ModelAdmin):
-    list_display = ('title', 'quiz_pin', 'is_started', 'is_lobby', 'if_finished', 'visibility', 'created_at')
+    list_display = ('title', 'quiz_pin', 'participants_count', 'questions_count', 'is_started', 'is_lobby', 'if_finished', 'visibility', 'created_at')
     list_filter = ('is_started', 'is_lobby', 'if_finished', 'visibility', 'created_at')
     search_fields = ('title', 'description')
     readonly_fields = ('id', 'created_at', 'updated_at', 'quiz_pin')
     filter_horizontal = ('lecturer_team',)  # Widget untuk ManyToMany field
+    actions = ['open_lobby', 'start_quiz', 'finish_quiz', 'reset_quiz']
     
     fieldsets = (
         ('Quiz Information', {
@@ -39,12 +65,40 @@ class QuizAdmin(admin.ModelAdmin):
     
     inlines = [QuestionInline]
     
+    def participants_count(self, obj):
+        return obj.guest_attempts.count()
+    participants_count.short_description = "Participants"
+    
+    def questions_count(self, obj):
+        return obj.questions.count()
+    questions_count.short_description = "Questions"
+    
+    def open_lobby(self, request, queryset):
+        updated = queryset.update(is_lobby=True, is_started=False, if_finished=False)
+        self.message_user(request, f'{updated} quiz(es) lobby opened.')
+    open_lobby.short_description = "Open lobby for selected quizzes"
+    
+    def start_quiz(self, request, queryset):
+        updated = queryset.update(is_started=True, is_lobby=False)
+        self.message_user(request, f'{updated} quiz(es) started.')
+    start_quiz.short_description = "Start selected quizzes"
+    
+    def finish_quiz(self, request, queryset):
+        updated = queryset.update(if_finished=True, is_started=False, is_lobby=False)
+        self.message_user(request, f'{updated} quiz(es) finished.')
+    finish_quiz.short_description = "Finish selected quizzes"
+    
+    def reset_quiz(self, request, queryset):
+        updated = queryset.update(is_started=False, is_lobby=False, if_finished=False)
+        self.message_user(request, f'{updated} quiz(es) reset.')
+    reset_quiz.short_description = "Reset selected quizzes"
+    
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related('lecturer_team', 'questions')
+        return super().get_queryset(request).prefetch_related('lecturer_team', 'questions', 'guest_attempts')
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ('question_text_short', 'quiz', 'score', 'choice_count', 'created_at')
+    list_display = ('question_text_short', 'quiz', 'score', 'choice_count', 'correct_choice_count', 'answer_count', 'created_at')
     list_filter = ('quiz', 'score', 'created_at')
     search_fields = ('question_text', 'quiz__title')
     readonly_fields = ('id', 'created_at', 'updated_at')
@@ -67,7 +121,15 @@ class QuestionAdmin(admin.ModelAdmin):
     
     def choice_count(self, obj):
         return obj.choices.count()
-    choice_count.short_description = "Choices"
+    choice_count.short_description = "Total Choices"
+    
+    def correct_choice_count(self, obj):
+        return obj.choices.filter(is_correct=True).count()
+    correct_choice_count.short_description = "Correct Choices"
+    
+    def answer_count(self, obj):
+        return StudentQuizAnswer.objects.filter(question=obj).count()
+    answer_count.short_description = "Answers Given"
 
 @admin.register(Choice)
 class ChoiceAdmin(admin.ModelAdmin):
@@ -86,7 +148,7 @@ class ChoiceAdmin(admin.ModelAdmin):
 
 @admin.register(GuestQuizAttempt)
 class GuestQuizAttemptAdmin(admin.ModelAdmin):
-    list_display = ('guest_name', 'quiz', 'score', 'completed_at', 'created_at')
+    list_display = ('guest_name_display', 'quiz', 'score', 'answers_count', 'completed_at', 'created_at')
     list_filter = ('quiz', 'completed_at', 'created_at')
     search_fields = ('guest_name', 'quiz__title')
     readonly_fields = ('id', 'created_at', 'updated_at')
@@ -104,14 +166,24 @@ class GuestQuizAttemptAdmin(admin.ModelAdmin):
         }),
     )
     
+    inlines = [StudentQuizAnswerInline]
+    
+    def guest_name_display(self, obj):
+        return obj.guest_name or "Anonymous Guest"
+    guest_name_display.short_description = "Guest Name"
+    
+    def answers_count(self, obj):
+        return obj.answers.count()
+    answers_count.short_description = "Answers"
+    
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('quiz')
+        return super().get_queryset(request).select_related('quiz').prefetch_related('answers')
 
 @admin.register(StudentQuizAnswer)
 class StudentQuizAnswerAdmin(admin.ModelAdmin):
     list_display = ('student_name', 'question_short', 'quiz_title', 'selected_choices_count', 'created_at')
     list_filter = ('question__quiz', 'student', 'created_at')
-    search_fields = ('student__user__username', 'question__question_text', 'question__quiz__title')
+    search_fields = ('student__guest_name', 'question__question_text', 'question__quiz__title')
     readonly_fields = ('created_at', 'updated_at')
     filter_horizontal = ('selected_choices',)
     
@@ -126,8 +198,8 @@ class StudentQuizAnswerAdmin(admin.ModelAdmin):
     )
     
     def student_name(self, obj):
-        return obj.student.user.username if obj.student else "Guest"
-    student_name.short_description = "Student"
+        return obj.student.guest_name if obj.student and obj.student.guest_name else "Anonymous Guest"
+    student_name.short_description = "Student/Guest"
     
     def question_short(self, obj):
         if obj.question:
@@ -144,4 +216,4 @@ class StudentQuizAnswerAdmin(admin.ModelAdmin):
     selected_choices_count.short_description = "Choices Selected"
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('student__user', 'question__quiz').prefetch_related('selected_choices')
+        return super().get_queryset(request).select_related('student', 'question__quiz').prefetch_related('selected_choices')
