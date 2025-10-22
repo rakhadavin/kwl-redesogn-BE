@@ -92,6 +92,8 @@ def start_quiz_sequence(self, quiz_id):
                 time.sleep(3)
 
         quiz.if_finished = True
+        quiz.is_lobby = False
+        quiz.is_started = False
         quiz.save()
 
 
