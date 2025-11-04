@@ -20,13 +20,13 @@ from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from authentication.middleware import JWTParamAuthMiddleware
 import course.routing
-import quiz.routing
+import kuesioner.routing
 
 application = ProtocolTypeRouter({
   "http": get_asgi_application(),
   "websocket": JWTParamAuthMiddleware(
       URLRouter(
-          course.routing.websocket_urlpatterns + quiz.routing.websocket_urlpatterns
+          course.routing.websocket_urlpatterns + kuesioner.routing.websocket_urlpatterns
       )
   ),
 })

@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     'learned',
     'analysis',
     'quiz',
+    'kuesioner',
     'corsheaders',
     'drf_yasg',
     'rest_framework',
