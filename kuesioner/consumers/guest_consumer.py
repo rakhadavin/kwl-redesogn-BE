@@ -9,7 +9,8 @@ class GuestConsumer(AsyncWebsocketConsumer):
             self.guest_id = self.scope['url_route']['kwargs']['guest_id']
             guest_info = await self.get_guest_info()
             if not guest_info:
-                await self.close(code=4404)
+                print(f"❌ GuestQuizAttempt {self.guest_id} does not exist")
+                await self.close(code=4404)  # Not Found
                 return
             
             self.kuesioner_id = guest_info['kuesioner_id']
@@ -18,11 +19,13 @@ class GuestConsumer(AsyncWebsocketConsumer):
 
             kuesioner_info = await self.get_kuesioner_info()
             if not kuesioner_info:
-                await self.close(code=4404)
+                print(f"❌ Kuesioner {self.kuesioner_id} does not exist")
+                await self.close(code=4404)  # Not Found
                 return
 
             if not kuesioner_info['is_lobby']:
-                await self.close(code=4403)
+                print(f"❌ Kuesioner {self.kuesioner_id} lobby is not active")
+                await self.close(code=4403)  # Forbidden
                 return
 
             await self.channel_layer.group_add(
@@ -40,7 +43,7 @@ class GuestConsumer(AsyncWebsocketConsumer):
 
         except Exception as e:
             print(f"❌ Error in GuestConsumer.connect: {e}")
-            await self.safe_close()
+            await self.safe_close(code=4500)  # Internal Server Error
 
     @database_sync_to_async
     def get_guest_info(self):
@@ -102,16 +105,15 @@ class GuestConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         """Handle WebSocket disconnect"""
         try:
-            # Check if we need to clean up guest data (if kuesioner is not finished)
             if hasattr(self, 'guest_id') and hasattr(self, 'kuesioner_id'):
                 await self.cleanup_guest_on_disconnect()
             
-            # Remove from group
             if hasattr(self, 'kuesioner_group_name'):
                 await self.channel_layer.group_discard(
                     self.kuesioner_group_name,
                     self.channel_name
                 )
+                print(f"🏃 Guest {getattr(self, 'guest_name', 'unknown')} removed from group")
         except Exception as e:
             print(f"⚠️ Error during guest disconnect: {e}")
 
@@ -131,15 +133,6 @@ class GuestConsumer(AsyncWebsocketConsumer):
                 
                 # Delete all answers related to this guest
                 GuestQuizAnswer.objects.filter(guest=guest_attempt).delete()
-                
-                # Update session participant count if there's a session
-                if guest_attempt.session:
-                    session = guest_attempt.session
-                    session.total_participants = max(0, session.total_participants - 1)
-                    session.save()
-                    print(f"🔄 Updated session {session.session_number} participant count to {session.total_participants}")
-                
-                # Delete the guest attempt
                 guest_attempt.delete()
                 
                 print(f"🧹 Cleaned up data for guest {getattr(self, 'guest_name', 'unknown')} (ID: {self.guest_id})")
@@ -193,6 +186,7 @@ class GuestConsumer(AsyncWebsocketConsumer):
             question_id = data.get('question_id')
             
             if not question_id:
+                print(f"❌ No question_id provided in submit_answer")
                 return None
                 
             question = Question.objects.get(id=question_id)
@@ -210,7 +204,6 @@ class GuestConsumer(AsyncWebsocketConsumer):
                 answer.text_answer = data.get('text_answer', '')
                 answer.save()
             
-            # Handle selected choices for multiple choice
             selected_choice_ids = data.get('selected_choices', [])
             if selected_choice_ids:
                 choices = Choice.objects.filter(id__in=selected_choice_ids)
@@ -219,11 +212,16 @@ class GuestConsumer(AsyncWebsocketConsumer):
             return {
                 'answer_id': str(answer.id),
                 'question_id': str(question.id),
+                'selected_choices': [str(choice.id) for choice in answer.selected_choices.all()],
+                'text_answer': answer.text_answer,
                 'submitted_at': answer.created_at.isoformat()
             }
             
-        except (GuestQuizAttempt.DoesNotExist, Question.DoesNotExist) as e:
-            print(f"❌ Error in submit_answer: {e}")
+        except GuestQuizAttempt.DoesNotExist:
+            print(f"❌ GuestQuizAttempt {self.guest_id} does not exist")
+            return None
+        except Question.DoesNotExist:
+            print(f"❌ Question {question_id} does not exist")
             return None
         except Exception as e:
             print(f"❌ Error in submit_answer: {e}")
@@ -257,6 +255,22 @@ class GuestConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"❌ Error in get_current_session_info: {e}")
             return None
+
+    async def kuesioner_status_update(self, event):
+        """Handle kuesioner status update from teacher"""
+        try:
+            message = event['message']
+            await self.send(text_data=json.dumps(message))
+        except Exception as e:
+            print(f"❌ Error sending kuesioner status update: {e}")
+
+    async def question_update(self, event):
+        """Handle question update from teacher"""
+        try:
+            message = event['message']
+            await self.send(text_data=json.dumps(message))
+        except Exception as e:
+            print(f"❌ Error sending question update: {e}")
 
     async def session_ended_notification(self, event):
         """Handle session ended notification from teacher"""

@@ -13,7 +13,7 @@ class QuestionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Question
-        fields = ['id', 'question_text', 'time_limit', 'score', 'choices', 'created_at', 'updated_at']
+        fields = ['id', 'number', 'question_text', 'time_limit', 'score', 'choices', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
@@ -50,7 +50,7 @@ class QuestionWriteSerializer(serializers.Serializer):
     time_limit = serializers.IntegerField(default=60)
     score = serializers.IntegerField(default=10)
     choices = ChoiceWriteSerializer(many=True, required=False)  # Optional untuk Open Ended
-
+    number = serializers.IntegerField(required=False)  # Optional field for question number
 
 class KuesionerCreateSerializer(serializers.ModelSerializer):
     """
@@ -107,7 +107,8 @@ class KuesionerCreateSerializer(serializers.ModelSerializer):
                 kuesioner=kuesioner,
                 question_text=question_data['question_text'],
                 time_limit=question_data.get('time_limit', 60),
-                score=question_data.get('score', 10)
+                score=question_data.get('score', 10),
+                number=question_data.get('number', None)
             )
             
             # Create choices (jika ada)
