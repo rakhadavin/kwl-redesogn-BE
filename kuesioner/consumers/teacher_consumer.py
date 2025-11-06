@@ -175,14 +175,20 @@ class TeacherConsumer(AsyncWebsocketConsumer):
                     }))
 
             elif action == 'finish_quiz':
-                # Finish the quiz
+                all_polling_results = await self.get_all_polling_results()
+                
                 result = await self.finish_quiz()
                 if result:
-                    # Send finish status to teacher
-                    await self.send(text_data=json.dumps({
+                    finish_message = {
                         'type': 'quiz_finished',
                         'message': 'Quiz has been finished successfully'
-                    }))
+                    }
+                    
+                    print("📊 All polling results:", all_polling_results)
+                    if all_polling_results:
+                        finish_message['polling_results'] = all_polling_results
+                    
+                    await self.send(text_data=json.dumps(finish_message))
                     
                     # Notify all guests
                     guests_group_name = f'kuesioner_{self.kuesioner_id}_guests'
@@ -258,7 +264,7 @@ class TeacherConsumer(AsyncWebsocketConsumer):
                     is_active=True
                 ).order_by('-started_at').first()
                 
-                if active_session:
+                if active_session and not kuesioner.if_finished:
                     guest_attempts = GuestQuizAttempt.objects.filter(session=active_session)
                     if kuesioner.is_started:
                         GuestQuizAnswer.objects.filter(
@@ -372,6 +378,17 @@ class TeacherConsumer(AsyncWebsocketConsumer):
             return results
         except Exception as e:
             print(f"❌ Error in get_polling_results: {e}")
+            return None
+
+    @database_sync_to_async
+    def get_all_polling_results(self):
+        """Get polling results for ALL questions in the kuesioner"""
+        try:
+            from ..tasks.polling import get_all_polling_results
+            results = get_all_polling_results(self.kuesioner_id)
+            return results
+        except Exception as e:
+            print(f"❌ Error in get_all_polling_results: {e}")
             return None
 
     @database_sync_to_async

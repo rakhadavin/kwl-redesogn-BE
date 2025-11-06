@@ -150,3 +150,90 @@ def get_polling_results(kuesioner_id, question_id):
     except Exception as e:
         print(f"❌ Error in get_polling_results: {e}")
         return None
+
+def get_all_polling_results(kuesioner_id):
+    """
+    Get polling results for ALL questions in a kuesioner (for quiz finish)
+    """
+    try:
+        kuesioner = Kuesioner.objects.get(id=kuesioner_id)
+        
+        if kuesioner.question_type != 'Polling':
+            return None
+        
+        active_session = KuesionerSession.objects.filter(
+            kuesioner=kuesioner,
+            is_active=True
+        ).order_by('-started_at').first()
+        
+        # If no active session, get the latest session (for when quiz is finished)
+        if not active_session:
+            active_session = KuesionerSession.objects.filter(
+                kuesioner=kuesioner
+            ).order_by('-started_at').first()
+        
+        if not active_session:
+            print(f"⚠️ No session found for kuesioner {kuesioner_id}")
+            return None
+        
+        # Get all questions for this kuesioner
+        questions = Question.objects.filter(kuesioner=kuesioner).order_by('number')
+        all_results = []
+        
+        for question in questions:
+            choices = Choice.objects.filter(question=question).annotate(
+                vote_count=Count(
+                    'guestquizanswer',
+                    filter=Q(
+                        guestquizanswer__guest__session=active_session,
+                        guestquizanswer__question=question
+                    )
+                )
+            ).order_by('id')
+            
+            choice_results = []
+            total_votes = 0
+            
+            for choice in choices:
+                choice_results.append({
+                    'id': str(choice.id),
+                    'choice_text': choice.choice_text,
+                    'vote_count': choice.vote_count,
+                    'is_correct': choice.is_correct
+                })
+                total_votes += choice.vote_count
+            
+            # Calculate percentages
+            for choice_result in choice_results:
+                choice_result['percentage'] = (
+                    round((choice_result['vote_count'] / total_votes) * 100, 1) 
+                    if total_votes > 0 else 0
+                )
+            
+            question_result = {
+                'question': {
+                    'id': str(question.id),
+                    'question_text': question.question_text,
+                    'number': question.number
+                },
+                'results': choice_results,
+                'total_votes': total_votes
+            }
+            
+            all_results.append(question_result)
+        
+        return {
+            'type': 'all_polling_results',
+            'kuesioner_id': str(kuesioner_id),
+            'session_id': str(active_session.id),
+            'session_participants': active_session.total_participants,
+            'total_questions': len(all_results),
+            'questions': all_results
+        }
+        
+    except (Question.DoesNotExist, Kuesioner.DoesNotExist) as e:
+        print(f"❌ Error in get_all_polling_results: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ Error in get_all_polling_results: {e}")
+        return None
