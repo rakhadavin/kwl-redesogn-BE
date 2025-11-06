@@ -286,6 +286,15 @@ class GuestConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"❌ Error sending session ended notification: {e}")
 
+    async def quiz_finished_notification(self, event):
+        """Handle quiz finished notification from teacher"""
+        try:
+            message = event['message']
+            await self.send(text_data=json.dumps(message))
+            print(f"✅ Sent quiz finished notification to guest {getattr(self, 'guest_name', 'unknown')}")
+        except Exception as e:
+            print(f"❌ Error sending quiz finished notification: {e}")
+
     async def safe_close(self, code=4000):
         """Safely close the WebSocket connection"""
         try:

@@ -1,6 +1,7 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from ..models import Kuesioner, GuestQuizAttempt, Question, Choice, KuesionerSession, GuestQuizAnswer
+from django.utils import timezone
 import random
 import json
 
@@ -172,6 +173,29 @@ class TeacherConsumer(AsyncWebsocketConsumer):
                         'type': 'error',
                         'message': 'Question ID is required'
                     }))
+
+            elif action == 'finish_quiz':
+                # Finish the quiz
+                result = await self.finish_quiz()
+                if result:
+                    # Send finish status to teacher
+                    await self.send(text_data=json.dumps({
+                        'type': 'quiz_finished',
+                        'message': 'Quiz has been finished successfully'
+                    }))
+                    
+                    # Notify all guests
+                    guests_group_name = f'kuesioner_{self.kuesioner_id}_guests'
+                    await self.channel_layer.group_send(
+                        guests_group_name,
+                        {
+                            'type': 'quiz_finished_notification',
+                            'message': {
+                                'type': 'quiz_finished',
+                                'message': 'Quiz has been completed by teacher'
+                            }
+                        }
+                    )
 
         except Exception as e:
             print(f"❌ Error in TeacherConsumer.receive: {e}")
@@ -349,6 +373,36 @@ class TeacherConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"❌ Error in get_polling_results: {e}")
             return None
+
+    @database_sync_to_async
+    def finish_quiz(self):
+        """Finish the quiz and update kuesioner status"""
+        try:
+            kuesioner = Kuesioner.objects.get(id=self.kuesioner_id)
+            kuesioner.if_finished = True
+            kuesioner.is_started = False
+            kuesioner.is_lobby = False
+            kuesioner.save()
+            
+            # Deactivate current session
+            active_session = KuesionerSession.objects.filter(
+                kuesioner=kuesioner,
+                is_active=True
+            ).first()
+            
+            if active_session:
+                active_session.is_active = False
+                active_session.ended_at = timezone.now()
+                active_session.save()
+                print(f"✅ Deactivated session {active_session.session_number}")
+            
+            return True
+        except Kuesioner.DoesNotExist:
+            print(f"❌ Kuesioner {self.kuesioner_id} does not exist")
+            return False
+        except Exception as e:
+            print(f"❌ Error in finish_quiz: {e}")
+            return False
         # """Check if user is lecturer who owns this kuesioner"""
         # try:
         #     if not hasattr(self.user, 'lecturer_profile'):
@@ -373,6 +427,8 @@ class TeacherConsumer(AsyncWebsocketConsumer):
             kuesioner = Kuesioner.objects.get(id=self.kuesioner_id)
             
             kuesioner.is_lobby = True
+            kuesioner.is_started = False
+            kuesioner.if_finished = False
             kuesioner.pin = random.randint(100000, 999999)
             kuesioner.save()
 
