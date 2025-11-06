@@ -113,5 +113,36 @@ def handle_selected_choices_changed(sender, instance, action, pk_set, **kwargs):
                 print(f"⚠️ Skipping polling results - question type is {kuesioner.question_type}")
         else:
             print(f"❌ Missing question or guest in answer instance (M2M)")
+
+@receiver(post_save, sender=GuestQuizAnswer)
+def handle_openended_answer_submitted(sender, instance, created, **kwargs):
+    """
+    Handle when an Open Ended answer is submitted or updated.
+    Send real-time updates to teacher.
+    """
+    if instance.question and instance.guest:
+        kuesioner = instance.question.kuesioner
+        question = instance.question
+        
+        # Only send updates for Open Ended questions
+        if kuesioner.question_type == 'Open Ended':
+            # Check if this has a text answer (not just M2M changes)
+            if instance.text_answer and instance.text_answer.strip():
+                try:
+                    print(f"📝 Open Ended answer {'created' if created else 'updated'} from guest {instance.guest.guest_name}")
+                    print(f"💬 Answer preview: {instance.text_answer[:50]}...")
+                    
+                    # Import here to avoid circular import
+                    from .tasks.openended import send_openended_responses_to_teacher
+                    send_openended_responses_to_teacher(str(kuesioner.id), str(question.id))
+                    print(f"✅ Triggered Open Ended responses update for question {question.number}")
+                except Exception as e:
+                    print(f"❌ Error sending Open Ended responses: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print(f"⚠️ Skipping Open Ended update - no text answer provided")
+        else:
+            print(f"⚠️ Skipping Open Ended update - question type is {kuesioner.question_type}")
     else:
-        print(f"⚠️ Ignoring M2M action: {action}")
+        print(f"❌ Missing question or guest in answer instance (Open Ended)")

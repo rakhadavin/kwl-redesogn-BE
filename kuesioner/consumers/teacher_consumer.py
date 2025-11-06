@@ -103,7 +103,8 @@ class TeacherConsumer(AsyncWebsocketConsumer):
                         }
                     )
                     
-                    if question_type == "Polling":
+                    # Send first question for both Polling and Open Ended
+                    if question_type in ["Polling", "Open Ended"]:
                         question_data = await self.get_question_by_number(1)
                         if question_data:
                             question_message = {
@@ -174,8 +175,27 @@ class TeacherConsumer(AsyncWebsocketConsumer):
                         'message': 'Question ID is required'
                     }))
 
+            elif action == 'get_openended_responses':
+                question_id = data.get('question_id')
+                if question_id:
+                    openended_responses = await self.get_openended_responses(question_id)
+                    if openended_responses:
+                        await self.send(text_data=json.dumps(openended_responses))
+                    else:
+                        await self.send(text_data=json.dumps({
+                            'type': 'error',
+                            'message': 'No Open Ended responses found'
+                        }))
+                else:
+                    await self.send(text_data=json.dumps({
+                        'type': 'error',
+                        'message': 'Question ID is required'
+                    }))
+
             elif action == 'finish_quiz':
+                # Get results based on question type
                 all_polling_results = await self.get_all_polling_results()
+                all_openended_responses = await self.get_all_openended_responses()
                 
                 result = await self.finish_quiz()
                 if result:
@@ -185,8 +205,13 @@ class TeacherConsumer(AsyncWebsocketConsumer):
                     }
                     
                     print("📊 All polling results:", all_polling_results)
+                    print("📝 All Open Ended responses:", all_openended_responses)
+                    
                     if all_polling_results:
                         finish_message['polling_results'] = all_polling_results
+                    
+                    if all_openended_responses:
+                        finish_message['openended_responses'] = all_openended_responses
                     
                     await self.send(text_data=json.dumps(finish_message))
                     
@@ -252,6 +277,15 @@ class TeacherConsumer(AsyncWebsocketConsumer):
             print(f"✅ Sent polling results to teacher for question {message.get('question', {}).get('number', 'unknown')}")
         except Exception as e:
             print(f"❌ Error in polling_results_update handler: {e}")
+
+    async def openended_responses_update(self, event):
+        """Handle Open Ended responses updates"""
+        try:
+            message = event['message']
+            await self.send(text_data=json.dumps(message))
+            print(f"✅ Sent Open Ended responses to teacher for question {message.get('question', {}).get('number', 'unknown')}")
+        except Exception as e:
+            print(f"❌ Error in openended_responses_update handler: {e}")
 
     @database_sync_to_async
     def cleanup_session(self):
@@ -381,6 +415,19 @@ class TeacherConsumer(AsyncWebsocketConsumer):
             return None
 
     @database_sync_to_async
+    def get_openended_responses(self, question_id):
+        """Get Open Ended responses for a specific question"""
+        try:
+            from ..tasks.openended import get_openended_responses
+            results = get_openended_responses(self.kuesioner_id, question_id)
+            if results:
+                results['type'] = 'openended_responses'
+            return results
+        except Exception as e:
+            print(f"❌ Error in get_openended_responses: {e}")
+            return None
+
+    @database_sync_to_async
     def get_all_polling_results(self):
         """Get polling results for ALL questions in the kuesioner"""
         try:
@@ -389,6 +436,17 @@ class TeacherConsumer(AsyncWebsocketConsumer):
             return results
         except Exception as e:
             print(f"❌ Error in get_all_polling_results: {e}")
+            return None
+
+    @database_sync_to_async
+    def get_all_openended_responses(self):
+        """Get Open Ended responses for ALL questions in the kuesioner"""
+        try:
+            from ..tasks.openended import get_all_openended_responses
+            results = get_all_openended_responses(self.kuesioner_id)
+            return results
+        except Exception as e:
+            print(f"❌ Error in get_all_openended_responses: {e}")
             return None
 
     @database_sync_to_async

@@ -151,8 +151,9 @@ class GuestConsumer(AsyncWebsocketConsumer):
         try:
             text_data_json = json.loads(text_data)
             message_type = text_data_json.get('type')
+            action = text_data_json.get('action')  # Also check for 'action' field
 
-            if message_type == 'submit_answer':
+            if message_type == 'submit_answer' or action == 'submit_answer':
                 # Handle answer submission
                 result = await self.submit_answer(text_data_json)
                 await self.send(text_data=json.dumps({
@@ -185,37 +186,76 @@ class GuestConsumer(AsyncWebsocketConsumer):
             guest_attempt = GuestQuizAttempt.objects.get(id=self.guest_id)
             question_id = data.get('question_id')
             
+            # If no question_id provided, get current question
             if not question_id:
-                print(f"❌ No question_id provided in submit_answer")
-                return None
+                kuesioner = Kuesioner.objects.get(id=self.kuesioner_id)
+                # Find the current question (this would need to be tracked somehow)
+                # For now, let's assume it's passed or we get the first question
+                current_question = Question.objects.filter(kuesioner=kuesioner).first()
+                if current_question:
+                    question_id = str(current_question.id)
+                else:
+                    print(f"❌ No question found for kuesioner {self.kuesioner_id}")
+                    return None
                 
             question = Question.objects.get(id=question_id)
             
-            # Create or update answer
-            answer, created = GuestQuizAnswer.objects.get_or_create(
-                guest=guest_attempt,
-                question=question,
-                defaults={
-                    'text_answer': data.get('text_answer', '')
+            # Handle different question types
+            if question.kuesioner.question_type == 'Open Ended':
+                # For Open Ended questions, save text answer
+                text_answer = data.get('answer', '')  # Frontend sends 'answer' field
+                
+                answer, created = GuestQuizAnswer.objects.get_or_create(
+                    guest=guest_attempt,
+                    question=question,
+                    defaults={
+                        'text_answer': text_answer
+                    }
+                )
+                
+                if not created:
+                    answer.text_answer = text_answer
+                    answer.save()
+                
+                print(f"✅ Open Ended answer saved for guest {guest_attempt.guest_name}: {text_answer[:50]}...")
+                
+                return {
+                    'answer_id': str(answer.id),
+                    'question_id': str(question.id),
+                    'text_answer': text_answer,
+                    'question_type': 'Open Ended'
                 }
-            )
+                
+            elif question.kuesioner.question_type == 'Polling':
+                # For Polling questions, save selected choices
+                selected_choice_ids = data.get('selected_choices', [])
+                
+                answer, created = GuestQuizAnswer.objects.get_or_create(
+                    guest=guest_attempt,
+                    question=question,
+                    defaults={
+                        'text_answer': data.get('text_answer', '')
+                    }
+                )
+                
+                if not created:
+                    answer.text_answer = data.get('text_answer', '')
+                    answer.save()
+                
+                if selected_choice_ids:
+                    choices = Choice.objects.filter(id__in=selected_choice_ids)
+                    answer.selected_choices.set(choices)
+                
+                return {
+                    'answer_id': str(answer.id),
+                    'question_id': str(question.id),
+                    'selected_choices': [str(choice.id) for choice in answer.selected_choices.all()],
+                    'question_type': 'Polling'
+                }
             
-            if not created:
-                answer.text_answer = data.get('text_answer', '')
-                answer.save()
-            
-            selected_choice_ids = data.get('selected_choices', [])
-            if selected_choice_ids:
-                choices = Choice.objects.filter(id__in=selected_choice_ids)
-                answer.selected_choices.set(choices)
-            
-            return {
-                'answer_id': str(answer.id),
-                'question_id': str(question.id),
-                'selected_choices': [str(choice.id) for choice in answer.selected_choices.all()],
-                'text_answer': answer.text_answer,
-                'submitted_at': answer.created_at.isoformat()
-            }
+            else:
+                print(f"⚠️ Unknown question type: {question.kuesioner.question_type}")
+                return None
             
         except GuestQuizAttempt.DoesNotExist:
             print(f"❌ GuestQuizAttempt {self.guest_id} does not exist")
