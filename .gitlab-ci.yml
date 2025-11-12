@@ -12,6 +12,8 @@ build:
   only:
     - dev
 
+  timeout: 30m
+
   before_script:
     - echo "🔧 Configuring Docker..."
     - |
@@ -46,6 +48,8 @@ deploy:
 
   only:
     - dev
+
+  timeout: 30m
 
   before_script:
     - echo "🔧 Configuring Kubernetes..."
