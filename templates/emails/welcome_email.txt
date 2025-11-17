@@ -1,0 +1,46 @@
+========================================
+🎉 SELAMAT DATANG DI KWL PLATFORM! 🎉
+========================================
+
+Halo {{ user.first_name|default:user.username }}!
+
+Terima kasih telah bergabung dengan KWL Platform sebagai {{ role|capfirst }}. 
+Akun Anda telah berhasil dibuat dan siap digunakan!
+
+📋 DETAIL AKUN ANDA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Username      : {{ user.username }}
+Email         : {{ user.email }}
+Nama Lengkap  : {{ user.get_full_name|default:user.username }}
+Role          : {{ role|capfirst }}
+
+🚀 APA YANG BISA ANDA LAKUKAN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{% if role == 'student' %}
+✓ Mengakses course yang telah didaftarkan
+✓ Mengerjakan quiz dan kuesioner interaktif
+✓ Melakukan refleksi Know, Want to Know, dan Learned
+✓ Mengikuti aktivitas pembelajaran interaktif
+✓ Melihat progress pembelajaran Anda
+✓ Berinteraksi dengan sesama mahasiswa dan dosen
+{% else %}
+✓ Membuat dan mengelola course
+✓ Membuat quiz dan kuesioner interaktif
+✓ Melakukan analisis hasil pembelajaran
+✓ Memantau progress mahasiswa
+✓ Mengakses dashboard analytics
+✓ Mengelola konten pembelajaran
+{% endif %}
+
+🎯 MULAI SEKARANG:
+Silakan login ke platform di: {{ frontend_url }}
+
+Jika Anda memiliki pertanyaan, jangan ragu untuk menghubungi tim support kami.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Salam hangat,
+Tim KWL Platform
+
+Email ini dikirim secara otomatis. 
+Mohon jangan membalas email ini.
+========================================
