@@ -5,6 +5,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from smtplib import SMTPException     
 from kwl import settings
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer, EditLecturerSerializer, EditStudentSerializer, ResetPasswordRequestSerializer, ChangePasswordSerializer, CreateStudentSerializer, CreateLecturerSerializer, ProviderAuthSerializer
 from .models import KwlUser, Student, Lecturer, ResetPasswordToken
 from .api_exceptions import ExistingEmailException, ExistingUsernameException
@@ -16,6 +18,42 @@ from drf_yasg.utils import swagger_auto_schema
 import requests
 from django.core.cache import cache
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
+
+def send_welcome_email(user, role):
+    """Send welcome email to newly registered user"""
+    try:
+        subject = f"🎉 Selamat Datang di KWL Platform - {role.title()}"
+        
+        # Context for template
+        context = {
+            'user': user,
+            'role': role,
+            'frontend_url': settings.FRONTEND_URL or 'https://kwl-dev.cs.ui.ac.id',
+        }
+        
+        # Render HTML email
+        html_message = render_to_string('emails/welcome_email.html', context)
+        
+        # Render plain text email
+        plain_message = render_to_string('emails/welcome_email.txt', context)
+
+        # Send email with both HTML and plain text versions
+        send_mail(
+            subject=subject,
+            message=html_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        return True
+        
+    except SMTPException as e:
+        print(f"SMTP Error sending welcome email: {e}")
+        return False
+    except Exception as e:
+        print(f"Error sending welcome email: {e}")
+        return False
 import jwt
 
 class LoginView(APIView):
@@ -47,8 +85,18 @@ class RegisterStudentView(APIView):
         try:
             serializer = StudentSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response({"message":"Student registered successfully"}, status=status.HTTP_201_CREATED)
+            student = serializer.save()
+            
+            # Send welcome email
+            email_sent = send_welcome_email(student.user, 'student')
+            
+            response_message = "Student registered successfully"
+            if email_sent:
+                response_message += " and welcome email sent"
+            else:
+                response_message += " but welcome email could not be sent"
+            
+            return Response({"message": response_message}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"message":str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -111,9 +159,16 @@ class StudentDetailView(APIView):
             
             serializer = CreateStudentSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            serializer.save(user=user)
+            student = serializer.save(user=user)
 
-            return Response({"message": "Student assigned successfully", "data": get_tokens_for_user(request.user)}, status=status.HTTP_200_OK)
+            # Send welcome email for role assignment
+            email_sent = send_welcome_email(user, 'student')
+            
+            response_message = "Student assigned successfully"
+            if email_sent:
+                response_message += " and welcome email sent"
+
+            return Response({"message": response_message, "data": get_tokens_for_user(request.user)}, status=status.HTTP_200_OK)
         except serializers.ValidationError as e:
             return Response({"message": "Validation failed", "errors": e.detail}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -167,9 +222,16 @@ class LecturerDetailView(APIView):
             
             serializer = CreateLecturerSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            serializer.save(user=user)
+            lecturer = serializer.save(user=user)
 
-            return Response({"message": "Student assigned successfully", "data": get_tokens_for_user(request.user)}, status=status.HTTP_200_OK)
+            # Send welcome email for role assignment
+            email_sent = send_welcome_email(user, 'lecturer')
+            
+            response_message = "Lecturer assigned successfully"
+            if email_sent:
+                response_message += " and welcome email sent"
+
+            return Response({"message": response_message, "data": get_tokens_for_user(request.user)}, status=status.HTTP_200_OK)
         except serializers.ValidationError as e:
             return Response({"message": "Validation failed", "errors": e.detail}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -196,8 +258,18 @@ class RegisterTeacherView(APIView):
         try:
             serializer = LecturerSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response({"message": "Lecturer registered successfully"}, status=status.HTTP_201_CREATED)
+            lecturer = serializer.save()
+            
+            # Send welcome email
+            email_sent = send_welcome_email(lecturer.user, 'lecturer')
+            
+            response_message = "Lecturer registered successfully"
+            if email_sent:
+                response_message += " and welcome email sent"
+            else:
+                response_message += " but welcome email could not be sent"
+            
+            return Response({"message": response_message}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
