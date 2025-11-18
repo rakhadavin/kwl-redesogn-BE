@@ -81,8 +81,8 @@ class TopicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Topic
-        fields = ['name', 'description', 'id', 'course', 'course_data', 'know', 'learned', 'wtk', 
-                 'is_hidden', 'enable_open_time', 'enable_close_time', 'open_time', 'close_time', 
+        fields = ['name', 'description', 'learning_objective', 'id', 'course', 'course_data', 'know', 'learned', 'wtk', 
+                 'is_hidden', 'is_archived', 'enable_open_time', 'enable_close_time', 'open_time', 'close_time', 
                 'created', 'updated']
 
     def get_know(self, obj):
@@ -106,6 +106,8 @@ class TopicSerializer(serializers.ModelSerializer):
         instance.course = course
         instance.name = validated_data.get('name', instance.name)
         instance.description = validated_data.get('description', instance.description)
+        instance.learning_objective = validated_data.get('learning_objective', instance.learning_objective)
+        instance.is_archived = validated_data.get('is_archived', instance.is_archived)
         instance.enable_open_time = validated_data.get('enable_open_time', instance.enable_open_time)
         instance.enable_close_time = validated_data.get('enable_close_time', instance.enable_close_time)
         instance.open_time = validated_data.get('open_time', instance.open_time)

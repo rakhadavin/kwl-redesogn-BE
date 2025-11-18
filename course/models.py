@@ -24,6 +24,7 @@ class Course(models.Model):
     enrollment_key = models.CharField(max_length=100, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+    is_archived = models.BooleanField(default=False)
   
     def __str__(self):
         return self.short_name
@@ -31,6 +32,7 @@ class Course(models.Model):
 class Topic(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
+    learning_objective = models.TextField(null=True, blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -39,10 +41,11 @@ class Topic(models.Model):
     enable_close_time = models.BooleanField(default=False, help_text="Aktifkan pembatasan waktu tutup")
     open_time = models.DateTimeField(null=True, blank=True, help_text="Waktu topic dibuka untuk akses")
     close_time = models.DateTimeField(null=True, blank=True, help_text="Waktu topic ditutup untuk akses")
+    is_archived = models.BooleanField(default=False)
     
     def __str__(self):
         return self.name
-
+    
 class KwlPoint(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     know_score = models.IntegerField(default=0)

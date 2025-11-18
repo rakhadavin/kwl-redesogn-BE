@@ -139,13 +139,50 @@ class CourseLecturerView(APIView):
 
 class CourseTopicView(APIView):
     permission_classes = [IsAuthenticated,]
-    @swagger_auto_schema(operation_summary="Get all topics by course id and also give its K-W-L data")
+    @swagger_auto_schema(operation_summary="Get all topics by course id with archive statistics")
     def get(self, request, course_id, format=None):
         try:
             course = Course.objects.get(pk=course_id)
-            topics = Topic.objects.filter(course=course)
-            serializer = TopicSerializer(topics, many=True)
-            return Response(serializer.data)
+            
+            # Get all topics for this course
+            all_topics = Topic.objects.filter(course=course)
+            active_topics = all_topics.filter(is_archived=False)
+            archived_topics_count = all_topics.filter(is_archived=True).count()
+            
+            serializer = TopicSerializer(active_topics, many=True)
+            
+            response_data = {
+                'topics': serializer.data,
+                'total_active_topics': active_topics.count(),
+                'total_archived_topics': archived_topics_count,
+                'total_topics': all_topics.count(),
+                'course_id': course_id
+            }
+            
+            return Response(response_data)
+        except Course.DoesNotExist:
+            raise CourseNotFoundException()
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CourseTopicArchivedView(APIView):
+    permission_classes = [IsAuthenticated,]
+    @swagger_auto_schema(operation_summary="Get all archived topics by course id")
+    def get(self, request, course_id, format=None):
+        try:
+            course = Course.objects.get(pk=course_id)
+            
+            # Get only archived topics for this course
+            archived_topics = Topic.objects.filter(course=course, is_archived=True)
+            serializer = TopicSerializer(archived_topics, many=True)
+            
+            response_data = {
+                'topics': serializer.data,
+                'total_archived_topics': archived_topics.count(),
+                'course_id': course_id
+            }
+            
+            return Response(response_data)
         except Course.DoesNotExist:
             raise CourseNotFoundException()
         except Exception as e:
@@ -360,7 +397,7 @@ class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
 
 class TopicList(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated,]
-    queryset = Topic.objects.all()
+    queryset = Topic.objects.filter(is_archived=False)
     serializer_class = TopicSerializer
 
     @swagger_auto_schema(operation_summary="List all topics")
@@ -404,19 +441,26 @@ class TopicDetail(generics.RetrieveUpdateDestroyAPIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-    @swagger_auto_schema(operation_summary="Hide/Show a topic")
+    @swagger_auto_schema(operation_summary="Hide/Show or Archive/Unarchive a topic")
     def patch(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             is_hidden = request.data.get('is_hidden')
+            is_archived = request.data.get('is_archived')
             
-            if is_hidden is None:
+            # Validate that at least one field is provided
+            if is_hidden is None and is_archived is None:
                 return Response(
-                    {"message": "is_hidden field is required"}, 
+                    {"message": "Either is_hidden or is_archived field is required"}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            instance.is_hidden = is_hidden
+            # Update fields if provided
+            if is_hidden is not None:
+                instance.is_hidden = is_hidden
+            if is_archived is not None:
+                instance.is_archived = is_archived
+                
             instance.save()
             
             serializer = self.get_serializer(instance)
@@ -653,7 +697,7 @@ class KwlStatusView(APIView):
             topics_data = []
             student = Student.objects.get(pk=student_id)
             course = Course.objects.get(pk=course_id)
-            topics = Topic.objects.filter(course=course, is_hidden=False)
+            topics = Topic.objects.filter(course=course, is_hidden=False, is_archived=False)
             for topic in topics:
                 topic_data = {}
                 topic_data['topic_data'] = TopicSerializer(topic).data
