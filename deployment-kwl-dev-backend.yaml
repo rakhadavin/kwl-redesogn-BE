@@ -16,7 +16,7 @@ spec:
         # app: kwl-dev-backend 
         app: ${APP_NAME}
     spec:
-      hostNetwork: true	
+      # hostNetwork: true	
       hostAliases:
         - ip: "10.119.105.133"
           hostnames:
