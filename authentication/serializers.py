@@ -2,7 +2,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from authentication.api_exceptions import ExistingEmailException, ExistingUsernameException, ChangePasswordException
 from course.models import Course
-from .models import KwlUser, Student, Lecturer
+from .models import KwlUser, Student, Lecturer, Consent, UserConsent
 from course.serializers import CourseSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -11,10 +11,13 @@ class KwlUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)  
     profile_photo = serializers.ImageField(required=False, allow_null=True)
     nama_lengkap = serializers.SerializerMethodField(read_only=True)
+    consent = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Consent.objects.all(), required=False
+    )
 
     class Meta:
         model = KwlUser
-        fields = ['username', 'email', 'password', 'role', 'nama_lengkap','domisili', 'profile_photo']
+        fields = ['username', 'email', 'password', 'role', 'nama_lengkap', 'domisili', 'profile_photo', 'consent']
 
     def to_internal_value(self, data):
         if KwlUser.objects.filter(email=data['email']).exists():
@@ -57,6 +60,7 @@ class LecturerSerializer(serializers.ModelSerializer):
         user_data["first_name"]=first_name
         user_data["last_name"]=last_name
         user_data.pop('nama_lengkap', None)
+        consent_data = user_data.pop('consent', [])
 
         if user_data:
             user = KwlUser.objects.create_user(**user_data)
@@ -66,6 +70,8 @@ class LecturerSerializer(serializers.ModelSerializer):
         lecturer = Lecturer.objects.create(user=user, **validated_data)
         
         user.role = 'lecturer'
+        for consent_obj in consent_data:
+            UserConsent.objects.get_or_create(user=user, consent=consent_obj)
         user.save()
         # Add assistant courses if provided
         for course_data in courses_taught:
@@ -126,6 +132,7 @@ class StudentSerializer(serializers.ModelSerializer):
         user_data["first_name"]=first_name
         user_data["last_name"]=last_name
         user_data.pop('nama_lengkap', None)
+        consent_data = user_data.pop('consent', [])
 
         if user_data:
             user = KwlUser.objects.create_user(**user_data)
@@ -134,6 +141,8 @@ class StudentSerializer(serializers.ModelSerializer):
         # Create the Student instance
         student = Student.objects.create(user=user, **validated_data)
         user.role = 'student'
+        for consent_obj in consent_data:
+            UserConsent.objects.get_or_create(user=user, consent=consent_obj)
         user.save()
         student.save()
         
@@ -312,3 +321,18 @@ class ProviderAuthSerializer(serializers.Serializer):
 
     def validate(self, data):
         return data
+
+
+class ConsentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Consent
+        fields = ['id', 'name', 'description']
+
+
+class UserConsentSubmitSerializer(serializers.Serializer):
+    consent_id = serializers.IntegerField()
+
+    def validate_consent_id(self, value):
+        if not Consent.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Consent not found")
+        return value

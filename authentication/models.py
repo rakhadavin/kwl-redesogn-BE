@@ -40,8 +40,27 @@ class KwlUser(AbstractUser):
     profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True, help_text="User's profile photo", storage=MinioMediaStorage())
     keycloak_id = models.CharField(max_length=100, null=True, blank=True, help_text="Keycloak ID for the user", unique=True)
     google_id = models.CharField(max_length=100, null=True, blank=True, help_text="Google ID for the user", unique=True)
+    consent = models.ManyToManyField('Consent', through='UserConsent', related_name='users', blank=True)
     def __str__(self):
         return self.username
+
+class Consent(models.Model):
+    name = models.CharField(max_length=100, help_text="Name of the consent", unique=True)
+    description = models.TextField(help_text="Description of the consent", null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+class UserConsent(models.Model):
+    user = models.ForeignKey(KwlUser, on_delete=models.CASCADE, related_name='user_consents')
+    consent = models.ForeignKey(Consent, on_delete=models.CASCADE, related_name='user_consents')
+    agreed_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when consent was agreed")
+
+    class Meta:
+        unique_together = ('user', 'consent')
+
+    def __str__(self):
+        return f"{self.user.username} – {self.consent.name} at {self.agreed_at}"
 
 class Lecturer(models.Model):
     user = models.OneToOneField(KwlUser, on_delete=models.CASCADE, related_name='lecturer_profile', null=True)

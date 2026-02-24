@@ -7,8 +7,8 @@ from smtplib import SMTPException
 from kwl import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer, EditLecturerSerializer, EditStudentSerializer, ResetPasswordRequestSerializer, ChangePasswordSerializer, CreateStudentSerializer, CreateLecturerSerializer, ProviderAuthSerializer
-from .models import KwlUser, Student, Lecturer, ResetPasswordToken
+from .serializers import LoginSerializer, StudentSerializer, LecturerSerializer, EditLecturerSerializer, EditStudentSerializer, ResetPasswordRequestSerializer, ChangePasswordSerializer, CreateStudentSerializer, CreateLecturerSerializer, ProviderAuthSerializer, ConsentSerializer, UserConsentSubmitSerializer
+from .models import KwlUser, Student, Lecturer, ResetPasswordToken, Consent, UserConsent
 from .api_exceptions import ExistingEmailException, ExistingUsernameException
 from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.utils import get_tokens_for_user
@@ -118,6 +118,53 @@ class LecturerListView(APIView):
         lecturers = Lecturer.objects.all()
         serializer = LecturerSerializer(lecturers, many=True)
         return Response(serializer.data)
+
+
+class ConsentListView(APIView):
+    """Public endpoint — returns all available consent items."""
+    permission_classes = [AllowAny,]
+
+    @swagger_auto_schema(responses={200: ConsentSerializer(many=True)}, operation_summary="Get all consents", tags=["Consent"])
+    def get(self, request):
+        consents = Consent.objects.all()
+        serializer = ConsentSerializer(consents, many=True)
+        return Response(serializer.data)
+
+
+class UserConsentStatusView(APIView):
+    """Check and submit consent for the logged-in user."""
+    permission_classes = [IsAuthenticated,]
+
+    @swagger_auto_schema(
+        responses={200: "{'has_consented': bool, 'consented_at': datetime|null}"},
+        operation_summary="Check if current user has submitted consent",
+        tags=["Consent"]
+    )
+    def get(self, request):
+        user_consent = UserConsent.objects.filter(user=request.user).first()
+        if user_consent:
+            return Response({
+                "has_consented": True,
+                "consented_at": user_consent.agreed_at,
+                "consent": ConsentSerializer(user_consent.consent).data,
+            })
+        return Response({"has_consented": False, "consented_at": None, "consent": None})
+
+    @swagger_auto_schema(
+        request_body=UserConsentSubmitSerializer,
+        responses={201: "Consent submitted", 400: "Bad Request"},
+        operation_summary="Submit consent for current user",
+        tags=["Consent"]
+    )
+    def post(self, request):
+        serializer = UserConsentSubmitSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        consent_id = serializer.validated_data['consent_id']
+        consent = Consent.objects.get(id=consent_id)
+        user_consent, created = UserConsent.objects.get_or_create(user=request.user, consent=consent)
+        if created:
+            return Response({"message": "Consent submitted successfully", "consented_at": user_consent.agreed_at}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Consent already submitted", "consented_at": user_consent.agreed_at})
     
     
 class StudentDetailView(APIView):
