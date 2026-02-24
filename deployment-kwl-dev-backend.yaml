@@ -5,7 +5,7 @@ metadata:
   name: ${APP_NAME}
   namespace: itfasilkom
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       # app: kwl-dev-backend 
