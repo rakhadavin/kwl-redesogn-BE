@@ -20,6 +20,8 @@ class Course(models.Model):
     full_name = models.CharField(max_length=255)
     color_theme = models.CharField(max_length=11, choices=COLOR)
     lecturer_team = models.ManyToManyField(Lecturer, blank=True, related_name='lecturer')
+    institusi = models.TextField(null=True, blank=True)
+    prodi = models.TextField(null=True, blank=True)
     students = models.ManyToManyField(Student, blank=True, related_name='students')
     enrollment_key = models.CharField(max_length=100, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
