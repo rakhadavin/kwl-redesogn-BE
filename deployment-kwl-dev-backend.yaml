@@ -1,38 +1,39 @@
-apiVersion: apps/v1 
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  # name: kwl-dev-backend 
+  # name: kwl-dev-backend
   name: ${APP_NAME}
   namespace: itfasilkom
 spec:
   replicas: 1
   selector:
     matchLabels:
-      # app: kwl-dev-backend 
+      # app: kwl-dev-backend
       app: ${APP_NAME}
   template:
     metadata:
       labels:
-        # app: kwl-dev-backend 
+        # app: kwl-dev-backend
         app: ${APP_NAME}
     spec:
-      # hostNetwork: true	
+      # hostNetwork: true
       hostAliases:
         - ip: "10.119.105.133"
           hostnames:
             - "minio-itf.cs.ui.ac.id"
       dnsPolicy: ClusterFirst
       containers:
-      # - name: kwl-dev-backend
-      - name: ${APP_NAME}
-        # image: registry.cs.ui.ac.id/itf/kwl-dev-backend:latest
-        image: ${DOCKER_REGISTRY}/${REGISTRY_PROJECT}/${APP_NAME}:${DOCKER_TAG}
-        envFrom:
-          - secretRef:
-              # name: kwl-dev-backend
-              name: ${APP_NAME}-secret
-        ports:
-        - containerPort: 8042
+        # - name: kwl-dev-backend
+        - name: ${APP_NAME}
+          # image: registry.cs.ui.ac.id/itf/kwl-dev-backend:latest
+          image: ${DOCKER_REGISTRY}/${REGISTRY_PROJECT}/${APP_NAME}:${DOCKER_TAG}
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                # name: kwl-dev-backend
+                name: ${APP_NAME}-secret
+          ports:
+            - containerPort: 8042
       imagePullSecrets:
         - name: itf-registry
 
@@ -46,8 +47,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 40044
-    targetPort: 8042
+    - port: 40044
+      targetPort: 8042
   selector:
     # app: kwl-dev-backend
     app: ${APP_NAME}
@@ -62,19 +63,19 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   tls:
-    - hosts: 
-      # - be-kwl-dev.cs.ui.ac.id
-      - ${DOMAIN_NAME}.cs.ui.ac.id
+    - hosts:
+        # - be-kwl-dev.cs.ui.ac.id
+        - ${DOMAIN_NAME}.cs.ui.ac.id
       secretName: cs12-tls
   rules:
-  # - host: be-kwl-dev.cs.ui.ac.id
-  - host: ${DOMAIN_NAME}.cs.ui.ac.id
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: ${APP_NAME}
-            port:
-              number: 40044
+    # - host: be-kwl-dev.cs.ui.ac.id
+    - host: ${DOMAIN_NAME}.cs.ui.ac.id
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${APP_NAME}
+                port:
+                  number: 40044

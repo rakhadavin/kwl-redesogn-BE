@@ -31,13 +31,15 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     supervisor \
     && pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir setuptools wheel \
     && pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir --force-reinstall setuptools \
     && apt-get remove -y build-essential gcc g++ python3-dev libffi-dev libssl-dev libpq-dev pkg-config \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Reinstall setuptools last to ensure pkg_resources is always available
+# (some packages can break it during installation)
+RUN pip install --no-cache-dir --force-reinstall 'setuptools>=65.0.0'
 
 RUN mkdir -p staticfiles media app_logs /var/log/supervisor
 
