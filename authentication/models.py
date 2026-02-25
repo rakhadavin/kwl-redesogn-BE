@@ -64,6 +64,7 @@ class UserConsent(models.Model):
 
 class Lecturer(models.Model):
     user = models.OneToOneField(KwlUser, on_delete=models.CASCADE, related_name='lecturer_profile', null=True)
+    institusi = models.CharField(max_length=250, null=True, blank=True)
     department = models.CharField(max_length=100, null=True, blank=True)
     lecturer_id =  models.CharField(max_length=10, null=True, blank=True) 
 
@@ -73,6 +74,7 @@ class Lecturer(models.Model):
 class Student(models.Model):
     user = models.OneToOneField(KwlUser, on_delete=models.CASCADE, null=True)
     student_id = models.CharField(max_length=10, null=True, blank=True)
+    institusi = models.CharField(max_length=250, null=True, blank=True)
     major = models.CharField(max_length=100, null=True, blank=True)
     term = models.CharField(max_length=100, null=True, blank=True)
     faculty = models.CharField(max_length=100, null=True, blank=True)

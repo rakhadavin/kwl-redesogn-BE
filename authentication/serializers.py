@@ -154,7 +154,7 @@ class CreateStudentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Student
-        fields = ['student_id', 'major', 'faculty', 'term', 'user', 'nama_lengkap']
+        fields = ['student_id', 'major', 'faculty', 'term', 'institusi', 'user', 'nama_lengkap']
         
     def create(self, validated_data):
         """
@@ -178,7 +178,7 @@ class CreateLecturerSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Lecturer
-        fields = ['lecturer_id', 'department', 'user']
+        fields = ['lecturer_id', 'department', 'institusi', 'user']
         
     def create(self, validated_data):
         """
@@ -203,6 +203,7 @@ class EditLecturerSerializer(serializers.Serializer):
     profile_photo = serializers.ImageField(required=False, allow_null=True)
     department = serializers.CharField(required=False)
     lecturer_id = serializers.CharField(required=False)
+    institusi = serializers.CharField(required=False, allow_blank=True)
     courses_taught = CourseSerializer(many=True, required=False)
     
     def update(self, instance, validated_data):
@@ -212,6 +213,7 @@ class EditLecturerSerializer(serializers.Serializer):
         instance.department = validated_data.get('department', instance.department)
         print(validated_data)
         instance.lecturer_id = validated_data.get('lecturer_id', instance.lecturer_id)
+        instance.institusi = validated_data.get('institusi', instance.institusi)
         user = instance.user
         user.email = validated_data.get('email', user.email)
         user.domisili = validated_data.get('domisili', user.domisili)
@@ -248,6 +250,7 @@ class EditStudentSerializer(serializers.Serializer):
     major = serializers.CharField(required=False)
     faculty = serializers.CharField(required=False)
     term = serializers.CharField(required=False)
+    institusi = serializers.CharField(required=False, allow_blank=True)
 
     
     def update(self, instance, validated_data):
@@ -258,6 +261,7 @@ class EditStudentSerializer(serializers.Serializer):
         instance.faculty = validated_data.get('faculty', instance.faculty)
         instance.term = validated_data.get('term', instance.term)
         instance.student_id = validated_data.get('student_id', instance.student_id)
+        instance.institusi = validated_data.get('institusi', instance.institusi)
         user = instance.user
         user.email = validated_data.get('email', user.email)
         user.domisili = validated_data.get('domisili', user.domisili)
