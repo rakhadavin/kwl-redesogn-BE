@@ -28,7 +28,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: ${APP_NAME}
-          image: "${IMAGE_NAME_DEV}:${IMAGE_TAG}"
+          image: "${IMAGE_NAME}:${IMAGE_TAG}"
           imagePullPolicy: Always
           envFrom:
             - secretRef:
