@@ -2,3 +2,18 @@ include:
   - project: 'it-fasilkomui/devops'
     ref: main
     file: '/stacks/django.yml'
+
+deploy-redis:
+  stage: deploy
+  extends: .k8s-deploy
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+  variables:
+    NAMESPACE: "$DEV_NAMESPACE"
+    ENV_FILE: "$DEV_ENV"
+    APP_NAME: "$APP_NAME_DEV"
+    IMAGE_NAME: "$IMAGE_NAME_DEV"
+    IMAGE_TAG: "dev-$CI_PIPELINE_ID"
+  script:
+    - kubectl apply -f deployment-redis.yaml -n "$NAMESPACE"
