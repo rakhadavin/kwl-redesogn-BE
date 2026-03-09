@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${APP_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${APP_NAME}
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/worker
+                    operator: Exists
+
+      hostAliases:
+        - ip: "10.119.105.133"
+          hostnames:
+            - "minio-itf.cs.ui.ac.id"
+      dnsPolicy: ClusterFirst
+      containers:
+        - name: ${APP_NAME}
+          image: "${IMAGE_NAME}:${IMAGE_TAG}"
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: ${APP_NAME}-secret
+          ports:
+            - containerPort: 8042
+          resources:
+            limits:
+              memory: ${LIM_MEM}
+              cpu: ${LIM_CPU}
+            requests:
+              memory: ${REQ_MEM}
+              cpu: ${REQ_CPU}
+      imagePullSecrets:
+        - name: itf-registry
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  ports:
+    - port: 40044
+      targetPort: 8042
+  selector:
+    app: ${APP_NAME}
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - host: ${DOMAIN_NAME_DEV}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ${APP_NAME}
+                port:
+                  number: 40044
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: ${APP_NAME}
+                port:
+                  number: 40044
+  tls:
+    - hosts:
+        - ${DOMAIN_NAME_DEV}
+      secretName: cs12-tls

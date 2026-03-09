@@ -1,32 +1,31 @@
----
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${APP_NAME}-redis
+  name: kowl-dev-redesign-be-redis
   namespace: itfasilkom
 spec:
   ports:
     - port: 6379
   selector:
-    app: ${APP_NAME}-redis
+    app: kowl-dev-redesign-be-redis
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${APP_NAME}-redis
+  name: kowl-dev-redesign-be-redis
   namespace: itfasilkom
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ${APP_NAME}-redis
+      app: kowl-dev-redesign-be-redis
   template:
     metadata:
       labels:
-        app: ${APP_NAME}-redis
+        app: kowl-dev-redesign-be-redis
     spec:
       containers:
-        - name: ${APP_NAME}-redis
+        - name: kowl-dev-redesign-be-redis
           image: redis:6
           ports:
             - containerPort: 6379
