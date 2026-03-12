@@ -229,7 +229,9 @@ class LearnedEssayAnswerView(APIView):
                 answer, answer_created = LearnedReflectionStudentAnswer.objects.get_or_create(learned_ref=learned_reflection, student=student)
                 answer.reflection = reflection
                 answer.save()
-                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned_reflection.learned.topic.course)
+                student_point = RewardStudentPoint.objects.filter(student=student, course=learned_reflection.learned.topic.course).first()
+                if student_point is None:
+                    student_point = RewardStudentPoint.objects.create(student=student, course=learned_reflection.learned.topic.course)
                 kwl_point = KwlPoint.objects.filter(student=student, topic=learned_reflection.learned.topic).first()
                 if kwl_point is None:
                     kwl_point = KwlPoint.objects.create(student=student, topic=learned_reflection.learned.topic)
@@ -266,7 +268,9 @@ class LearnedQuizAnswerView(APIView):
                 learned = Learned.objects.get(topic_id=topic)
                 learned.total_participants += 1
                 learned.save()
-                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned.topic.course)
+                student_point = RewardStudentPoint.objects.filter(student=student, course=learned.topic.course).first()
+                if student_point is None:
+                    student_point = RewardStudentPoint.objects.create(student=student, course=learned.topic.course)
                 kwl_point = KwlPoint.objects.filter(student=student, topic=learned.topic).first()
                 if kwl_point is None:
                     kwl_point = KwlPoint.objects.create(student=student, topic=learned.topic)
