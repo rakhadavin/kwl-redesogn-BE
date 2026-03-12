@@ -222,7 +222,12 @@ class WtkMultipleVoteView(APIView):
                     kwl_created = True
                 else:
                     kwl_created = False
-                reward_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_poll_question.wtk.topic.course)
+                reward_point = RewardStudentPoint.objects.filter(student=student, course=wtk_poll_question.wtk.topic.course).first()
+                if reward_point is None:
+                    reward_point = RewardStudentPoint.objects.create(student=student, course=wtk_poll_question.wtk.topic.course)
+                    reward_created = True
+                else:
+                    reward_created = False
                 
                 student_answer.choices.clear()
                 for choice in choices:
@@ -272,7 +277,12 @@ class WtkEssayAnswerView(APIView):
                 answer.reflection = reflection
                 answer.save()
 
-                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_reflection.wtk.topic.course)
+                student_point = RewardStudentPoint.objects.filter(student=student, course=wtk_reflection.wtk.topic.course).first()
+                if student_point is None:
+                    student_point = RewardStudentPoint.objects.create(student=student, course=wtk_reflection.wtk.topic.course)
+                    reward_created = True
+                else:
+                    reward_created = False
                 kwl_point = KwlPoint.objects.filter(student=student, topic=wtk_reflection.wtk.topic).first()
                 if kwl_point is None:
                     kwl_point = KwlPoint.objects.create(student=student, topic=wtk_reflection.wtk.topic)
