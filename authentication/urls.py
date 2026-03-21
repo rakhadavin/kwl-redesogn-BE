@@ -3,7 +3,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenRefreshView
 )
-from .views import LoginView, RegisterStudentView, StudentDetailView, LogoutView, RegisterTeacherView, LecturerDetailView, ResetPasswordConfirmByTokenView, RequestPasswordResetEmailView, ProviderLoginView, ConsentListView, UserConsentStatusView
+from .views import LoginView, RegisterStudentView, StudentDetailView, LogoutView, RegisterTeacherView, LecturerDetailView, LecturerByPkView, ResetPasswordConfirmByTokenView, RequestPasswordResetEmailView, ProviderLoginView, ConsentListView, UserConsentStatusView
 
 
 urlpatterns = [
@@ -18,6 +18,7 @@ urlpatterns = [
     path('reset-password/<str:token>', ResetPasswordConfirmByTokenView.as_view(), name='reset_password_confirm'),
     path('reset', RequestPasswordResetEmailView.as_view(), name='reset'),
     path('student/all', views.StudentListView.as_view(), name='student_list'),
+    path('lecturer/<int:pk>', LecturerByPkView.as_view(), name='lecturer_by_pk'),
     path('lecturer/all', views.LecturerListView.as_view(), name='lecturer_list'),
     path('consent', ConsentListView.as_view(), name='consent_list'),
     path('consent/status', UserConsentStatusView.as_view(), name='consent_status'),

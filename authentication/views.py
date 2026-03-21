@@ -232,6 +232,19 @@ class StudentDetailView(APIView):
         return Response(str(serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
 
+class LecturerByPkView(APIView):
+    """Get any lecturer by their Lecturer model PK."""
+    permission_classes = [IsAuthenticated,]
+
+    def get(self, request, pk, format=None):
+        try:
+            lecturer = Lecturer.objects.get(pk=pk)
+            serializer = LecturerSerializer(lecturer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Lecturer.DoesNotExist:
+            return Response({"message": "Lecturer not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
 class LecturerDetailView(APIView):
     permission_classes = [IsAuthenticated,]
 
