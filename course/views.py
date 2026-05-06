@@ -701,11 +701,10 @@ class KwlStatusView(APIView):
             for topic in topics:
                 topic_data = {}
                 topic_data['topic_data'] = TopicSerializer(topic).data
-                try:
-                    kwl_point = KwlPoint.objects.get(student=student, topic=topic)
-                    kwl_data = KwlPointSerializer(kwl_point).data
-                    topic_data['kwl_data'] = kwl_data
-                except KwlPoint.DoesNotExist:
+                kwl_point = KwlPoint.objects.filter(student=student, topic=topic).first()
+                if kwl_point:
+                    topic_data['kwl_data'] = KwlPointSerializer(kwl_point).data
+                else:
                     topic_data['kwl_data'] = "kosong"
 
                 topics_data.append(topic_data)
@@ -727,7 +726,9 @@ class KwlPointView(APIView):
         try:
             student = Student.objects.get(pk=student_id)
             topic = Topic.objects.get(pk=topic_id)
-            kwl_points = KwlPoint.objects.get(student=student, topic=topic)
+            kwl_points = KwlPoint.objects.filter(student=student, topic=topic).first()
+            if not kwl_points:
+                raise KwlPoint.DoesNotExist
             serializer = KwlPointSerializer(kwl_points)
             return Response(serializer.data)
         except Student.DoesNotExist:

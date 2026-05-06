@@ -216,8 +216,18 @@ class WtkMultipleVoteView(APIView):
                 wtk_poll_question = WtkPollQuestion.objects.get(wtk__topic_id=topic)
                 student_answer, answer_created = WtkPollStudentAnswer.objects.get_or_create(wtk_poll=wtk_poll_question, student=student)
 
-                kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_poll_question.wtk.topic)
-                reward_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_poll_question.wtk.topic.course)
+                kwl_point = KwlPoint.objects.filter(student=student, topic=wtk_poll_question.wtk.topic).first()
+                if kwl_point is None:
+                    kwl_point = KwlPoint.objects.create(student=student, topic=wtk_poll_question.wtk.topic)
+                    kwl_created = True
+                else:
+                    kwl_created = False
+                reward_point = RewardStudentPoint.objects.filter(student=student, course=wtk_poll_question.wtk.topic.course).first()
+                if reward_point is None:
+                    reward_point = RewardStudentPoint.objects.create(student=student, course=wtk_poll_question.wtk.topic.course)
+                    reward_created = True
+                else:
+                    reward_created = False
                 
                 student_answer.choices.clear()
                 for choice in choices:
@@ -267,8 +277,18 @@ class WtkEssayAnswerView(APIView):
                 answer.reflection = reflection
                 answer.save()
 
-                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=wtk_reflection.wtk.topic.course)
-                kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=wtk_reflection.wtk.topic)
+                student_point = RewardStudentPoint.objects.filter(student=student, course=wtk_reflection.wtk.topic.course).first()
+                if student_point is None:
+                    student_point = RewardStudentPoint.objects.create(student=student, course=wtk_reflection.wtk.topic.course)
+                    reward_created = True
+                else:
+                    reward_created = False
+                kwl_point = KwlPoint.objects.filter(student=student, topic=wtk_reflection.wtk.topic).first()
+                if kwl_point is None:
+                    kwl_point = KwlPoint.objects.create(student=student, topic=wtk_reflection.wtk.topic)
+                    kwl_created = True
+                else:
+                    kwl_created = False
                 
                 kwl_point.kwl_status = 'wtk'
                 kwl_point.wtk_score = wtk_reflection.score
