@@ -229,8 +229,12 @@ class LearnedEssayAnswerView(APIView):
                 answer, answer_created = LearnedReflectionStudentAnswer.objects.get_or_create(learned_ref=learned_reflection, student=student)
                 answer.reflection = reflection
                 answer.save()
-                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned_reflection.learned.topic.course)
-                kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=learned_reflection.learned.topic)
+                student_point = RewardStudentPoint.objects.filter(student=student, course=learned_reflection.learned.topic.course).first()
+                if student_point is None:
+                    student_point = RewardStudentPoint.objects.create(student=student, course=learned_reflection.learned.topic.course)
+                kwl_point = KwlPoint.objects.filter(student=student, topic=learned_reflection.learned.topic).first()
+                if kwl_point is None:
+                    kwl_point = KwlPoint.objects.create(student=student, topic=learned_reflection.learned.topic)
                 kwl_point.kwl_status = 'learned'
                 kwl_point.learned_score = learned_reflection.score
                 learned_reflection.learned.total_participants += 1
@@ -264,8 +268,12 @@ class LearnedQuizAnswerView(APIView):
                 learned = Learned.objects.get(topic_id=topic)
                 learned.total_participants += 1
                 learned.save()
-                student_point, reward_created = RewardStudentPoint.objects.get_or_create(student=student, course=learned.topic.course)
-                kwl_point, kwl_created = KwlPoint.objects.get_or_create(student=student, topic=learned.topic)
+                student_point = RewardStudentPoint.objects.filter(student=student, course=learned.topic.course).first()
+                if student_point is None:
+                    student_point = RewardStudentPoint.objects.create(student=student, course=learned.topic.course)
+                kwl_point = KwlPoint.objects.filter(student=student, topic=learned.topic).first()
+                if kwl_point is None:
+                    kwl_point = KwlPoint.objects.create(student=student, topic=learned.topic)
                 kwl_point.kwl_status = 'learned'
                 
                 for answer_pk in answers:

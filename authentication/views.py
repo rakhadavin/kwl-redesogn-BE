@@ -470,7 +470,6 @@ def get_keycloak_public_keys():
             jwks = response.json()
             keys = jwks.get('keys', [])
             
-            # Cache the keys for the configured timeout
             cache.set(cache_key, keys, settings.KEYCLOAK_KEYS_CACHE_TIMEOUT)
             print(f"Cached {len(keys)} Keycloak public keys")
             
@@ -572,36 +571,52 @@ class ProviderLoginView(APIView):
                 if not user_info:
                     return Response({'error': 'Invalid Keycloak token'}, status=status.HTTP_401_UNAUTHORIZED)
                 
-            try:
-                if data['provider'] == 'google':
-                    user = KwlUser.objects.get(google_id=user_info.get('id'))
-                elif data['provider'] == 'keycloak':
-                    user = KwlUser.objects.get(keycloak_id=user_info.get('sub'))
-                else:
-                    user = KwlUser.objects.get(email=user_info['email'])
-            except KwlUser.DoesNotExist:
-                first_name = user_info.get('given_name', '')
-                last_name = user_info.get('family_name', '')
-                
-                extra_fields = {}
-                if data['provider'] == 'google':
-                    extra_fields['google_id'] = user_info.get('id')
-                    username = user_info['email'].replace('@gmail.com', '')
-                elif data['provider'] == 'keycloak':
-                    extra_fields['keycloak_id'] = user_info.get('sub')
-                    username = user_info.get('preferred_username', user_info['email'])
+            user = None
 
-                user = KwlUser.objects.create_user(
-                    username=username,
-                    email=user_info['email'],
-                    first_name=first_name,
-                    last_name=last_name,
-                    **extra_fields
-                )
+            if data['provider'] == 'google':
+                user = KwlUser.objects.filter(google_id=user_info.get('id')).first()
+                if not user:
+                    user = KwlUser.objects.filter(email=user_info['email']).first()
+                    if user:
+                        user.google_id = user_info.get('id')
+                        user.save(update_fields=['google_id'])
+                if not user:
+                    username = user_info['email'].replace('@gmail.com', '')
+                    user = KwlUser.objects.create_user(
+                        username=username,
+                        email=user_info['email'],
+                        first_name=user_info.get('given_name', ''),
+                        last_name=user_info.get('family_name', ''),
+                        google_id=user_info.get('id'),
+                    )
+
+            elif data['provider'] == 'keycloak':
+                keycloak_sub = user_info.get('sub')
+                keycloak_username = user_info.get('preferred_username', user_info.get('email', ''))
+                user = KwlUser.objects.filter(keycloak_id=keycloak_sub).first()
+                if not user:
+                    user = KwlUser.objects.filter(username=keycloak_username).first() or \
+                           KwlUser.objects.filter(email=user_info.get('email', '')).first()
+                    if user:
+                        user.keycloak_id = keycloak_sub
+                        user.save(update_fields=['keycloak_id'])
+                if not user:
+                    user = KwlUser.objects.create_user(
+                        username=keycloak_username,
+                        email=user_info.get('email', ''),
+                        first_name=user_info.get('given_name', ''),
+                        last_name=user_info.get('family_name', ''),
+                        keycloak_id=keycloak_sub,
+                    )
+
+            else:
+                user = KwlUser.objects.filter(email=user_info['email']).first()
             
-            if user is not None:
-                tokens = get_tokens_for_user(user)
-                return Response(data={"message": "Login Success", "data": tokens}, status=status.HTTP_200_OK)
+            if user is None:
+                return Response({'error': 'User not found and could not be created'}, status=status.HTTP_401_UNAUTHORIZED)
+
+            tokens = get_tokens_for_user(user)
+            return Response(data={"message": "Login Success", "data": tokens}, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(data = {"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
