@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:15
+    container_name: kwl-postgres
+    environment:
+      POSTGRES_DB: kwl_db_docker
+      POSTGRES_USER: kwl_user
+      POSTGRES_PASSWORD: kwl_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - kwl_postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: kwl-backend
+    env_file:
+      - .env
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_NAME: kwl_db_docker
+      DATABASE_USER: kwl_user
+      DATABASE_PASSWORD: kwl_password
+    depends_on:
+      - db
+
+volumes:
+  kwl_postgres_data:

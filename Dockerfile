@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim-bookworm-0p
 
 WORKDIR /usr/src/app
 COPY . .
@@ -49,4 +49,4 @@ COPY ./start.sh /start.sh
 RUN chmod +x /start.sh
 
 EXPOSE 8042
-CMD ["/start.sh"]
+CMD ["./start.sh"]
