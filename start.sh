@@ -1,5 +1,10 @@
 #!/bin/bash
+nano start.sh
+set -e
 
+# Create required folders
+mkdir -p /usr/src/app/app_logs
+mkdir -p /var/log/supervisor
 set -e
 # Create logs folder if not exists
 mkdir -p app_logs    ← add this line!
