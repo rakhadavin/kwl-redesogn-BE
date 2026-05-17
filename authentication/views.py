@@ -133,6 +133,7 @@ class ConsentListView(APIView):
 
 class UserConsentStatusView(APIView):
     """Check and submit consent for the logged-in user."""
+    print("UserConsentStatusView loaded")  # Debug statement to confirm view is loaded
     permission_classes = [IsAuthenticated,]
 
     @swagger_auto_schema(
