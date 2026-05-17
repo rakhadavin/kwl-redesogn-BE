@@ -1,7 +1,8 @@
 #!/bin/bash
 
 set -e
-
+# Create logs folder if not exists
+mkdir -p app_logs    ← add this line!
 LOGFILE=app_logs/django_startup.log
 
 echo ">> Starting Django setup..." | tee -a $LOGFILE
