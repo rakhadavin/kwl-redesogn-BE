@@ -1,31 +1,23 @@
 #!/bin/bash
-nano start.sh
 set -e
 
 # Create required folders
 mkdir -p /usr/src/app/app_logs
 mkdir -p /var/log/supervisor
-set -e
-# Create logs folder if not exists
-mkdir -p app_logs    ← add this line!
-LOGFILE=app_logs/django_startup.log
 
-echo ">> Starting Django setup..." | tee -a $LOGFILE
+echo ">> Starting Django setup..."
 
-python manage.py showmigrations | tee -a $LOGFILE
-echo ">> showmigrations done" | tee -a $LOGFILE
+python manage.py showmigrations
+echo ">> showmigrations done"
 
-python manage.py makemigrations --noinput | tee -a $LOGFILE
-echo ">> makemigrations done" | tee -a $LOGFILE
+python manage.py migrate --noinput
+echo ">> migrate done"
 
-python manage.py migrate --noinput | tee -a $LOGFILE
-echo ">> migrate done" | tee -a $LOGFILE
+python manage.py createcachetable
+echo ">> createcachetable done"
 
-python manage.py createcachetable | tee -a $LOGFILE
-echo ">> createcachetable done" | tee -a $LOGFILE
-
-python manage.py collectstatic --noinput | tee -a $LOGFILE
-echo ">> collectstatic done" | tee -a $LOGFILE
+python manage.py collectstatic --noinput
+echo ">> collectstatic done"
 
 if python manage.py showmigrations | grep -q data; then
   python manage.py loaddata data
@@ -33,10 +25,5 @@ else
   echo ">> no data fixture, skipping loaddata"
 fi
 
-# echo "✅ Django setup complete. Starting Uvicorn..." | tee -a $LOGFILE
-
-# exec uvicorn kwl.asgi:application --host 0.0.0.0 --port 8042
-
-echo "✅ Django setup complete. Starting Supervisor..." | tee -a $LOGFILE
-
-exec supervisord -c /usr/src/app/supervisord.conf
+echo "✅ Django setup complete. Starting Uvicorn..."
+exec uvicorn kwl.asgi:application --host 0.0.0.0 --port 8042
