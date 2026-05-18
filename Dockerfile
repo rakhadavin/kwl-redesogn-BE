@@ -45,6 +45,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Jakarta /etc/localtime && \
     echo "Asia/Jakarta" > /etc/timezone
 
 COPY ./supervisord.conf /usr/src/app/supervisord.conf
+
 COPY ./start.sh /start.sh
 RUN chmod +x /start.sh
 
