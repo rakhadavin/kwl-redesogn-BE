@@ -44,7 +44,8 @@ ALLOWED_HOSTS = [
         os.getenv("FRONTEND_URL"),
         os.getenv("BACKEND_URL"),
     ] if host is not None
-] + ['localhost', '127.0.0.1', 'be-kwl-dev.cs.ui.ac.id']
+] + ['localhost', '127.0.0.1', 'be-kwl-dev.cs.ui.ac.id', ".railway.app",
+    ".up.railway.app",]
 
 CSRF_TRUSTED_ORIGINS = [
     f"https://{url.lstrip('https://').lstrip('http://')}" for url in [
